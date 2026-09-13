@@ -457,7 +457,7 @@ if (modoMiniaturas) {
     const { w, h } = mini.lienzo ?? { w: 480, h: 360 };
     const meta = await page.evaluate(prepararEscena, {
       escena: serializarEscena(mini),
-      vista: VISTA,
+      vista: mini.vista ?? VISTA,
       W: w, H: h, S: SUPERMUESTREO,
       tornilleria: serializarRegex(TORNILLERIA),
       material: MATERIAL,

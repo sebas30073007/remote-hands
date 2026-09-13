@@ -1,44 +1,29 @@
 ---
-title: "Electrónica — Módulo Puente H"
-description: PCB de diseño propio con ESP32-C3 para el control de motores DC de tracción, con aislamiento óptico y arquitectura maestro-esclavo por I²C. Incluye archivos de fabricación, lista de materiales y procedimiento de ensamble.
+title: Puente H
+description: La placa que mueve los motores DC de tracción — qué es, cómo funciona, cómo se conecta, su PCB y su firmware.
+# Tres bloques grandes en el índice de la página: Sinopsis, PCB y Firmware.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
+import { ParameterTable, InterfaceTable, Artifact, SignalChain } from '@project';
 
-El módulo Puente H es una tarjeta de control de motor DC de **diseño
-propio**. Usa una topología de puente H discreto, con aislamiento óptico
-entre la lógica y la potencia, y un ESP32-C3 embebido que gestiona los modos
-de comunicación. El robot lleva dos, uno por motor de tracción.
+<figure>
+  <img src="/images/3d/portada-puente-h.webp" alt="Módulo Puente H de frente: ESP32-C3, MOSFETs con disipador, capacitor de filtrado y borneras" />
+</figure>
 
-<ReplicationLevel
-  level="buildable"
-  provides={[
-    'Gerbers verificados (13 archivos, incluye taladros PTH) listos para pedido',
-    'Proyecto KiCad 9 completo: esquemático, layout y librerías',
-    'Lista de materiales con designadores, cantidades y encapsulados',
-    'Archivo de posiciones y designadores para ensamble automatizado',
-    'Firmware MicroPython funcional y protocolo de comando documentado',
-    'Datasheet propio de la placa',
-  ]}
-  missing={[
-    'Valor exacto de los diodos Zener D4–D7: el diseño usa el símbolo genérico 1N47xxA y no fija la tensión (ver «Lista de materiales»)',
-    'Números de parte de proveedor: la columna LCSC del BOM está vacía, así que la compra hay que resolverla por encapsulado y valor',
-    'Plantilla de stencil para pasta de soldadura, si se quiere ensamblar por reflow en vez de a mano',
-  ]}
-/>
+El Puente H es la placa que mueve los motores de tracción del robot. Recibe
+una consigna de velocidad y la convierte en la potencia que llega al motor.
+El robot lleva dos, uno por motor.
 
-## Requisitos de diseño
+## Sinopsis
 
-El driver de motor debía:
+### Qué es
 
-- Controlar motores DC de 12–24 V, corriente continua ~4 A.
-- Soportar modos de comunicación múltiples (I²C, WiFi, BLE, UART).
-- Encadenarse en arquitectura maestro-esclavo (daisy chain I²C).
-- Arrancar en estado seguro (`DISARMED`) para evitar movimientos no
-  deseados.
-- Ser compacto y replicable con componentes de catálogo.
-
-## Arquitectura del circuito
+Una tarjeta de control de motor DC de **diseño propio**. Usa una topología de
+puente H discreto, con aislamiento óptico entre la lógica y la potencia, y un
+**ESP32-C3** que gestiona los modos de comunicación.
 
 <ParameterTable
   caption="Características eléctricas"
@@ -68,7 +53,32 @@ El driver de motor debía:
 5. **Protección e indicación** — fusible de entrada, capacitor de filtrado,
    LEDs de estado, botón local.
 
-### Tabla funcional del puente H
+### Cómo funciona
+
+Al encender, la placa lee su DIP switch **una sola vez**, y esa lectura fija
+por dónde recibe las órdenes: I²C como maestro o esclavo, WiFi, BLE o
+Bluetooth clásico. En el robot, un módulo arranca como maestro y el otro como
+esclavo. Por USB-C acepta órdenes siempre, sea cual sea el modo.
+
+#### Modos de operación (DIP switch)
+
+| SW3 | SW2 | SW1 | Modo | Descripción |
+| --- | --- | --- | --- | --- |
+| 0 | 0 | 0 | Prueba local | Validación interna; rutina activable por botón |
+| 0 | 0 | 1 | WiFi | Recibe comandos por red inalámbrica |
+| 0 | 1 | 0 | BLE | Bluetooth Low Energy |
+| 0 | 1 | 1 | HC-05 | Bluetooth clásico por UART externo |
+| 1 | 0 | 0 | I²C Maestro | Nodo maestro en arquitectura distribuida |
+| 1 | 0 | 1 | I²C Slave 1 | Esclavo 1 (dirección reservada) |
+| 1 | 1 | 0 | I²C Slave 2 | Esclavo 2 (dirección reservada) |
+| 1 | 1 | 1 | I²C Slave 3 | Esclavo 3 (dirección reservada) |
+
+La placa arranca con la salida al motor deshabilitada, y solo la habilita
+tras una orden explícita de armado. Para mover el motor activa una de las dos
+diagonales del puente con PWM: una diagonal gira en un sentido, la otra en el
+contrario.
+
+#### Tabla funcional del puente H
 
 `PWM_0 = 1` y `PWM_1 = 1` simultáneamente está **prohibido**: provoca
 cortocircuito entre rieles de potencia.
@@ -80,11 +90,47 @@ cortocircuito entre rieles de potencia.
 | 0 | 1 | Giro B | Activa diagonal B; combinable con PWM |
 | 1 | 1 | **Prohibido** | Riesgo de cortocircuito |
 
-## Fabricación de la PCB
+### Conexiones
 
-La placa se diseñó en KiCad 9 y se fabricó en JLCPCB. Los valores de abajo
-están leídos del archivo de layout, no transcritos: son los que hay que
-declarar al pedir la placa.
+De la NUC a las ruedas. El maestro recibe las órdenes por USB y reenvía la
+suya al esclavo por I²C; cada módulo mueve su propio motor.
+
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' },
+    { nombre: 'Puente H maestro', detalle: 'ESP32-C3 · DIP 100', imagen: '/images/3d/puente-h.webp' },
+    { nombre: 'Puente H esclavo', detalle: 'ESP32-C3 · I²C 0x08', imagen: '/images/3d/puente-h.webp' },
+    { nombre: 'Motores DC de tracción', detalle: 'base diferencial · 12–24 V', imagen: '/images/3d/base-diferencial.webp' },
+  ]}
+  enlaces={['USB-CDC · COM4', 'I²C 0x08 · tramas binarias', 'Salida al motor · uno por módulo']}
+/>
+
+<InterfaceTable
+  caption="Conectores de la placa"
+  columns={['Conector', 'Pines', 'Descripción']}
+  rows={[
+    ['Entrada de potencia', '2', 'Entrada principal de 12–24 V DC'],
+    ['Salida al motor', '2', 'Terminales del puente H hacia la carga'],
+    ['Data_in I²C', '4', '+5V, SDA, SCL, GND — recibe el bus desde el maestro'],
+    ['Data_out I²C', '4', 'Réplica del bus para encadenar el siguiente módulo'],
+    ['Header HC-05', '6', '+5V, GND, RX, TX — Bluetooth clásico o debug UART'],
+    ['USB-C (ESP32-C3)', '—', 'Programación, alimentación digital y debug prioritario'],
+  ]}
+/>
+
+<figure>
+  <img src="/images/build/caja-elevacion-interior-electronica.webp" alt="Interior de la caja de elevación con los módulos Puente H montados" />
+  <figcaption>Los dos módulos alojados dentro de la estructura metálica que eleva el manipulador, sobre soportes impresos y sin cajas externas.</figcaption>
+</figure>
+
+## PCB
+
+### La placa
+
+Se diseñó en KiCad 9 y se fabricó en JLCPCB. Los valores de abajo están
+leídos del archivo de layout, no transcritos: son los que hay que declarar al
+pedir la placa.
 
 <ParameterTable
   caption="Especificación de fabricación"
@@ -98,15 +144,6 @@ declarar al pedir la placa.
   ]}
 />
 
-<Artifact href="/pcb/puente-h/gerbers.zip" name="Gerbers de fabricación — Puente H" />
-<Artifact href="/pcb/puente-h/kicad-proyecto.zip" name="Proyecto KiCad completo — Puente H" />
-<Artifact href="/datasheets/datasheet_puente_h_esp32c3.pdf" name="Datasheet Puente H ESP32-C3" />
-
-Para pedir la placa basta subir `gerbers.zip` tal cual al fabricante y dejar
-los parámetros por defecto de dos capas: el espesor de 1,6 mm y el acabado
-estándar son los que se usaron. El ZIP incluye los taladros PTH, así que no
-hay que exportar nada aparte.
-
 <figure>
   <img src="/images/esquematico-puente-h.png" alt="Esquemático del Puente H en KiCad" />
   <figcaption>ESP32-C3, optoacopladores 4N25, MOSFETs IRF540N/IRF9540N, conectores de potencia e I²C.</figcaption>
@@ -117,14 +154,19 @@ hay que exportar nada aparte.
   <figcaption>El ruteo separa los planos de potencia —pistas de 2,0 mm— de las señales lógicas del microcontrolador.</figcaption>
 </figure>
 
-### Lista de materiales
+Para pedir la placa basta subir `gerbers.zip` tal cual al fabricante y dejar
+los parámetros por defecto de dos capas: el espesor de 1,6 mm y el acabado
+estándar son los que se usaron. El ZIP incluye los taladros PTH, así que no
+hay que exportar nada aparte.
 
-54 componentes en 21 referencias distintas. La tabla está ordenada por
-función, no por designador, porque el orden que importa al replicar es el de
-la compra.
+<Artifact href="/pcb/puente-h/gerbers.zip" name="Gerbers de fabricación — Puente H" />
+<Artifact href="/pcb/puente-h/kicad-proyecto.zip" name="Proyecto KiCad completo — Puente H" />
+<Artifact href="/datasheets/datasheet_puente_h_esp32c3.pdf" name="Datasheet Puente H ESP32-C3" />
 
-<Artifact href="/pcb/puente-h/bom.csv" name="BOM — Puente H (CSV)" />
-<Artifact href="/pcb/puente-h/positions.csv" name="Posiciones para ensamble — Puente H (CSV)" />
+#### Lista de materiales
+
+54 componentes en 21 referencias distintas, ordenados por función: el orden
+que importa al replicar es el de la compra.
 
 <InterfaceTable
   caption="Lista de materiales — módulo Puente H"
@@ -164,38 +206,19 @@ Dos advertencias antes de comprar:
   una elección registrada en el diseño, así que hay que confirmar la tensión
   contra la placa física antes de pedir.
 - **La columna `LCSC Part #` del BOM está vacía.** No hay números de parte de
-  proveedor, así que la compra se resuelve por valor y encapsulado. Para el
-  ensamble automatizado de JLCPCB habría que rellenarla primero.
+  proveedor, así que la compra se resuelve por valor y encapsulado.
 
-## Ensamble
+<Artifact href="/pcb/puente-h/bom.csv" name="Lista de materiales — Puente H (CSV)" />
+<Artifact href="/pcb/puente-h/positions.csv" name="Posiciones para ensamble — Puente H (CSV)" />
+
+#### Ensamble
 
 La placa mezcla SMD 1206 con componentes de orificio pasante voluminosos
 —MOSFETs TO-220, capacitor radial de 16 mm, borneras—, así que el ensamble
-manual es viable y fue el que se usó.
+manual es viable y fue el que se usó. El orden va de menor a mayor altura,
+para que un componente alto no estorbe el acceso a uno bajo:
 
-<figure>
-  <img
-    src="/images/manufactura-jlcpcb-puente-h.png"
-    alt="Vista de manufactura de JLCPCB del módulo Puente H"
-  />
-  <figcaption>Vista de manufactura que devuelve JLCPCB al subir los Gerbers: la última revisión antes de pagar el lote.</figcaption>
-</figure>
-
-<figure>
-  <img src="/images/build/pcb-puente-h-soldada.webp" alt="PCB del Puente H recién soldada" />
-  <figcaption>Placa recién soldada, antes de la instalación en el robot.</figcaption>
-</figure>
-
-<figure>
-  <img src="/images/build/pcb-puente-h-detalle.webp" alt="Detalle de la PCB del Puente H con ESP32-C3, DIP switch y conectores I²C" />
-  <figcaption>ESP32-C3 SuperMini, conector I²C etiquetado (5 V, SDA, SCL, GND), borneras y DIP switch de selección de modo.</figcaption>
-</figure>
-
-El orden de montaje va de menor a mayor altura, que es la práctica estándar
-para soldadura manual y la que evita que un componente alto estorbe el acceso
-a uno bajo:
-
-1. Resistencias y capacitores 1206, y los LED. Son los más planos.
+1. Resistencias y capacitores 1206, y los LED.
 2. Optoacopladores 4N25 en sus zócalos DIP-6. Respeta la marca de pin 1.
 3. Zener D4–D7 y los puentes J1–J4.
 4. Módulo ESP32-C3 SuperMini.
@@ -208,37 +231,11 @@ entre los rieles de alimentación y masa: un corto ahí es el fallo que la
 topología de puente H castiga más rápido.
 
 <figure>
-  <img src="/images/build/caja-elevacion-interior-electronica.webp" alt="Interior de la caja de elevación con los módulos Puente H montados" />
-  <figcaption>Los dos módulos Puente H alojados dentro de la estructura metálica que eleva el manipulador, sobre soportes impresos y sin cajas externas.</figcaption>
+  <img src="/images/build/pcb-puente-h-detalle.webp" alt="Detalle de la PCB del Puente H con ESP32-C3, DIP switch y conectores I²C" />
+  <figcaption>ESP32-C3 SuperMini, conector I²C etiquetado (5 V, SDA, SCL, GND), borneras y DIP switch de selección de modo.</figcaption>
 </figure>
 
-## Configuración
-
-### Modos de operación (DIP switch)
-
-<figure>
-  <img
-    src="/images/puente-h-instalacion.png"
-    alt="Módulo Puente H instalado en la estructura del robot"
-  />
-  <figcaption>El módulo ya instalado en la estructura, con el cableado de potencia y el bus I²C conectados.</figcaption>
-</figure>
-
-El estado del DIP switch se lee **únicamente al encender** y fija el modo de
-operación.
-
-| SW3 | SW2 | SW1 | Modo | Descripción |
-| --- | --- | --- | --- | --- |
-| 0 | 0 | 0 | Prueba local | Validación interna; rutina activable por botón |
-| 0 | 0 | 1 | WiFi | Recibe comandos por red inalámbrica |
-| 0 | 1 | 0 | BLE | Bluetooth Low Energy |
-| 0 | 1 | 1 | HC-05 | Bluetooth clásico por UART externo |
-| 1 | 0 | 0 | I²C Maestro | Nodo maestro en arquitectura distribuida |
-| 1 | 0 | 1 | I²C Slave 1 | Esclavo 1 (dirección reservada) |
-| 1 | 1 | 0 | I²C Slave 2 | Esclavo 2 (dirección reservada) |
-| 1 | 1 | 1 | I²C Slave 3 | Esclavo 3 (dirección reservada) |
-
-### Asignación de pines ESP32-C3
+### Asignación de pines
 
 | Señal | GPIO | Función |
 | --- | --- | --- |
@@ -251,27 +248,12 @@ operación.
 | `S0`, `S1`, `S2` | GPIO1, GPIO3, GPIO4 | Lectura del DIP switch |
 | `BTN` | GPIO5 | Botón local (pull-up interno) |
 
-### Conectores externos
-
-<InterfaceTable
-  caption="Conectores físicos del módulo Puente H"
-  columns={['Conector', 'Pines', 'Descripción']}
-  rows={[
-    ['Entrada de potencia', '2', 'Entrada principal de 12–24 V DC'],
-    ['Salida al motor', '2', 'Terminales del puente H hacia la carga'],
-    ['Data_in I²C', '4', '+5V, SDA, SCL, GND — recibe el bus desde el maestro'],
-    ['Data_out I²C', '4', 'Réplica del bus para encadenar el siguiente módulo'],
-    ['Header HC-05', '6', '+5V, GND, RX, TX — Bluetooth clásico o debug UART'],
-    ['USB-C (ESP32-C3)', '—', 'Programación, alimentación digital y debug prioritario'],
-  ]}
-/>
-
 ## Firmware
 
-MicroPython sobre el ESP32-C3. Acepta comandos por USB-C (canal prioritario
-siempre activo) o por el medio seleccionado con el DIP switch.
+MicroPython sobre el ESP32-C3. Acepta comandos por USB-C —canal prioritario,
+siempre activo— o por el medio seleccionado con el DIP switch.
 
-<Artifact href="/firmware/main_movil_final.py" name="main_movil_final.py" />
+<Artifact href="/firmware/main_movil_final.py" name="Firmware — main_movil_final.py" />
 
 Para cargarlo: instala el intérprete de MicroPython para ESP32-C3 en el
 módulo, copia el archivo como `main.py` en su sistema de archivos y
@@ -295,11 +277,11 @@ La salida al motor permanece deshabilitada en `DISARMED`. Pasar a `ARMED`
 exige un comando explícito, así que el robot no puede moverse por accidente
 al encenderse ni al reconectarse.
 
-### Protocolo I²C binario — tramas de 7 bytes
+### Protocolo I²C binario
 
-En los modos maestro/esclavo, todos los comandos al Puente H viajan como
-paquetes binarios de longitud fija. El maestro construye la trama; los
-esclavos la validan antes de ejecutar.
+En los modos maestro y esclavo, todos los comandos al Puente H viajan como
+paquetes binarios de 7 bytes. El maestro construye la trama; los esclavos la
+validan antes de ejecutar.
 
 | Byte | Campo | Descripción |
 | --- | --- | --- |
@@ -324,24 +306,3 @@ Ningún cambio de velocidad es instantáneo. El duty cycle sube o baja 1 %
 cada 20 ms hasta alcanzar la consigna, con un techo de 70 %. Pasar de 0 % a
 velocidad máxima toma por tanto 1,4 s como mínimo, y esa rampa es la que
 limita las corrientes de arranque y el estrés mecánico sobre los motores DC.
-
-## Verificación
-
-El módulo pasó por dos etapas físicas antes de la versión final: prototipo en
-protoboard y placa fabricada.
-
-<figure>
-  <img src="/images/build/puente-h-prototipo-protoboard.webp" alt="Prototipo del puente H armado en protoboard" />
-  <figcaption>Prototipo en protoboard, donde se validó la topología antes de rutear la placa.</figcaption>
-</figure>
-
-<figure>
-  <img src="/images/build/puente-h-prototipo-temperatura.webp" alt="Medición de temperatura sobre el prototipo del puente H" />
-  <figcaption>Medición térmica sobre el prototipo: máximo registrado de 61 °C en los MOSFETs bajo carga.</figcaption>
-</figure>
-
-El módulo acumula cinco resultados de prueba: temperatura de los MOSFETs en
-protoboard y bajo carga continua, movimiento diferencial en superficie
-plana, respuesta a los comandos de dirección y control remoto extremo a
-extremo. El detalle de cada uno está en [Verificación del robot
-móvil](/sistema/subsistemas/robot-movil/verificacion/).

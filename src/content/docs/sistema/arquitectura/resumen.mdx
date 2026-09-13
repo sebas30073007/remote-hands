@@ -3,21 +3,28 @@ title: Sistema
 description: Cómo se dividen las responsabilidades entre el operador, la NUC coordinadora y los controladores embebidos de Remote Hands.
 ---
 
+import { SignalChain } from '@project';
+
 El sistema tiene dos elementos principales: **el robot móvil con
 manipulador** y **la aplicación XR en Meta Quest**. Desde los lentes, el
 operador maneja el robot, consulta los sensores y elige qué datos quiere
 recibir. Esa última capacidad importa: el robot solo transmite lo que el
 operador pidió, en lugar de saturar la red con todo lo que produce.
 
-<figure>
-  <img src="/images/3d/sistema.webp" alt="La Meta Quest 3 con sus controles, y el robot manipulador junto a su NUC" />
-  <figcaption>
-    El visor del operador y el robot con su NUC. Se comunican por ZMQ sobre
-    WiFi: el visor manda las articulaciones (`q1`, `q2`, `qb`) y el movimiento
-    de la base (`±255, ±255`); el robot devuelve video de 740 × 680 px y el
-    LiDAR a 100 × 100 px.
-  </figcaption>
-</figure>
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'Meta Quest 3', detalle: 'interfaz de usuario', imagen: '/images/3d/meta-quest-3.webp' },
+    { nombre: 'Robot', detalle: 'manipulación móvil', imagen: '/images/3d/robot.webp' },
+  ]}
+  enlaces={[
+    {
+      medio: 'ZMQ por WiFi',
+      vuelta: 'Video 740 × 680 px · LiDAR 100 × 100 px',
+      ida: 'Joints = [q1, q2, qb] · Mov = [±255, ±255]',
+    },
+  ]}
+/>
 
 La **NUC actúa como coordinador** del sistema. Los demás subsistemas
 ejecutan las tareas de bajo nivel: control de motores, PWM, rampas, señales

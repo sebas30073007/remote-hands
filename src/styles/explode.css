@@ -423,6 +423,10 @@
   pointer-events: none;
 }
 
+.c-xnav__rotulo:empty {
+  display: none;
+}
+
 .c-xnav__rotulo.is-pieza {
   color: var(--text);
   font-weight: 600;

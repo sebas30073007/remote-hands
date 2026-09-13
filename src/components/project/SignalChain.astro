@@ -1,16 +1,18 @@
 ---
 /**
- * Cadena de señal: del operador al motor, un eslabón por componente.
+ * Diagrama de conexiones — el estándar del sitio para mostrar qué se conecta
+ * con qué y por dónde.
  *
- * Sustituye al diagrama en texto (`Meta Quest ─▶ NUC ─▶ …`). Cada eslabón
- * lleva la miniatura 3D del componente —la misma cámara y los mismos
- * materiales que la vista explosionada, así el lector reconoce la pieza que
- * acaba de señalar en el panel— y cada tramo, el medio por el que viaja la
- * orden: puerto, bus, dirección, señales.
+ * Cada componente es una tarjeta con su render 3D grande y, debajo, su
+ * nombre y un dato técnico. Entre tarjetas va el tramo: una flecha con el
+ * medio por el que viaja la información (puerto, bus, dirección, señales).
+ * Las imágenes son las mismas miniaturas de `scripts/render-explode.mjs`, así
+ * el lector reconoce la pieza que acaba de señalar en el panel.
  *
- * Vertical a propósito: una cadena de seis componentes no cabe en
- * horizontal en la columna de contenido, y se lee de arriba abajo, en el
- * mismo sentido que la orden.
+ * Sirve para cadenas (del operador al motor, en el Controlador CL57T) y
+ * para enlaces entre dos partes (visor ⇄ robot, en Sistema). Pensado para
+ * reutilizarse en cualquier página que explique conexiones: la NUC con sus
+ * sensores y placas, un Puente H con su motor…
  *
  * Uso:
  * <SignalChain
@@ -18,9 +20,20 @@
  *   enlaces={['Serial · COM4', …]}
  * />
  *
- * `enlaces` va ENTRE pasos consecutivos: siempre uno menos que pasos. Un
- * enlace vacío dibuja la flecha sin rótulo.
+ * `enlaces` va ENTRE pasos consecutivos: siempre uno menos que pasos. Cada
+ * enlace es:
+ *  - un texto: flecha hacia el paso siguiente con ese rótulo (vacío: sin
+ *    rótulo);
+ *  - o `{ medio, ida, vuelta }` para un enlace en los dos sentidos: `medio`
+ *    es el canal, `ida` lo que viaja hacia el paso siguiente y `vuelta` lo
+ *    que regresa.
+ *
+ * `porFila` (3 por defecto) fija cuántas tarjetas caben por fila; cuando la
+ * cadena sigue en la fila de abajo, el tramo de cambio de fila ocupa todo el
+ * ancho. En pantalla estrecha todo se apila en una columna.
  */
+type Enlace = string | { medio?: string; ida?: string; vuelta?: string };
+
 interface Paso {
   nombre: string;
   /** Qué corre o qué es, en mono: dato técnico. */
@@ -31,11 +44,12 @@ interface Paso {
 
 interface Props {
   pasos: Paso[];
-  enlaces: string[];
+  enlaces: Enlace[];
+  porFila?: number;
   caption?: string;
 }
 
-const { pasos, enlaces, caption } = Astro.props;
+const { pasos, enlaces, porFila = 3, caption } = Astro.props;
 
 if (enlaces.length !== pasos.length - 1) {
   throw new Error(`SignalChain: ${pasos.length} pasos necesitan ${pasos.length - 1} enlaces, se recibieron ${enlaces.length}.`);
@@ -43,27 +57,44 @@ if (enlaces.length !== pasos.length - 1) {
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
 const src = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
+const normalizar = (e: Enlace) => (typeof e === 'string' ? { ida: e } : e);
+const columnas = Math.min(porFila, pasos.length);
+// Una fila: tarjeta, tramo, tarjeta, tramo, tarjeta… (2n − 1 columnas).
+const plantilla = Array.from({ length: columnas }, () => 'minmax(0, 1fr)').join(' auto ');
 ---
 
-<figure class="c-chain not-content">
+<figure class="c-chain not-content" style={`--chain-cols:${plantilla}`}>
   <ol class="c-chain__lista">
     {
-      pasos.map((paso, i) => (
-        <>
-          <li class="c-chain__paso">
-            <img class="c-chain__img" src={src(paso.imagen)} alt="" loading="lazy" decoding="async" width="160" height="120" />
-            <span class="c-chain__texto">
+      pasos.map((paso, i) => {
+        const enlace = i < enlaces.length ? normalizar(enlaces[i]) : null;
+        // El tramo que sigue a la última tarjeta de una fila cambia de fila.
+        const cambiaFila = enlace && (i + 1) % columnas === 0;
+        return (
+          <>
+            <li class="c-chain__paso">
+              <img class="c-chain__img" src={src(paso.imagen)} alt="" loading="lazy" decoding="async" />
               <span class="c-chain__nombre">{paso.nombre}</span>
               {paso.detalle && <span class="c-chain__detalle">{paso.detalle}</span>}
-            </span>
-          </li>
-          {i < enlaces.length && (
-            <li class="c-chain__tramo">
-              {enlaces[i] && <span class="c-chain__senal">{enlaces[i]}</span>}
             </li>
-          )}
-        </>
-      ))
+            {enlace && (
+              <li class:list={['c-chain__tramo', { 'c-chain__tramo--fila': cambiaFila }]}>
+                {enlace.vuelta && (
+                  <span class="c-chain__flecha c-chain__flecha--vuelta">
+                    <span class="c-chain__senal">{enlace.vuelta}</span>
+                    <span class="c-chain__linea" aria-hidden="true" />
+                  </span>
+                )}
+                {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
+                <span class="c-chain__flecha c-chain__flecha--ida">
+                  {enlace.ida && <span class="c-chain__senal">{enlace.ida}</span>}
+                  <span class="c-chain__linea" aria-hidden="true" />
+                </span>
+              </li>
+            )}
+          </>
+        );
+      })
     }
   </ol>
   {caption && <figcaption class="c-chain__caption">{caption}</figcaption>}

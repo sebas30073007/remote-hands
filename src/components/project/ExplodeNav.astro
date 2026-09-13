@@ -374,7 +374,7 @@ const datos = {
 
       {/* Rótulo al pie del lienzo: qué es la pieza señalada. */}
       <p class="c-xnav__rotulo" data-rotulo aria-live="polite">
-        {inicial.explotada ? 'Señala una pieza' : 'Toca el robot para desmontarlo'}
+        {inicial.explotada ? '' : 'Toca el robot para desmontarlo'}
       </p>
     </div>
 
@@ -568,8 +568,9 @@ const datos = {
       );
     };
     const ponerRotulo = (texto: string | null) => {
-      rotulo.textContent =
-        texto ?? (raiz.dataset.explotada === 'true' ? 'Señala una pieza' : 'Toca el robot para desmontarlo');
+      // En reposo y con la escena explotada, sin texto: el rótulo solo
+      // aparece al señalar una pieza.
+      rotulo.textContent = texto ?? (raiz.dataset.explotada === 'true' ? '' : 'Toca el robot para desmontarlo');
       rotulo.classList.toggle('is-pieza', Boolean(texto));
     };
 
