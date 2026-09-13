@@ -96,7 +96,7 @@ const piezaDe = (dueno: NodoExplode, capa: string) => {
     nodo: nodo?.id ?? null,
     nombre: d.nombre ?? nodo?.nombre ?? capa,
     descripcion: d.descripcion ?? nodo?.descripcion ?? '',
-    href: nodo ? href(nodo.pagina) : `${href(d.pagina ?? dueno.pagina)}${d.ancla ? `#${d.ancla}` : ''}`,
+    href: `${href(nodo ? nodo.pagina : d.pagina ?? dueno.pagina)}${d.ancla ? `#${d.ancla}` : ''}`,
   };
 };
 

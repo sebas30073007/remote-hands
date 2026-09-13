@@ -165,7 +165,7 @@ export default defineConfig({
       // «Reporte» va en segundo lugar, no al fondo: el sínodo del Proyecto
       // Terminal es la audiencia principal de los próximos meses.
       //
-      // Grupos marcados "extensión opcional" (Académico, Publicaciones)
+      // Grupos marcados "extensión opcional" (Académico)
       // existen porque Remote Hands los necesita —es Proyecto Terminal +
       // paper IEEE + James Dyson Award— pero el framework no los presupone
       // para un proyecto futuro que no los tenga.
@@ -194,7 +194,6 @@ export default defineConfig({
                     // ningún lector. Es la página canónica de ZMQ; el resto
                     // enlaza aquí en vez de repetirlo.
                     { slug: 'sistema/arquitectura/comunicaciones' },
-                    { slug: 'sistema/arquitectura/diagrama-de-bloques' },
                   ],
                 },
                 {
@@ -204,7 +203,15 @@ export default defineConfig({
                     { slug: 'sistema/subsistemas/robot-movil', label: 'Vista general' },
                     // Mecánica
                     { slug: 'sistema/subsistemas/robot-movil/plataforma-movil' },
-                    { slug: 'sistema/subsistemas/robot-movil/manipulador' },
+                    {
+                      label: 'Manipulador',
+                      collapsed: true,
+                      items: [
+                        { slug: 'sistema/subsistemas/robot-movil/manipulador', label: 'Manipulador' },
+                        { slug: 'sistema/subsistemas/robot-movil/manipulador/estructura' },
+                        { slug: 'sistema/subsistemas/robot-movil/manipulador/mecanismo' },
+                      ],
+                    },
                     {
                       label: 'Sensores',
                       collapsed: true,
@@ -230,8 +237,6 @@ export default defineConfig({
                         { slug: 'sistema/subsistemas/robot-movil/controladores/gripper', label: 'Gripper' },
                       ],
                     },
-                    // Contrato interno entre placas — vivía en «Interfaces».
-                    { slug: 'sistema/interfaces/electronica', label: 'Contrato eléctrico' },
                     { slug: 'sistema/subsistemas/robot-movil/verificacion', label: 'Verificación' },
                   ],
                 },
@@ -285,15 +290,6 @@ export default defineConfig({
                   ],
                 },
                 {
-                  // Extensión opcional.
-                  label: 'Publicaciones',
-                  collapsed: true,
-                  items: [
-                    { slug: 'publicaciones/ieee-iot' },
-                    { slug: 'publicaciones/james-dyson-award' },
-                  ],
-                },
-                {
                   label: 'Registro de ingeniería',
                   collapsed: true,
                   items: [
@@ -311,7 +307,6 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { slug: 'operacion/puesta-en-marcha' },
-                { slug: 'operacion/calibracion' },
                 { slug: 'operacion/seguridad' },
                 { slug: 'operacion/solucion-de-problemas' },
               ],
@@ -322,10 +317,7 @@ export default defineConfig({
               label: 'Construir',
               collapsed: true,
               items: [
-                { slug: 'construccion/manufactura-mecanica' },
                 { slug: 'construccion/manufactura-electronica' },
-                { slug: 'construccion/ensamble' },
-                { slug: 'construccion/despliegue' },
               ],
             },
 
@@ -337,11 +329,6 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { slug: 'sistema/requisitos/requisitos-de-sistema' },
-                { slug: 'sistema/requisitos/trazabilidad' },
-                { slug: 'sistema/integracion/estrategia' },
-                { slug: 'sistema/integracion/bring-up' },
-                { slug: 'sistema/integracion/pruebas-end-to-end' },
-                { slug: 'verificacion/validacion-de-sistema' },
                 {
                   label: 'Experimentos',
                   collapsed: true,
@@ -360,9 +347,7 @@ export default defineConfig({
               collapsed: true,
               items: [
                 { slug: 'referencia/terminologia' },
-                { slug: 'referencia/tipos-de-archivo' },
                 { slug: 'referencia/comunicacion' },
-                { slug: 'referencia/solucion-rapida' },
               ],
             },
           ],

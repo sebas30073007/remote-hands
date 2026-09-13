@@ -71,7 +71,7 @@ export const NODOS: NodoExplode[] = [
       nuc: { nodo: 'servidor' },
       quest: { nodo: 'quest' },
     },
-    facetas: ['sistema/arquitectura/comunicaciones', 'sistema/arquitectura/diagrama-de-bloques'],
+    facetas: ['sistema/arquitectura/comunicaciones'],
   },
   {
     id: 'robot',
@@ -86,7 +86,7 @@ export const NODOS: NodoExplode[] = [
       embebidos: { nodo: 'embebidos' },
       sensores: { nodo: 'sensores' },
     },
-    facetas: ['sistema/interfaces/electronica', `${ROBOT}/verificacion`],
+    facetas: [`${ROBOT}/verificacion`],
   },
   {
     id: 'plataforma',
@@ -172,12 +172,26 @@ export const NODOS: NodoExplode[] = [
     padre: 'robot',
     escena: 'manipulador',
     piezas: {
-      estructura: { nombre: 'Estructura', descripcion: 'lámina de acero', ancla: 'estructura' },
-      mecanismo: { nombre: 'Mecanismo', descripcion: 'poleas y bandas', ancla: 'mecanismo' },
-      actuadores: { nodo: 'cl57t', nombre: 'Actuadores', descripcion: 'motores, drivers y controlador' },
+      estructura: { nodo: 'estructura' },
+      mecanismo: { nodo: 'mecanismo' },
+      actuadores: { nodo: 'cl57t', nombre: 'Actuadores', descripcion: 'motores, drivers y controlador', ancla: 'drivers-y-motores' },
       gripper: { nodo: 'gripper' },
       camara: { nodo: 'realsense', nombre: 'Cámara', descripcion: 'RealSense D435i' },
     },
+  },
+  {
+    id: 'estructura',
+    nombre: 'Estructura',
+    descripcion: 'lámina de acero',
+    pagina: `${ROBOT}/manipulador/estructura`,
+    padre: 'manipulador',
+  },
+  {
+    id: 'mecanismo',
+    nombre: 'Mecanismo',
+    descripcion: 'poleas y bandas',
+    pagina: `${ROBOT}/manipulador/mecanismo`,
+    padre: 'manipulador',
   },
   {
     id: 'gripper',
@@ -185,13 +199,6 @@ export const NODOS: NodoExplode[] = [
     descripcion: 'pinza lineal',
     pagina: `${ROBOT}/controladores/gripper`,
     padre: 'manipulador',
-    escena: 'gripper',
-    piezas: {
-      dedos: { nombre: 'Dedos y cremalleras', descripcion: 'apertura lineal', ancla: 'mecanismo' },
-      pinon: { nombre: 'Piñón', descripcion: 'transmisión', ancla: 'mecanismo' },
-      base: { nombre: 'Base y soporte', descripcion: 'montaje', ancla: 'mecanismo' },
-      motor: { nombre: 'Motor con encoder', descripcion: 'accionamiento', ancla: 'encoder-de-cuadratura' },
-    },
   },
   {
     id: 'servidor',

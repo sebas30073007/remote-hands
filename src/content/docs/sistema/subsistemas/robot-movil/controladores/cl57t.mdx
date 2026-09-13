@@ -1,8 +1,7 @@
 ---
 title: Controlador CL57T
 description: La placa que mueve los tres ejes del manipulador — qué es, cómo funciona, cómo se conecta, su PCB y su firmware.
-# Tres bloques grandes en el índice de la página, no una lista de
-# subsecciones: Sinopsis, PCB y Firmware.
+# Bloques grandes en el índice de la página: Sinopsis, Drivers y motores, PCB y Firmware.
 tableOfContents:
   minHeadingLevel: 2
   maxHeadingLevel: 2
@@ -23,8 +22,8 @@ eje y la convierte en los pulsos que hacen girar sus motores.
 ### Qué es
 
 Una placa de diseño propio basada en un **ESP32-C3**. No mueve los motores
-por sí misma: genera las señales de paso (`PUL`), dirección (`DIR`) y
-habilitación (`ENABLE`) para tres drivers **CL57T** comerciales, que son los
+por sí misma: genera las señales de paso (`PUL`) y dirección (`DIR`)
+para tres drivers **CL57T** comerciales, que son los
 que entregan la potencia a cada motor NEMA17.
 
 Comparte arquitectura con el módulo Puente H —ESP32-C3, aislamiento óptico,
@@ -37,7 +36,7 @@ lugar de 4N25.
   rows={[
     { parameter: 'Motor compatible', value: 'NEMA17', unit: '—' },
     { parameter: 'Tipo de lazo', value: 'Cerrado', unit: '—', notes: 'encoder incremental' },
-    { parameter: 'Señales de control', value: 'PUL, DIR, ENABLE', unit: 'lógica 5 V' },
+    { parameter: 'Señales desde esta placa', value: 'PUL, DIR', unit: '—', notes: 'detalle en Drivers y motores' },
   ]}
 />
 
@@ -75,16 +74,109 @@ Del operador al motor. Cada tramo lleva el medio por el que viaja la orden.
     { nombre: 'Driver CL57T × 3', detalle: 'lazo cerrado', imagen: '/images/3d/driver-cl57t.webp' },
     { nombre: 'NEMA17 + reductor planetario × 3', detalle: 'base, codo y muñeca', imagen: '/images/3d/nema17-reductor.webp' },
   ]}
-  enlaces={['ZMQ · cmd (manip_cmd)', 'Serial · COM4', 'I²C 0x0B · texto ASCII', 'PUL / DIR / ENABLE', '']}
+  enlaces={['ZMQ · cmd (manip_cmd)', 'Serial · COM4', 'I²C 0x0B · texto ASCII', 'PUL / DIR', '']}
 />
 
 A la placa llegan también los **tres finales de carrera** del brazo, uno por
 eje. Sus entradas están en [Asignación de pines](#asignación-de-pines).
 
+## Drivers y motores
+
+Los actuadores del brazo son tres pares driver–motor, uno por eje. Esta
+placa solo les manda pulsos: la potencia la entregan los drivers.
+
+### Driver CL57T
+
+<figure>
+  <img src="/images/3d/driver-cl57t.webp" alt="Driver de motor paso a paso CL57T" />
+</figure>
+
+Un driver comercial de motor paso a paso **de lazo cerrado**: además de
+mover el motor, lee su encoder y corrige la posición si el motor pierde
+pasos por carga. Por eso el brazo puede trabajar con motores de laboratorio
+sin que un tirón lo descuadre.
+
+Recibe dos señales de esta placa por eje:
+
+- **PUL**, un pulso por paso. En reposo la línea queda en alto y cada paso
+  es un pulso en bajo; el bajo y el alto duran lo mismo, así que el valor
+  de rampa del firmware es medio periodo.
+- **DIR**, el sentido. Tras cambiarla, el firmware espera 200 µs antes del
+  primer pulso para que el driver la vea estable.
+
+El firmware no conmuta la entrada de habilitación: en la tabla de pines no
+hay GPIO para `ENABLE`. Tampoco lee la salida de alarma del driver.
+
+<ParameterTable
+  caption="Configuración que asume el firmware"
+  rows={[
+    { parameter: 'Pulsos por vuelta del motor', value: '1 000', unit: 'pulsos', notes: 'deducido: 10 000 ÷ 10 en la base, 25 000 ÷ 25 en codo y muñeca' },
+    { parameter: 'Pulsos por vuelta de la base', value: '10 000', unit: 'pulsos', notes: 'reducción total 10:1' },
+    { parameter: 'Pulsos por vuelta de codo y muñeca', value: '25 000', unit: 'pulsos', notes: 'reducción total 25:1' },
+  ]}
+/>
+
+Los micropasos se fijan con los DIP switches de cada driver, y deben dar
+esos **1 000 pulsos por vuelta**. Con otro ajuste el brazo se mueve, pero
+los ángulos que reporta dejan de coincidir con los reales. La corriente de
+cada driver no está documentada en el proyecto.
+
+Los tres drivers van dentro de la caja de elevación, sobre el soporte de
+drivers.
+
 <figure>
   <img src="/images/build/conexiones-driver-cl57t.webp" alt="Conexiones de los drivers CL57T" />
   <figcaption>Cableado de los drivers CL57T, alojados dentro de la estructura en «C» que eleva el manipulador.</figcaption>
 </figure>
+
+### NEMA 17 con reductor planetario
+
+<figure>
+  <img src="/images/3d/nema17-reductor.webp" alt="Motor NEMA 17 con reductor planetario acoplado" />
+</figure>
+
+Cada eje lo mueve un motor paso a paso **NEMA 17** —brida cuadrada de 42 mm—
+con un **reductor planetario 10:1** acoplado a su eje. Los motores no se
+eligieron para esta aplicación: eran el stock del laboratorio, y la
+reducción es lo que les da el par que el brazo necesita. En codo y muñeca,
+la banda HTD3M añade otro 2,5:1, como se explica en
+[Mecanismo](/sistema/subsistemas/robot-movil/manipulador/mecanismo/).
+
+<InterfaceTable
+  caption="Motor y reducción por eje"
+  columns={['Eje', 'Reducción total', 'Rango', 'Pasos por grado']}
+  rows={[
+    ['Base', '10:1 (planetario)', '−80° a +80°', '27,78'],
+    ['Codo', '25:1 (planetario × banda)', '0° a 136,5°', '69,44'],
+    ['Muñeca', '25:1 (planetario × banda)', '−220° a 0°', '69,44'],
+  ]}
+/>
+
+El modelo de referencia del CAD es un NEMA 17 de 4,4 kg·cm; el número de
+parte de los motores montados no está documentado.
+
+<Artifact href="/cad/reference/nema17.step" name="STEP — Motor NEMA 17 (referencia)" />
+<Artifact href="/cad/reference/reductor_nema17.stp" name="STEP — Reductor planetario NEMA 17 (referencia)" />
+
+### Velocidades resultantes
+
+Con 1 000 pulsos por vuelta y las reducciones de cada eje, los tiempos del
+firmware dan estas velocidades:
+
+<InterfaceTable
+  caption="Velocidad por fase de movimiento, calculada del firmware"
+  columns={['Fase', 'Medio periodo', 'Pasos/s', 'Motor', 'Base', 'Codo y muñeca']}
+  rows={[
+    ['Crucero', '1 600 µs', '312,5', '18,75 rpm', '11,25 °/s', '4,5 °/s'],
+    ['Arranque y frenado', '2 500 µs', '200', '12 rpm', '7,2 °/s', '2,88 °/s'],
+    ['Homing rápido', '1 800 µs', '277,8', '16,7 rpm', '—', '4,0 °/s'],
+    ['Homing fino', '3 200 µs', '156,3', '9,4 rpm', '—', '2,25 °/s'],
+  ]}
+/>
+
+Las rampas de 1 500 pasos equivalen a 54° en la base y a 21,6° en codo y
+muñeca. Un recorrido completo del codo, de 0° a 136,5°, tarda del orden de
+medio minuto.
 
 ## PCB
 
@@ -183,9 +275,9 @@ también por USB serie, que queda siempre disponible para depurar.
 El codo y la muñeca buscan su cero en cada encendido, en cuatro fases:
 
 ```text
-Fase 1 — Búsqueda rápida:  avanza hacia el switch a 1 800 µs/paso
-Fase 2 — Backoff:          retrocede 220 pasos a 3 200 µs/paso
-Fase 3 — Búsqueda fina:    avanza de nuevo a 3 200 µs/paso (más precisión)
+Fase 1 — Búsqueda rápida:  avanza hacia el switch (medio periodo 1 800 µs)
+Fase 2 — Backoff:          retrocede 220 pasos (medio periodo 3 200 µs)
+Fase 3 — Búsqueda fina:    avanza de nuevo, lento (medio periodo 3 200 µs)
 Fase 4 — Clearance final:  retrocede 120 pasos → posición cero reproducible
 ```
 
@@ -197,6 +289,10 @@ Una pulsación larga del botón físico (GPIO0) ejecuta `HOME_ALL` sin
 intervención de la NUC. Esa vía sirve durante el desarrollo y para recuperar
 el brazo tras un error. La lectura de cada final de carrera aplica un
 debounce de 5 ms con doble confirmación.
+
+Fuera del homing, los finales de carrera también protegen: si durante
+cualquier movimiento se activa el del codo o el de la muñeca, el movimiento
+se detiene y la placa responde `ABORT`.
 
 ### Compensación mecánica de muñeca
 
@@ -216,17 +312,18 @@ Cada eje usa su propio perfil trapezoidal: aceleración lineal, crucero y
 deceleración lineal. Esa forma de arrancar y frenar evita la pérdida de pasos
 al inicio y la vibración al detenerse.
 
-Los tres ejes comparten los mismos valores. El periodo entre pulsos es
-inverso a la velocidad, así que un periodo mayor significa ir más despacio:
-el movimiento arranca a 2 500 µs por paso, acelera hasta 1 600 µs de crucero,
-y vuelve a 2 500 µs para frenar.
+Los tres ejes comparten los mismos valores. Cada valor es **medio periodo**
+del pulso —lo que dura en bajo, y lo mismo en alto—, así que un valor mayor
+significa ir más despacio: el movimiento arranca con 2 500 µs, acelera hasta
+1 600 µs de crucero y vuelve a 2 500 µs para frenar. Las velocidades que
+resultan están en [Velocidades resultantes](#velocidades-resultantes).
 
 <ParameterTable
   caption="Perfil trapezoidal — idéntico en base, codo y muñeca"
   rows={[
-    { parameter: 'Periodo de arranque', value: '2500', unit: 'µs/paso' },
-    { parameter: 'Periodo de crucero', value: '1600', unit: 'µs/paso' },
-    { parameter: 'Periodo de frenada', value: '2500', unit: 'µs/paso' },
+    { parameter: 'Medio periodo de arranque', value: '2500', unit: 'µs', notes: '200 pasos/s' },
+    { parameter: 'Medio periodo de crucero', value: '1600', unit: 'µs', notes: '312,5 pasos/s' },
+    { parameter: 'Medio periodo de frenada', value: '2500', unit: 'µs', notes: '200 pasos/s' },
     { parameter: 'Pasos de aceleración', value: '1500', unit: 'pasos' },
     { parameter: 'Pasos de deceleración', value: '1500', unit: 'pasos' },
     { parameter: 'Asentamiento tras cambio de DIR', value: '200', unit: 'µs', notes: 'El driver necesita ver DIR estable antes del primer pulso' },

@@ -290,18 +290,6 @@ export const ESCENAS = {
     ],
   },
 
-  /* Nivel 4 — gripper. */
-  gripper: {
-    base: 'robot-completo',
-    soloPiezas: GRIPPER,
-    capas: [
-      { id: 'base', piezas: BASE_GRIPPER, explota: [0, 0] },
-      { id: 'dedos', piezas: DEDOS, explota: [0.2, -0.2] },
-      { id: 'pinon', piezas: PINON, explota: [0.04, 0.24] },
-      { id: 'motor', piezas: MOTOR_GRIPPER, explota: [-0.26, 0.12] },
-    ],
-  },
-
   /* Nivel 2 — servidor. Tampoco es un ensamble físico: la NUC al centro y
      todo lo que se conecta a ella. Arriba, los dos sensores de la
      percepción. Abajo, la electrónica: el conjunto I²C —solo el Puente H
@@ -419,6 +407,23 @@ export const MINIATURAS = {
   'realsense-d435': { lienzo: MINI, vista: [0.45, 0.35, -1], capas: [{ id: 'm', modelo: 'realsense-d435' }] },
   'rplidar-c1': { lienzo: MINI, vista: [-0.45, 0.35, 1], capas: [{ id: 'm', modelo: 'rplidar-c1' }] },
   'controlador-gripper': { lienzo: MINI, vista: FRENTE, capas: [{ id: 'm', modelo: 'drv8833', escala: 3, rotacion: GIRO_DRV }] },
+
+  // Piezas de la estructura y del mecanismo del manipulador.
+  'polea-motriz': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^AA_20T_Eslabon1:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^AA_20T_Eslabon1:1$/] }] },
+  'polea-conducida': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^AA_20T_Eslabon1_2:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^AA_20T_Eslabon1_2:1$/] }] },
+  'banda-corta': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^Cinta_pequeña:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^Cinta_pequeña:1$/] }] },
+  'banda-larga': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^Cinta_larga:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^Cinta_larga:1$/] }] },
+  'chumacera': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^KFL08_chmacera:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^KFL08_chmacera:1$/] }] },
+  'eje': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^eje_primer_eslabon:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^eje_primer_eslabon:1$/] }] },
+  'rodamiento-base': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^rodamiento_150mm:1$/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^rodamiento_150mm:1$/] }] },
+  'caja-elevacion': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^AA_Torre:/, /^AA_Petaña_L_union_torre/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^AA_Torre:/, /^AA_Petaña_L_union_torre/] }] },
+  'base-giratoria': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^base_giratoria:/, /^AA_sandwich_/, /^base_nema:/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^base_giratoria:/, /^AA_sandwich_/, /^base_nema:/] }] },
+  'soportes-nema17': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^Nueva L_nema17/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^Nueva L_nema17/] }] },
+  'eslabon-1': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^eslabon_300mm:/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^eslabon_300mm:/] }] },
+  'eslabon-2': { lienzo: MINI, base: 'robot-completo', soloPiezas: [/^eslabon_200mm:/], sinTornilleria: true, capas: [{ id: 'm', piezas: [/^eslabon_200mm:/] }] },
+  // Cabeceras de las páginas de Estructura y Mecanismo (con tornillería).
+  estructura: { lienzo: { w: 900, h: 1100 }, base: 'robot-completo', soloPiezas: ESTRUCTURA, capas: [{ id: 'm', piezas: ESTRUCTURA }] },
+  mecanismo: { lienzo: { w: 900, h: 1100 }, base: 'robot-completo', soloPiezas: MECANISMO, sinTornilleria: true, capas: [{ id: 'm', piezas: MECANISMO }] },
 
   // Imágenes de cabecera de página: grandes y de frente.
   'portada-puente-h': { lienzo: { w: 1400, h: 1000 }, vista: FRENTE, capas: [{ id: 'm', modelo: 'puente-h' }] },

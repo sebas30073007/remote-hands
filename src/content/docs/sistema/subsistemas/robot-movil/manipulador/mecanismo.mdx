@@ -1,0 +1,135 @@
+---
+title: Mecanismo
+description: La transmisión del manipulador — poleas, bandas, ejes y chumaceras; cómo reduce y reparte el giro de los motores, y cómo se montó.
+# Bloques grandes en el índice de la página: Sinopsis y Montaje.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { InterfaceTable, Artifact, SignalChain } from '@project';
+
+<figure>
+  <img src="/images/3d/mecanismo.webp" alt="Mecanismo del manipulador: poleas, bandas, ejes y chumaceras, con el rodamiento de base" />
+</figure>
+
+El mecanismo lleva el giro de los motores hasta cada articulación del brazo.
+Lo reduce, para ganar par, y lo reparte, para que dos motores montados uno
+junto al otro muevan eslabones distintos.
+
+## Sinopsis
+
+### Qué es
+
+Una transmisión por **bandas dentadas HTD3M**, con sus poleas, ejes y
+soportes. Todo lo que gira en el brazo, salvo los motores y el gripper.
+
+<InterfaceTable
+  caption="Piezas del mecanismo"
+  columns={['Pieza', 'Función']}
+  rows={[
+    ['Poleas HTD3M motrices', 'Van en el eje de cada motor, a la salida del reductor'],
+    ['Poleas HTD3M conducidas', 'Mueven cada articulación; la relación con la motriz da la reducción'],
+    ['Bandas HTD3M', 'Tres: la de la base, una corta y una larga'],
+    ['Ejes', 'El del hombro y los de las articulaciones'],
+    ['Chumaceras KFL08', 'Sostienen los ejes contra la lámina; siete en el CAD'],
+    ['Rodamiento de base de 150 mm', 'Sobre él gira toda la base del brazo'],
+    ['Rodamientos 608', 'Cuatro en el CAD'],
+  ]}
+/>
+
+### Cómo funciona
+
+Cada eslabón lo mueve un NEMA 17 con reductor planetario 10:1, y sobre él la
+banda añade otro 2,5:1. La **reducción compuesta es de 25:1**, y es lo que
+permite alcanzar el par necesario con motores que ya estaban en el
+laboratorio.
+
+<InterfaceTable
+  caption="Transmisión por articulación"
+  columns={['Articulación', 'Motor', 'Banda', 'Reducción total']}
+  rows={[
+    ['Base (giro)', 'NEMA 17 + planetario 10:1', 'HTD3M, polea de 50 dientes, 1:1', '10:1'],
+    ['Eslabón 1', 'NEMA 17 + planetario 10:1', 'HTD3M, 2,5:1', '25:1'],
+    ['Eslabón 2', 'NEMA 17 + planetario 10:1', 'HTD3M, 2,5:1', '25:1'],
+  ]}
+/>
+
+Los dos motores de los eslabones van en paralelo y simétricos cerca de la
+base, no sobre las articulaciones que mueven: el peso queda abajo en lugar
+de cargar el extremo del brazo. El primero mueve directamente el eslabón 1.
+El segundo parte de la misma zona de eje, pero **su polea gira libre sobre
+ese eje**, sin unirse al eslabón 1, y desde ahí otra banda sube hasta la
+articulación superior. Así cada eslabón conserva su propia transmisión
+aunque los dos compartan la zona del eje.
+
+El desacople no es total: al girar el eslabón 1, la banda larga arrastra la
+articulación superior. El firmware lo compensa moviendo a la vez el motor
+del eslabón 2, como se explica en [Compensación mecánica de
+muñeca](/sistema/subsistemas/robot-movil/controladores/cl57t/#compensación-mecánica-de-muñeca).
+
+<figure>
+  <img src="/images/build/transmision-motores-nema17.webp" alt="Los dos motores NEMA 17 en disposición simétrica en la base del manipulador" />
+  <figcaption>Los dos NEMA 17 en disposición simétrica, cada uno con su conjunto de poleas y bandas. La barra roscada inferior actúa de tensor común.</figcaption>
+</figure>
+
+### Conexiones
+
+El camino del giro hasta el eslabón 2, el más largo del brazo: dos bandas y
+una polea libre en el eje del hombro.
+
+<SignalChain
+  pasos={[
+    { nombre: 'NEMA 17 + reductor', detalle: 'planetario 10:1', imagen: '/images/3d/nema17-reductor.webp' },
+    { nombre: 'Polea motriz', detalle: 'HTD3M', imagen: '/images/3d/polea-motriz.webp' },
+    { nombre: 'Banda corta', detalle: 'HTD3M', imagen: '/images/3d/banda-corta.webp' },
+    { nombre: 'Polea en el eje del hombro', detalle: 'gira libre', imagen: '/images/3d/polea-conducida.webp' },
+    { nombre: 'Banda larga', detalle: 'HTD3M, a lo largo del eslabón 1', imagen: '/images/3d/banda-larga.webp' },
+    { nombre: 'Eslabón 2', detalle: 'articulación superior', imagen: '/images/3d/eslabon-2.webp' },
+  ]}
+  enlaces={['Eje del reductor', 'Dientes HTD3M', 'Reducción 2,5:1', 'Eje del hombro', 'Polea de la articulación']}
+/>
+
+## Montaje
+
+### Ejes y chumaceras
+
+Las chumaceras sostienen cada eje y evitan que roce directamente contra la
+lámina, lo que reduce fricción, desgaste y juego.
+
+<figure>
+  <img src="/images/build/articulacion-polea-chumacera.webp" alt="Detalle de una articulación con polea y chumacera" />
+  <figcaption>Articulación típica: polea sobre eje, chumaceras atornilladas a la lámina lateral.</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/build/transmision-segundo-eslabon.webp" alt="Banda vertical que transmite el movimiento hacia el segundo eslabón" />
+  <figcaption>La banda larga que lleva el movimiento hasta la articulación superior.</figcaption>
+</figure>
+
+### Base rotatoria
+
+El giro de todo el brazo lo genera un motor situado en la parte posterior,
+con reducción por polea y banda. Toda la base gira sobre el rodamiento de
+150 mm.
+
+<figure>
+  <img src="/images/build/eje-rotacional-base.webp" alt="Eje rotacional de la base del manipulador" />
+  <figcaption>El eje rotacional de la base, con su motor y su polea.</figcaption>
+</figure>
+
+### Tensión de las bandas
+
+La tensión se resolvió con rodamientos montados sobre barra roscada, que
+funcionan como tensores. Sin ellos la banda deslizaba y aparecían holguras y
+vibración.
+
+<figure>
+  <img src="/images/build/tensor-rodamiento-correa.webp" alt="Tensor de banda con rodamiento sobre barra roscada" />
+  <figcaption>Tensor con rodamiento sobre barra roscada: la solución que corrigió el deslizamiento sin rediseñar la estructura.</figcaption>
+</figure>
+
+### Archivos
+
+<Artifact href="/cad/mesh/htd3m_50T_Base.stl" name="STL — Polea HTD3M 50T de la base" />
+<Artifact href="/cad/dxf/silueta_50t.dxf" name="DXF — Silueta de polea 50T" />

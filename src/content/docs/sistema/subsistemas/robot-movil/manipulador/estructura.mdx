@@ -1,0 +1,163 @@
+---
+title: Estructura
+description: La lámina de acero del manipulador — qué piezas la forman, cómo carga el brazo, cómo se unen, y cómo se fabricó.
+# Bloques grandes en el índice de la página: Sinopsis y Manufactura.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { InterfaceTable, Artifact, SignalChain } from '@project';
+
+<figure>
+  <img src="/images/3d/estructura.webp" alt="Estructura del manipulador: caja de elevación, base giratoria, soportes y eslabones de lámina de acero" />
+</figure>
+
+La estructura es el esqueleto del manipulador: todas sus piezas de lámina de
+acero, desde la caja que lo eleva sobre la plataforma hasta el segundo
+eslabón. Sostiene los motores, el mecanismo y el gripper.
+
+## Sinopsis
+
+### Qué es
+
+Piezas de lámina de acero cortadas a láser y dobladas a mano, unidas con
+tornillería. Se usaron los dos calibres disponibles en el laboratorio: el
+grueso donde el brazo carga todo su peso, el delgado en los eslabones.
+
+<InterfaceTable
+  caption="Piezas de la estructura"
+  columns={['Pieza', 'Lámina', 'Función']}
+  rows={[
+    ['Caja de elevación', 'Acero, doblada en «C» y reforzada', 'Eleva el brazo sobre la plataforma; aloja los drivers'],
+    ['Base giratoria', 'Acero calibre 18 (1,2 mm)', 'Gira sobre el rodamiento de base; lleva los motores'],
+    ['Soportes de NEMA 17', 'Acero, en «L»', 'Sostienen los dos motores de los eslabones'],
+    ['Eslabón 1', 'Acero calibre 24 (0,6 mm)', 'Brazo, 300 mm en el CAD'],
+    ['Eslabón 2', 'Acero calibre 24 (0,6 mm)', 'Antebrazo, 200 mm en el CAD; lleva el gripper'],
+  ]}
+/>
+
+### Cómo funciona
+
+El peso del brazo baja por la estructura hasta el chasis: del eslabón 2 al
+eslabón 1, de ahí a los soportes y la base giratoria, y por el rodamiento de
+base a la caja de elevación, que lo reparte en la plataforma.
+
+La caja en «C» es la pieza más exigida. Se **reforzó con doble capa**
+después de que las pruebas mostraran que cedía bajo el peso del brazo. Su
+volumen interno aloja los drivers CL57T y su cableado.
+
+<figure>
+  <img src="/images/build/soporte-c-refuerzo-doble.webp" alt="Estructura en C con refuerzo de doble capa" />
+  <figcaption>La lámina doblada en «C», con el refuerzo de doble capa que se añadió tras detectar que cedía bajo el peso del brazo.</figcaption>
+</figure>
+
+**La lámina doblada es rígida en el eje de carga y débil en el
+perpendicular.** Cualquier fuerza pequeña en esa dirección genera oscilación
+visible. No hubo deformación permanente ni daño, pero el juego mecánico —por
+flexibilidad del material, no por holgura en las uniones— es perceptible al
+operar. Es una característica del armado con lámina: quien replique el brazo
+con el mismo método se la va a encontrar.
+
+### Conexiones
+
+Cómo se une cada pieza con la siguiente, de la plataforma al gripper.
+
+<SignalChain
+  pasos={[
+    { nombre: 'Plataforma móvil', detalle: 'chasis de acero', imagen: '/images/3d/base-diferencial.webp' },
+    { nombre: 'Caja de elevación', detalle: 'en «C», doble capa', imagen: '/images/3d/caja-elevacion.webp' },
+    { nombre: 'Base giratoria', detalle: 'lámina de 1,2 mm', imagen: '/images/3d/base-giratoria.webp' },
+    { nombre: 'Soportes de NEMA 17', detalle: 'en «L»', imagen: '/images/3d/soportes-nema17.webp' },
+    { nombre: 'Eslabón 1', detalle: '300 mm', imagen: '/images/3d/eslabon-1.webp' },
+    { nombre: 'Eslabón 2', detalle: '200 mm', imagen: '/images/3d/eslabon-2.webp' },
+  ]}
+  enlaces={[
+    'Ranuras de ajuste · tornillería',
+    'Rodamiento de base de 150 mm',
+    'Tornillería',
+    'Eje del hombro · chumaceras',
+    'Articulación · chumaceras',
+  ]}
+/>
+
+La caja se fija al chasis aprovechando sus puntos estructurales, cerca de
+los tornillos de las ruedas caster, para repartir la carga del brazo en vez
+de concentrarla en la chapa superior. Las ranuras alargadas permiten ajustar
+la posición.
+
+<figure>
+  <img src="/images/build/union-base-caja-elevacion.webp" alt="Unión entre el chasis de la plataforma y la caja de elevación" />
+  <figcaption>Ranuras alargadas de ajuste y tornillería de fijación entre chasis y caja de elevación.</figcaption>
+</figure>
+
+Los ejes, las chumaceras y el rodamiento de base son parte del
+[Mecanismo](/sistema/subsistemas/robot-movil/manipulador/mecanismo/).
+
+## Manufactura
+
+### Corte láser y doblado
+
+Las piezas se cortaron en láser y se doblaron a mano. Los ángulos de doblez
+quedaron al límite de lo viable con la dobladora manual disponible. Cuando
+una sección superaba ese límite, la pieza se dividió en dos o más partes
+unidas por tornillería, en lugar de forzar un doblez con riesgo de fractura.
+
+<figure>
+  <img src="/images/build/manufactura-corte-laser.webp" alt="Piezas del manipulador recién cortadas a láser" />
+  <figcaption>Piezas recién salidas de la cortadora, antes del doblado.</figcaption>
+</figure>
+
+### Qué salió mal
+
+Las **piezas en L** que conectan la base con el primer eslabón y con el motor
+fueron las que más iteraciones requirieron: la combinación de tolerancias de
+manufactura con ajustes de diseño obligó a varias versiones sucesivas. El
+resto de piezas iteraron menos, y casi siempre por barrenos faltantes, que
+bastaba taladrar sobre la pieza ya cortada.
+
+<figure>
+  <img src="/images/build/manufactura-primeras-piezas.webp" alt="Primeras piezas del manipulador ensambladas" />
+  <figcaption>Primeras piezas ensambladas, la etapa donde se detectaron los ajustes que obligaron a recortar varias versiones.</figcaption>
+</figure>
+
+### Planos
+
+Generados a partir de los DXF que se enviaron a cortar: el contorno que
+salió de la cortadora y los barrenos con su diámetro y su posición. Los
+círculos de registro del nesting, cuyo centro cae fuera del contorno, se
+descartan.
+
+<figure>
+  <img src="/drawings/primer-eslabon.svg" alt="Plano cotado del primer eslabón: 300 por 210,83 mm con 10 barrenos" />
+  <figcaption>Primer eslabón — 300 × 210,83 mm, 6 barrenos de ⌀5 y 4 de ⌀10. La pieza se dobla después de cortar, así que la cota es del desarrollo plano.</figcaption>
+</figure>
+
+<figure>
+  <img src="/drawings/soporte-nema17.svg" alt="Plano cotado del soporte de motor NEMA 17" />
+  <figcaption>Soporte de motor NEMA 17 — 70 × 139,57 mm. El rombo central es el paso del eje y los cuatro ⌀4 son la brida del motor.</figcaption>
+</figure>
+
+<figure>
+  <img src="/drawings/soporte-drivers.svg" alt="Plano cotado del soporte de drivers" />
+  <figcaption>Soporte de drivers — 481,66 × 155 mm, la pieza más larga del conjunto. Va dentro de la caja de elevación.</figcaption>
+</figure>
+
+<figure>
+  <img src="/drawings/soporte-top-rodamiento.svg" alt="Plano cotado del soporte superior de rodamiento" />
+  <figcaption>Soporte superior de rodamiento — 231,33 × 155 mm.</figcaption>
+</figure>
+
+Los planos se regeneran desde los DXF con `node scripts/dxf-to-drawing.mjs`:
+añadir un DXF a `public/cad/dxf/` basta para que aparezca su plano.
+
+### Archivos CAD
+
+El proyecto completo está en Autodesk Inventor 2026; sus ~80 piezas `.ipt` y
+los ensambles `.iam` siguen solo en el repositorio original. Aquí se publican
+los DXF de corte, que se abren sin Inventor.
+
+<Artifact href="/cad/dxf/primer-eslabon.dxf" name="DXF — Primer eslabón" />
+<Artifact href="/cad/dxf/soporte-nema17.dxf" name="DXF — Soporte NEMA 17" />
+<Artifact href="/cad/dxf/soporte-drivers.dxf" name="DXF — Soporte de drivers" />
+<Artifact href="/cad/dxf/soporte-top-rodamiento.dxf" name="DXF — Soporte superior de rodamiento" />
