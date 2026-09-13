@@ -1,0 +1,31 @@
+---
+title: "Decisiones de ingeniería"
+description: "Registro de decisiones de arquitectura del proyecto, con su contexto y sus alternativas descartadas."
+---
+
+Cada decisión de arquitectura relevante se registra aquí como un ADR
+—*Architecture Decision Record*—: un documento corto y fechado que explica
+el contexto, las alternativas consideradas, lo que se decidió y qué costos
+se aceptaron a cambio.
+
+El registro existe para responder «¿por qué está hecho así?» sin depender de
+la memoria de quien lo construyó. Una alternativa descartada, con su motivo,
+vale tanto como la opción elegida: evita que alguien la reabra sin saber que
+ya se evaluó.
+
+## Decisiones registradas
+
+| ID | Decisión | Estado |
+| --- | --- | --- |
+| [ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/) | La NUC como coordinador único | Aceptada |
+
+## Por qué solo hay una
+
+El resto de las decisiones del proyecto se tomaron sin registrarse en su
+momento. Reconstruirlas ahora corre el riesgo de inventar un razonamiento
+que nadie tuvo, que es peor que no documentarlas.
+
+Hay tres candidatas identificadas: la elección de ZeroMQ frente a otros
+middleware, el reparto del control entre tres controladores embebidos, y el
+uso de lámina doblada como método estructural. Cada una se documentará solo
+si el autor confirma cuál fue el razonamiento real.

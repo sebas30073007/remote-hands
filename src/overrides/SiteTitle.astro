@@ -1,0 +1,14 @@
+---
+const { siteTitle, siteTitleHref } = Astro.locals.starlightRoute;
+
+/**
+ * Marca de la cabecera a dos líneas — mismo patrón que course-docs.
+ * Sin tile de logo por la misma razón: el wordmark de SEBS es un asset
+ * pendiente de copiar.
+ */
+---
+
+<a href={siteTitleHref} class="site-title c-brand" translate="no" transition:persist>
+  <span class="c-brand__name">{siteTitle}</span>
+  <span class="c-brand__kicker">Documentación de ingeniería</span>
+</a>

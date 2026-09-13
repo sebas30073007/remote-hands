@@ -1,0 +1,184 @@
+---
+title: "Verificación — Robot"
+type: subsystem
+subsystemId: SUB-ROBOT/VER
+status: validated
+responsibility: Resultados de verificación de la plataforma móvil, el manipulador y sus controladores.
+---
+
+import { VerificationResult } from '@project';
+
+Esta página reúne los resultados de verificación del subsistema, agrupados
+por componente. Cada entrada registra el método empleado y el resultado
+medido u observado, no solo un veredicto.
+
+<figure>
+  <img
+    src="/remote-hands/images/build/prototipo-puente-h-prueba.webp"
+    alt="Prototipo del Puente H en protoboard durante una prueba de banco"
+  />
+  <figcaption>Prueba de banco del prototipo del Puente H, antes de fabricar la PCB.</figcaption>
+</figure>
+
+Los archivos de evidencia —los videos de cada prueba— todavía no se
+migraron a este repositorio. Hasta que se copien, las entradas de abajo
+citan el resultado registrado en la documentación original sin enlazar el
+material. La [nota sobre la evidencia en video](#nota-sobre-la-evidencia-en-video)
+al final de la página detalla qué falta.
+
+## Puente H (tracción)
+
+<VerificationResult
+  id="VER-PH-001"
+  requirement="Temperatura de los MOSFETs en el prototipo de protoboard"
+  method="measurement"
+  result="Máximo registrado: 61 °C bajo carga"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-PH-002"
+  requirement="Movimiento diferencial en superficie plana"
+  method="demonstration"
+  result="Estable"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-PH-003"
+  requirement="Respuesta a comandos de dirección (F/B/L/R)"
+  method="demonstration"
+  result="Correcta"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-PH-004"
+  requirement="Temperatura de MOSFETs bajo carga continua, 60 min"
+  method="measurement"
+  result="Dentro del rango — disipadores efectivos"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-PH-005"
+  requirement="Control remoto extremo a extremo desde XR"
+  method="demonstration"
+  result="Completo"
+  status="pass"
+/>
+
+## Manipulador 3 GDL
+
+<VerificationResult
+  id="VER-MAN-001"
+  requirement="Rangos de movimiento por articulación"
+  method="test"
+  result="Alcanzados"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-MAN-002"
+  requirement="Juego en transmisiones HTD3M"
+  method="inspection"
+  result="Sin juego excesivo"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-MAN-003"
+  requirement="Velocidad de movimiento rápido"
+  method="demonstration"
+  result="Funcional"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-MAN-004"
+  requirement="Control remoto integrado XR → NUC → manipulador"
+  method="demonstration"
+  result="Sin ejecutar en la última verificación registrada"
+  status="pending"
+/>
+
+## CL57T (ejes del manipulador)
+
+<VerificationResult
+  id="VER-CL-001"
+  requirement="Movimiento de articulaciones (estático)"
+  method="test"
+  result="Rangos alcanzados, sin pérdida de pasos detectada"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-CL-002"
+  requirement="Rutina de búsqueda de cero (homing)"
+  method="demonstration"
+  result="Funcional con finales de carrera"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-CL-003"
+  requirement="Control remoto desde interfaz XR"
+  method="demonstration"
+  result="Integración incompleta en la última verificación registrada"
+  status="pending"
+/>
+
+## Gripper
+
+<VerificationResult
+  id="VER-GRIP-001"
+  requirement="Movimiento absoluto de 0 mm a 80 mm (recorrido completo)"
+  method="test"
+  result="Sin pérdida de posición"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-GRIP-002"
+  requirement="Detección de stall contra obstáculo"
+  method="test"
+  result="Detiene el motor en 500 ms, sin daño al mecanismo"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-GRIP-003"
+  requirement="Persistencia de calibración tras reinicio"
+  method="test"
+  result="Calibración recuperada correctamente desde JSON"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-GRIP-004"
+  requirement="Control remoto desde la NUC (COM5)"
+  method="measurement"
+  result="Latencia menor a 50 ms"
+  status="pass"
+/>
+
+## Nota sobre la evidencia en video
+
+La documentación original conserva un video por prueba en `assets/vid/`.
+Son ocho archivos, unos 77 MB en total:
+
+| Archivo | Prueba que documenta |
+| --- | --- |
+| `Test_puenteH_web.mp4` | Salida del puente H en osciloscopio, en protoboard y en PCB final |
+| `Test_movil_rehabilitacion_web.mp4` | Plataforma móvil en control manual |
+| `Test_movil_web.mp4` | Plataforma móvil teleoperada |
+| `Test_manipulador_basic_rutine_web.mp4` | Rutina básica del manipulador |
+| `Test_calibracion_web.mp4` | Calibración de cero |
+| `Test_load_web.mp4` | Manipulador bajo carga |
+| `Test_repetitibilidad_web.mp4` | Repetibilidad del manipulador |
+| `Test_gripper_web.mp4` | Gripper |
+
+Ninguno se copió todavía a este repositorio. Mover 77 MB de video a un repo
+Git es una decisión con consecuencias —Git LFS, hosting externo, o
+aceptarlo tal cual— y sigue pendiente. Cuando se resuelva, cada archivo debe quedar
+enlazado como `evidence` en su `VerificationResult` correspondiente.

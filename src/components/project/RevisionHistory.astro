@@ -1,0 +1,39 @@
+---
+/**
+ * Historial de revisiones de un artefacto físico (PCB, ensamble CAD).
+ * Vive dentro de la página del artefacto, no solo
+ * en Releases: una PCB puede iterar varias veces entre dos releases de
+ * software.
+ */
+interface Row {
+  revision: string;
+  date: string;
+  change: string;
+}
+interface Props {
+  rows: Row[];
+}
+
+const { rows } = Astro.props;
+---
+
+<table class="c-datatable__table c-revisions">
+  <thead>
+    <tr>
+      <th>Revisión</th>
+      <th>Fecha</th>
+      <th>Cambio</th>
+    </tr>
+  </thead>
+  <tbody>
+    {
+      rows.map((r) => (
+        <tr>
+          <td class="c-datatable__mono">{r.revision}</td>
+          <td class="c-datatable__mono">{r.date}</td>
+          <td>{r.change}</td>
+        </tr>
+      ))
+    }
+  </tbody>
+</table>

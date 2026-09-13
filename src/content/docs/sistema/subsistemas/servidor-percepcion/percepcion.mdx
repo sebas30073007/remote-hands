@@ -1,0 +1,136 @@
+---
+title: Percepción
+description: Pipeline de RPLiDAR y RealSense de la NUC.
+---
+
+import { ReplicationLevel, ParameterTable, Artifact } from '@project';
+
+La NUC procesa dos sensores conectados por USB. Cada uno alimenta un
+pipeline independiente, y ambos publican su salida por ZeroMQ.
+
+<figure>
+  <img
+    src="/remote-hands/images/build/realsense-montaje-frontal.webp"
+    alt="Cámara Intel RealSense D435i montada en posición frontal sobre la base del manipulador"
+  />
+  <figcaption>La RealSense D435i en su posición frontal, sobre la base del manipulador.</figcaption>
+</figure>
+
+<ReplicationLevel
+  level="reproducible"
+  provides={[
+    'Pipeline completo de ambos sensores en el código del coordinador',
+    'Todos los parámetros: modos de grid, umbrales de visión y etapas del pipeline de paredes',
+    'Modelos de YOLO usados, con su umbral y dispositivo de inferencia',
+  ]}
+  missing={[
+    'Los pesos de YOLO no se publican aquí: ultralytics los descarga en el primer arranque',
+    'La curva de calibración de profundidad está incrustada en el código, sin el procedimiento con el que se obtuvo',
+  ]}
+/>
+
+<ParameterTable
+  caption="Sensores"
+  rows={[
+    { parameter: 'RPLiDAR C1', value: 'COM3', unit: '460 800 baud', notes: 'Grid de ocupación 2D, paredes, puntos' },
+    { parameter: 'Intel RealSense D435i', value: 'USB3', unit: '—', notes: 'Video RGB al XR, profundidad calibrada, visión' },
+  ]}
+/>
+
+## RPLiDAR C1 — grid de ocupación
+
+El grid tiene tres modos, con celda fija de 1 cm en todos ellos. Lo que
+cambia entre modos es el radio cubierto:
+
+| Modo | Radio | Grid | Frecuencia |
+| --- | --- | --- | --- |
+| `detail` | 1 m | 200×200 | ~12 Hz |
+| `medium` | 2 m | 400×400 | ~12 Hz |
+| `panorama` | 3 m | 600×600 | ~12 Hz |
+
+El grid se publica como JSON en el tópico `lidar_grid`. Los puntos con más
+de 0,35 s de antigüedad se descartan antes de construirlo.
+
+## RPLiDAR C1 — paredes y puntos
+
+Los dos modos de esta sección son inmersivos y opcionales: alimentan la
+escena 3D del headset, no los paneles 2D.
+
+### Modo paredes (`walls_enabled`)
+
+El sistema acumula hasta 150 000 puntos en una ventana de 4 s y procesa el
+lote a ~1 Hz. El pipeline tiene cinco etapas, y cada una tiene sus
+parámetros fijados en el código:
+
+1. **Proyectar** los puntos a un grid 2D de 10 cm, con 0,5 m de margen.
+2. **Morfología** para cerrar huecos y quitar ruido: dilatación (kernel 3,
+   1 pasada), cierre (kernel 5, 2 pasadas) y apertura (kernel 2, 1 pasada).
+3. **Componentes conectados**, descartando los de menos de 80 px de área.
+4. **Simplificar** las polilíneas con épsilon de 4 px, descartando las de
+   menos de 8 px de longitud.
+5. **Fusionar** segmentos: se unen los que difieren menos de 15°, con ajuste
+   a 3 px y extensión máxima de 4 px, y se alinean a la ortogonal con la
+   misma tolerancia de 15°.
+
+El orden importa. Cerrar antes de abrir une los tramos de una misma pared
+que el LiDAR ve con huecos, y solo después se elimina el ruido suelto; al
+revés, la apertura borraría puntos que el cierre necesitaba.
+
+La salida son segmentos de pared compactos, listos para la escena XR. Viajan
+en binario por el puerto 5007, con los identificadores `WSNP` para el
+snapshot completo y `WDEL` para los deltas.
+
+### Modo puntos (`points_enabled`)
+
+Publica hasta 12 000 puntos crudos por paquete a ~8 Hz, también por el
+puerto 5007, con los identificadores `LPSN` y `LPFR`.
+
+## RealSense D435i — video y visión
+
+La cámara entrega un stream RGB de 640×480 a un máximo de 30 fps,
+comprimido en JPEG con calidad 85. Se publica en el tópico `video_rgb`, por
+el puerto 5555.
+
+La profundidad no se publica en crudo: antes se corrige con una curva de
+calibración interpolada entre 160 mm y 1000 mm.
+
+### Visión por computadora
+
+Corre **en CPU**, no en GPU, y cada modo carga un modelo distinto. Los dos no
+son de la misma familia, cosa fácil de pasar por alto al montar el entorno:
+
+| Modo | Modelo | Salida |
+| --- | --- | --- |
+| `pose` | `yolov8n-pose.pt` | Keypoints de pose corporal |
+| `segment` | `yolo26n-seg.pt` | Máscaras de segmentación |
+
+<ParameterTable
+  caption="Parámetros de inferencia"
+  rows={[
+    { parameter: 'Dispositivo', value: 'CPU', unit: '—', notes: 'La NUC no lleva GPU dedicada' },
+    { parameter: 'Tamaño de entrada', value: '640', unit: 'px' },
+    { parameter: 'Umbral de confianza', value: '0,70', unit: '—', notes: 'Detección descartada por debajo' },
+    { parameter: 'Umbral por keypoint (pose)', value: '0,20', unit: '—' },
+    { parameter: 'Máscara mínima (segmentación)', value: '200', unit: 'px', notes: 'Descarta manchas sueltas' },
+    { parameter: 'Radio de muestreo de profundidad', value: '10', unit: 'px', notes: 'Promedia un disco, no un píxel suelto' },
+    { parameter: 'Profundidad máxima válida', value: '2500', unit: 'mm' },
+    { parameter: 'Frecuencia de publicación', value: '10', unit: 'Hz' },
+  ]}
+/>
+
+La profundidad de una detección no se lee del píxel central sino de un disco
+de 10 px alrededor: un solo píxel de la RealSense puede venir sin dato o con
+ruido, y una lectura errónea ahí desplaza el objeto entero en la escena.
+
+<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
+
+## Estado
+
+| Función | Estado |
+| --- | --- |
+| Grid LiDAR (3 modos) | Verificado |
+| Stream RGB 640×480 @ ~30 fps | Verificado |
+| Calibración de profundidad | Implementada |
+| Pipeline de paredes y de puntos | Implementado |
+| Transmisión RGB-D completa al headset | Pendiente |
+| Mapeo global del entorno (SLAM) | Fase futura |

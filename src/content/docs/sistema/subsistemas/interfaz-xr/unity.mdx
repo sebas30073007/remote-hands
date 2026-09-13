@@ -1,0 +1,96 @@
+---
+title: "Unity y comunicación ZMQ"
+description: Stack tecnológico y endpoints ZMQ que consume la aplicación Unity.
+---
+
+import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
+
+Esta página cubre la capa técnica de la aplicación: de qué paquetes depende
+y cómo habla con la NUC. La descripción de lo que el operador ve y toca está
+en [Interfaz y
+controles](/remote-hands/sistema/subsistemas/interfaz-xr/interfaz/).
+
+<ReplicationLevel
+  level="described"
+  provides={[
+    'Los 25 scripts de C# de la aplicación, completos',
+    'Stack de paquetes con la versión del Meta XR SDK',
+    'Contrato ZMQ completo: puertos, tópicos y esquema de comandos',
+    'Parámetros de configuración por defecto de los componentes principales',
+  ]}
+  missing={[
+    'El proyecto Unity: escenas, prefabs, jerarquía del canvas world-space y las referencias que enlazan cada script con su objeto — sin eso los scripts no forman una aplicación',
+    'El APK compilado para Meta Quest 3',
+    'Versiones de Unity y del resto de paquetes, más allá del Meta XR SDK',
+    'El modelo 3D del ghost robot y sus límites articulares, que hoy viven en el prefab y no en el código',
+  ]}
+/>
+
+Este subsistema es el menos replicable de los tres, y conviene decirlo
+pronto: **los scripts sueltos no reconstruyen la aplicación**. Un script de
+Unity es un componente que se cuelga de un objeto de escena y recibe sus
+referencias desde el inspector. Sin las escenas y los prefabs, lo que hay
+aquí sirve para entender la lógica y el protocolo —que es mucho, y es
+suficiente para escribir un cliente propio— pero no para compilar esta app.
+
+## Stack
+
+| Paquete | Función |
+| --- | --- |
+| Meta XR SDK (All-in-One) 83.0 | SDK principal, passthrough y controladores |
+| AsyncZMQ (NetMQ) | Cliente ZeroMQ hacia la NUC |
+| Unity XR Interaction Toolkit | Ray interaction y EventSystem VR/MR |
+| TextMesh Pro | Toda la UI de texto |
+| OVRInput | Lectura de joystick, botones y hápticos del controlador |
+
+## Endpoints ZMQ consumidos por Unity
+
+<InterfaceTable
+  caption="Los mismos cuatro puertos del middleware, vistos desde el cliente Unity"
+  columns={['Puerto', 'Tipo', 'Dirección', 'Tópicos / contenido']}
+  rows={[
+    ['5555', 'PUB/SUB', 'NUC → Unity', 'video_rgb — JPEG 640×480'],
+    ['5001', 'PUB/SUB', 'NUC → Unity', 'stat, mode_ack, lidar_grid, manip_state, gripper_state'],
+    ['5002', 'PUB/SUB', 'Unity → NUC', 'cmd — comandos JSON'],
+    ['5007', 'PUB/SUB', 'NUC → Unity', 'walls_snapshot, walls_delta, lidar_points_snapshot, lidar_points_frame'],
+  ]}
+/>
+
+Los comandos que salen por el puerto `5002` se envían varias veces
+seguidas, con unos milisegundos de separación. Es una defensa contra el
+*slow joiner* de ZMQ: un suscriptor que acaba de conectarse pierde los
+primeros mensajes que se publican, porque el enlace todavía no está
+establecido. Repetir el comando hace que al menos una copia llegue.
+
+## Configuración por defecto
+
+Estos valores están en los propios componentes y son los que toma la
+aplicación si nadie los cambia desde el inspector de Unity.
+
+<ParameterTable
+  caption="Valores por defecto de los componentes principales"
+  rows={[
+    { parameter: 'IP de respaldo de la NUC', value: '192.168.100.20', unit: '—', notes: 'Se usa si no hay ninguna guardada en PlayerPrefs' },
+    { parameter: 'Modo de cámara al arrancar', value: 'normal', unit: '—', notes: 'Se solicita a la NUC en el arranque' },
+    { parameter: 'Frecuencia de envío de tracción', value: '15', unit: 'Hz' },
+    { parameter: 'Zona muerta del joystick', value: '0,18', unit: '—', notes: 'La NUC aplica otra distinta al recibir' },
+    { parameter: 'Ganancia de giro', value: '1,0', unit: '—' },
+    { parameter: 'Consigna máxima', value: '255', unit: 'crudo' },
+    { parameter: 'Ejes intercambiados', value: 'sí', unit: '—', notes: 'swapAxes activo por defecto' },
+    { parameter: 'Tolerancia de comparación de pose', value: '0,25', unit: '°', notes: 'Por debajo, no se reenvía el comando' },
+    { parameter: 'Recorrido del gripper', value: '0 – 80', unit: 'mm' },
+  ]}
+/>
+
+La IP de respaldo está **incrustada en el componente**, así que en otra red
+hay que cambiarla desde el inspector o introducirla con el teclado virtual la
+primera vez.
+
+## Scripts
+
+Los 25 scripts de C# de la aplicación están empaquetados juntos. Cubren la
+recepción de cada canal ZMQ, la gestión de la IP de la NUC, los modos de
+control y el feedback de la interfaz.
+
+<Artifact href="/software/unity-scripts.zip" name="Unity scripts (C#)"
+  contents="ZmqVideoReceiver, ZmqLidarGridView, ZmqLidarPointsReceiver, ZmqWallsReceiver, ZmqGripperStateReceiver, ZmqSensorReceiver, ZmqLidar3DCommandSender, NucIpManager, NucIpPanelController, ControlModeState, QuestMobileDriveTeleop, ManipulatorUIController, RobotStatusPanel, UiInteractionFeedback y otros — 25 scripts, carpeta completa de assets/downloads/Unity scripts/ del proyecto original." />

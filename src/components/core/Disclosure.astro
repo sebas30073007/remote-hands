@@ -1,0 +1,209 @@
+---
+/**
+ * Contenido plegable con título, para varias vías equivalentes que un
+ * lector no necesita leer todas: instrucciones por sistema operativo, por
+ * distribución, por versión. Cada quien despliega la suya.
+ *
+ * A diferencia del `<details>` que usa `TryIt` para la pista —donde se
+ * conserva el tratamiento por defecto de Starlight, pensado para una
+ * revelación corta—, aquí el contenido puede ser largo, así que el
+ * componente trae su propio encabezado con icono opcional y chevron, y su
+ * propio script: anima el alto al abrir/cerrar (en vez del salto
+ * instantáneo por defecto de `<details>`) y desplaza la página para que lo
+ * que se acaba de abrir quede a la vista sin que el lector tenga que
+ * buscarlo con el scroll.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief).
+ */
+interface Props {
+  title: string;
+  /**
+   * Atajo(s) de esta herramienta, para no meterlos entre paréntesis en el
+   * título. Una tecla ("A"), una combinación ("Ctrl+D") o varias
+   * herramientas distintas separadas por coma ("M, R") — cada una se
+   * dibuja como su propio grupo de teclas.
+   */
+  shortcut?: string;
+  /** Abierto al cargar la página. Por defecto, cerrado. */
+  open?: boolean;
+}
+
+const { title, shortcut, open = false } = Astro.props;
+const hasIcon = Astro.slots.has('icon');
+const grupos = shortcut
+  ? shortcut.split(',').map((grupo) => grupo.split('+').map((k) => k.trim()).filter(Boolean))
+  : [];
+---
+
+<details class="c-disclosure" open={open}>
+  <summary class="c-disclosure__summary">
+    <span class="c-disclosure__heading">
+      {hasIcon && (
+        <span class="c-disclosure__icon" aria-hidden="true">
+          <slot name="icon" />
+        </span>
+      )}
+      <span class="c-disclosure__title">{title}</span>
+    </span>
+    <span class="c-disclosure__side">
+      {grupos.length > 0 && (
+        <span class="c-disclosure__shortcut">
+          <span class="c-disclosure__shortcut-label">Atajo</span>
+          {grupos.map((combo, i) => (
+            <>
+              {i > 0 && <span class="c-disclosure__shortcut-sep" aria-hidden="true">·</span>}
+              {combo.map((key, j) => (
+                <>
+                  {j > 0 && <span class="c-disclosure__shortcut-plus" aria-hidden="true">+</span>}
+                  <kbd>{key}</kbd>
+                </>
+              ))}
+            </>
+          ))}
+        </span>
+      )}
+      <svg
+        class="c-disclosure__chevron"
+        viewBox="0 0 16 16"
+        width="14"
+        height="14"
+        aria-hidden="true"
+        focusable="false"
+      >
+        <path
+          d="M4 6.25 8 10l4-3.75"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="1.75"
+          stroke-linecap="round"
+          stroke-linejoin="round"
+        />
+      </svg>
+    </span>
+  </summary>
+  <div class="c-disclosure__body">
+    <slot />
+  </div>
+</details>
+
+<script>
+  // Abrir/cerrar animado, con la página acompañando el movimiento.
+  //
+  // Al abrir: el <details> se despliega y la página se desplaza para que
+  // lo que se acaba de abrir quede a la vista —centrado si cabe entero en
+  // la ventana; si no cabe (el bloque es más alto que la ventana), prioriza
+  // que se vea el principio (el título y el arranque del contenido) en vez
+  // de centrar un bloque que de todos modos va a salirse por abajo.
+  //
+  // Al cerrar: la altura se anima de vuelta a cero y, cuando termina, la
+  // página se desplaza para volver a mostrar el grupo completo de
+  // desplegables hermanos —así se ve otra vez el panorama de opciones, no
+  // solo el que se acaba de cerrar.
+  //
+  // Con `<ClientRouter />` activo (`Head.astro`), este script solo evalúa
+  // su nivel superior una vez —la primera carga—, así que todo vive en
+  // `astro:page-load`, que sí se dispara en cada transición.
+  document.addEventListener('astro:page-load', () => {
+    const DURACION = 200;
+    const EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    const MARGEN = 24;
+    const sinMovimiento = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const centrarEnVista = (rect: DOMRect) => {
+      if (sinMovimiento) return;
+      const altoVisible = window.innerHeight - 2 * MARGEN;
+
+      const desplazar =
+        rect.height <= altoVisible
+          ? // Cabe entero: se centra en la ventana.
+            rect.top + rect.height / 2 - window.innerHeight / 2
+          : // No cabe entero: prioriza que se vea el principio.
+            rect.top - MARGEN;
+
+      if (Math.abs(desplazar) < 1) return;
+      window.scrollBy({ top: desplazar, behavior: 'smooth' });
+    };
+
+    for (const detalles of document.querySelectorAll<HTMLDetailsElement>('.c-disclosure')) {
+      const resumen = detalles.querySelector<HTMLElement>(':scope > summary');
+      const cuerpo = detalles.querySelector<HTMLElement>(':scope > .c-disclosure__body');
+      if (!resumen || !cuerpo) continue;
+
+      let animando = false;
+
+      resumen.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (animando) return;
+
+        if (detalles.open) {
+          // Cerrar: primero anima, y solo al terminar recoloca la vista
+          // sobre el grupo de hermanos —recolocar antes daría una posición
+          // calculada con el bloque todavía abierto, que ya no es la que
+          // toca en cuanto termine de cerrarse.
+          if (sinMovimiento) {
+            detalles.open = false;
+            return;
+          }
+          animando = true;
+          const alto = cuerpo.scrollHeight;
+          cuerpo.style.overflow = 'hidden';
+          cuerpo
+            .animate([{ height: `${alto}px`, opacity: 1 }, { height: '0px', opacity: 0.5 }], {
+              duration: DURACION,
+              easing: EASING,
+            })
+            .finished.then(() => {
+              detalles.open = false;
+              cuerpo.style.overflow = '';
+              cuerpo.style.removeProperty('height');
+              animando = false;
+
+              const hermanos = [...(detalles.parentElement?.children ?? [])].filter(
+                (el): el is HTMLElement => el.classList.contains('c-disclosure')
+              );
+              if (hermanos.length > 1) {
+                const primero = hermanos[0]!.getBoundingClientRect();
+                const ultimo = hermanos[hermanos.length - 1]!.getBoundingClientRect();
+                centrarEnVista(
+                  new DOMRect(primero.x, primero.top, primero.width, ultimo.bottom - primero.top)
+                );
+              }
+            });
+          return;
+        }
+
+        // Abrir: primero termina de desplegarse del todo, y solo entonces
+        // se desplaza la vista —secuencial a propósito, no simultáneo—.
+        // Con las dos animaciones a la vez, el punto al que había que
+        // desplazarse se calculaba con la página todavía sin crecer (el
+        // cuerpo recién recortado a 0 para empezar a animar), así que en
+        // una sección baja de la página el cálculo se quedaba corto: el
+        // documento crecía *después* de haber dejado de desplazarse, y el
+        // final del bloque quedaba fuera de la ventana. Midiendo después
+        // de que el alto ya terminó de animar, la página tiene su tamaño
+        // real y el desplazamiento cae donde debe.
+        detalles.open = true;
+        const alto = cuerpo.scrollHeight;
+
+        if (sinMovimiento) {
+          centrarEnVista(detalles.getBoundingClientRect());
+          return;
+        }
+
+        cuerpo.style.overflow = 'hidden';
+        animando = true;
+        cuerpo
+          .animate([{ height: '0px', opacity: 0.5 }, { height: `${alto}px`, opacity: 1 }], {
+            duration: DURACION,
+            easing: EASING,
+          })
+          .finished.then(() => {
+            cuerpo.style.overflow = '';
+            cuerpo.style.removeProperty('height');
+            animando = false;
+            centrarEnVista(detalles.getBoundingClientRect());
+          });
+      });
+    }
+  });
+</script>

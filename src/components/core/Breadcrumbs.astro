@@ -1,0 +1,37 @@
+---
+import { getBreadcrumbs } from '../../lib/project-nav';
+
+/**
+ * Ruta hasta la página actual.
+ *
+ * Se deriva del sidebar, así que si el temario cambia la ruta cambia con
+ * él y no hay nada que mantener a mano. Los grupos no son páginas: se
+ * muestran como texto, no como enlace.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief).
+ */
+const { sidebar, entry } = Astro.locals.starlightRoute;
+const crumbs = getBreadcrumbs(sidebar as never);
+const base = import.meta.env.BASE_URL;
+const esPortada = entry.id === '' || entry.id === 'index';
+---
+
+{
+  !esPortada && (
+    <nav class="c-crumbs" aria-label="Ruta de navegación">
+      <ol>
+        <li>
+          <a href={base}>Inicio</a>
+        </li>
+        {crumbs.map((label) => (
+          <li>
+            <span>{label}</span>
+          </li>
+        ))}
+        <li>
+          <span aria-current="page">{entry.data.title}</span>
+        </li>
+      </ol>
+    </nav>
+  )
+}

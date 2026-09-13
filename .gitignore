@@ -1,0 +1,48 @@
+# dependencias
+node_modules/
+
+# salida del build
+dist/
+.astro/
+
+# entorno
+.env
+.env.*
+!.env.example
+
+# sistema
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# logs
+npm-debug.log*
+*.log
+
+# editores
+.vscode/
+.idea/
+
+# asistentes de IA: configuración local y notas de sesiones de trabajo.
+# El razonamiento que importa ya quedó en los comentarios del código.
+.claude/
+CLAUDE.md
+CLAUDE.local.md
+AGENTS.md
+.gstack/
+.impeccable/
+respuesta chat.md
+ESTADO_COURSE_DOCS_PARA_CHATGPT.md
+ESTRUCTURA_PROPUESTA_PROJECT_DOCS.md
+REVISION_REDACCION.md
+DECISIONES_PENDIENTES.md
+PROGRESS.md
+
+# modelos 3D originales (~50 MB, salen de Inventor y KiCad).
+# Lo publicable está en public/models/ (optimizado) y public/explode/
+# (capas renderizadas); ver scripts/optimize-models.mjs.
+raw assets/
+
+# scripts temporales de verificación
+*.tmp.mjs
+.*-tmp.mjs

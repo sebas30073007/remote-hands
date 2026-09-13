@@ -1,0 +1,93 @@
+---
+import { statSync } from 'node:fs';
+import { join } from 'node:path';
+import FileIcon from '../core/FileIcon.astro';
+
+/**
+ * Un artefacto descargable del proyecto: CAD, gerbers, firmware, datasets,
+ * PDFs. Es `CourseFile` generalizado: mismo
+ * comportamiento —icono por extensión, peso leído del archivo real en
+ * build, sin botón de descarga porque el archivo es el enlace—, sin
+ * vocabulario pedagógico. Cuando se use en un segundo framework además de
+ * en este, es candidato real a `@sebs/docs-core` como `FileArtifact`
+ * (regla de promoción de course-docs: dos usos y cero conocimiento de
+ * dominio).
+ */
+interface Props {
+  /** Ruta desde `public/`: "/cad/source/gripper.step". */
+  href: string;
+  name?: string;
+  size?: string;
+  revision?: string;
+  contents?: string;
+}
+
+const { href, name, size, revision, contents } = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const esExterno = href.startsWith('http');
+const url = esExterno ? href : `${base}${href}`;
+
+const archivo = href.split('/').pop() ?? href;
+const esCarpeta = href.endsWith('/');
+const ext = esCarpeta ? 'dir' : (archivo.split('.').pop() ?? '');
+const rotulo = name ?? archivo.replace(/\.[^.]+$/, '');
+
+function formatearPeso(bytes: number): string {
+  if (bytes < 1024) return `${bytes} B`;
+  const kb = bytes / 1024;
+  if (kb < 1024) return `${kb.toFixed(kb < 10 ? 1 : 0).replace('.', ',')} KB`;
+  return `${(kb / 1024).toFixed(1).replace('.', ',')} MB`;
+}
+
+let peso = size;
+if (!peso && !esExterno && !esCarpeta) {
+  try {
+    peso = formatearPeso(statSync(join(process.cwd(), 'public', href)).size);
+  } catch {
+    // El archivo aún no existe: se muestra sin peso en lugar de romper.
+  }
+}
+
+const datos = [peso, revision].filter(Boolean);
+---
+
+<figure class="c-file">
+  <p class="c-file__label">Artefacto</p>
+
+  <a class="c-file__link" href={url} download={esExterno ? undefined : ''} title={contents}>
+    <FileIcon ext={ext} />
+    <span class="c-file__name">{rotulo}</span>
+  </a>
+
+  {
+    contents ? (
+      <details class="c-file__info">
+        <summary class="c-file__foot">
+          <span class="c-file__meta">
+            {datos.map((dato) => (
+              <span>{dato}</span>
+            ))}
+          </span>
+          <span class="c-file__ibtn" aria-hidden="true">
+            <svg viewBox="0 0 16 16" width="12" height="12" focusable="false">
+              <circle cx="8" cy="8" r="6.25" fill="none" stroke="currentColor" stroke-width="1.5" />
+              <path d="M8 7.4v3.6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" />
+              <circle cx="8" cy="5" r="0.9" fill="currentColor" />
+            </svg>
+          </span>
+          <span class="sr-only">Qué contiene {rotulo}</span>
+        </summary>
+        <p class="c-file__desc">{contents}</p>
+      </details>
+    ) : (
+      <p class="c-file__foot">
+        <span class="c-file__meta">
+          {datos.map((dato) => (
+            <span>{dato}</span>
+          ))}
+        </span>
+      </p>
+    )
+  }
+</figure>

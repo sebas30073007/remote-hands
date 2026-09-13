@@ -1,0 +1,52 @@
+---
+/**
+ * Tabla de parámetros técnicos con unidades tratadas como una columna,
+ * no pegadas al valor en texto libre — así una tabla de par motor y una
+ * de tensión se leen y escanean igual.
+ *
+ * Uso:
+ * <ParameterTable rows={[
+ *   { parameter: 'Tensión de alimentación', value: '24', unit: 'V' },
+ *   { parameter: 'Corriente máxima', value: '4.2', unit: 'A', notes: 'pico, no continua' },
+ * ]} />
+ */
+interface Row {
+  parameter: string;
+  value: string | number;
+  unit?: string;
+  notes?: string;
+}
+interface Props {
+  rows: Row[];
+  caption?: string;
+}
+
+const { rows, caption } = Astro.props;
+const conNotas = rows.some((r) => r.notes);
+---
+
+<figure class="c-datatable">
+  {caption && <figcaption class="c-datatable__caption">{caption}</figcaption>}
+  <table class="c-datatable__table">
+    <thead>
+      <tr>
+        <th>Parámetro</th>
+        <th>Valor</th>
+        <th>Unidad</th>
+        {conNotas && <th>Notas</th>}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((r) => (
+          <tr>
+            <td>{r.parameter}</td>
+            <td class="c-datatable__mono">{r.value}</td>
+            <td class="c-datatable__mono">{r.unit ?? '—'}</td>
+            {conNotas && <td>{r.notes ?? ''}</td>}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</figure>

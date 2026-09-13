@@ -1,0 +1,16 @@
+---
+/**
+ * Hueco del selector de tema, reutilizado para el conmutador UI/UX.
+ *
+ * El selector claro/oscuro se eliminó a propósito: el sitio se publica en
+ * tema claro, y un selector con una sola opción es ruido en la barra
+ * superior (para recuperarlo, ver "Tema" en el README).
+ *
+ * Starlight coloca este componente en el extremo derecho de la cabecera,
+ * que es justo donde tiene que ir un control que cambia cómo se ve todo el
+ * sitio. Se aprovecha el hueco en vez de sobrescribir la cabecera entera.
+ */
+import UiModeToggle from '../components/project/UiModeToggle.astro';
+---
+
+<UiModeToggle />

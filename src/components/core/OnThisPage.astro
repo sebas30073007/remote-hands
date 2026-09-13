@@ -1,0 +1,41 @@
+---
+/**
+ * Índice de la página en versión en línea.
+ *
+ * En pantallas anchas el índice vive en su propia columna. Cuando no cabe,
+ * aparece aquí —justo debajo del título, dentro del flujo de lectura— en
+ * lugar de en una banda desplegable flotante.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief).
+ */
+interface TocItem {
+  slug: string;
+  text: string;
+  children: TocItem[];
+}
+
+const { toc } = Astro.locals.starlightRoute;
+
+/** Se aplana a un solo nivel: como salto rápido, la jerarquía estorba. */
+const aplanar = (items: TocItem[]): TocItem[] =>
+  items.flatMap((item) => [item, ...aplanar(item.children)]);
+
+const items = toc ? aplanar(toc.items as TocItem[]).slice(1) : [];
+---
+
+{
+  items.length > 0 && (
+    <nav class="c-inline-toc" aria-labelledby="c-inline-toc-title">
+      <p class="c-inline-toc__title" id="c-inline-toc-title">
+        En este artículo
+      </p>
+      <ul>
+        {items.map((item) => (
+          <li>
+            <a href={'#' + item.slug}>{item.text}</a>
+          </li>
+        ))}
+      </ul>
+    </nav>
+  )
+}

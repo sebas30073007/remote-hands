@@ -1,0 +1,88 @@
+---
+title: Arquitectura del sistema
+description: Cómo se dividen las responsabilidades entre el operador, la NUC coordinadora y los controladores embebidos de Remote Hands.
+---
+
+El sistema tiene dos elementos principales: **el robot móvil con
+manipulador** y **la aplicación XR en Meta Quest**. Desde los lentes, el
+operador maneja el robot, consulta los sensores y elige qué datos quiere
+recibir. Esa última capacidad importa: el robot solo transmite lo que el
+operador pidió, en lugar de saturar la red con todo lo que produce.
+
+<figure>
+  <img src="/remote-hands/images/diagrama-general.png" alt="Diagrama general de la arquitectura: Meta Quest, NUC, y red embebida del robot" />
+  <figcaption>Arquitectura general: Meta Quest, NUC coordinadora y red embebida del robot.</figcaption>
+</figure>
+
+La **NUC actúa como coordinador** del sistema. Los demás subsistemas
+ejecutan las tareas de bajo nivel: control de motores, PWM, rampas, señales
+de drivers y rutinas de calibración. Esa división mantiene simples los
+comandos que salen de la interfaz XR, porque toda la complejidad del
+movimiento se resuelve dentro del robot. La decisión está registrada en
+[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+
+## NUC embarcada
+
+La NUC Intel i7 es la computadora principal del robot. Recibe comandos desde
+la Meta Quest, coordina los sensores y se comunica con la electrónica
+embebida. Está conectada por USB a cuatro dispositivos:
+
+- **RPLiDAR C1**, para información del entorno en 2D.
+- **Cámara Intel RealSense D435i**, para video y percepción RGB-D.
+- **Módulo Puente H maestro**, que enlaza la NUC con la red de placas
+  embebidas.
+- **Gripper ESP32-C3**, por un canal serie independiente para controlar la
+  pinza y leer su estado.
+
+La NUC no controla directamente los detalles eléctricos del robot. Envía
+instrucciones simples a los módulos ESP32-C3 —una velocidad deseada, un
+ángulo objetivo— y cada placa traduce esa instrucción a las señales
+eléctricas que su hardware necesita.
+
+## Red embebida del robot
+
+El robot lleva tres controladores diseñados para este proyecto: el módulo
+Puente H para tracción, en configuración maestro-esclavo; el controlador
+CL57T para los tres ejes del manipulador; y el controlador del gripper. Los
+tres están detallados en [Robot
+móvil](/remote-hands/sistema/subsistemas/robot-movil/).
+
+El Puente H maestro concentra el bus I²C hacia los otros dos módulos de
+movimiento. El gripper queda fuera de ese bus, con su propio canal USB
+directo a la NUC.
+
+## Flujo de operación
+
+Un ciclo típico de operación:
+
+1. El operador usa la Meta Quest para activar video, seleccionar resolución
+   de LiDAR o mover el robot.
+2. La aplicación XR envía un comando ZMQ hacia la NUC.
+3. La NUC interpreta el comando y decide qué hacer con él: cambiar un modo
+   de sensor, transmitir video o pasar una orden a las placas embebidas.
+4. Si el comando implica movimiento, la NUC lo envía al módulo
+   correspondiente por USB o, indirectamente, por I²C.
+5. Los controladores ejecutan el control local —interpolación de pasos,
+   rampas, PWM— sin que la NUC gestione señales en tiempo real.
+6. Los sensores capturan el entorno, y la NUC devuelve a la Meta Quest solo
+   los datos que el operador pidió.
+
+## Criterio de diseño
+
+La arquitectura divide responsabilidades de forma explícita:
+
+| Capa | Responsabilidad |
+| --- | --- |
+| Meta Quest | Operación, visualización, selección de modos |
+| NUC | Coordinación general, sensores, streaming, comunicación ZMQ |
+| ESP32-C3 (×3) | Control embebido de bajo nivel |
+| Placas de diseño propio | Adaptación eléctrica, control de motores, señales para drivers |
+| Sensores | Percepción del entorno — LiDAR y cámara RGB-D |
+
+Esa división hace modular el sistema. La interfaz XR se mantiene simple, la
+NUC se concentra en comunicación y percepción, y las placas embebidas
+resuelven el control eléctrico y mecánico en local.
+
+El sistema no usa ROS. Fue una decisión explícita, tomada por simplicidad y
+portabilidad, y está registrada junto al resto de la arquitectura en
+[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).

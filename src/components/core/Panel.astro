@@ -1,0 +1,48 @@
+---
+/**
+ * Primitiva de callout.
+ *
+ * Genérica: no sabe nada de pedagogía. Los componentes de curso
+ * (TryIt, Checkpoint, Why, CommonMistake, CourseFile) la usan para
+ * compartir el mismo ritmo visual: insignia circular con el icono,
+ * título alineado junto a ella, cuerpo debajo.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief).
+ */
+interface Props {
+  /** Etiqueta corta en mayúsculas junto al icono: "TU TURNO"… */
+  eyebrow?: string;
+  /** Título de la tarjeta, alineado junto al icono (la pregunta de Why, el título de Checkpoint o CommonMistake). */
+  title?: string;
+  /**
+   * `neutral` — el caso normal, sin color.
+   * `alert`   — estado de advertencia: tinte de señal contenido en el
+   *             componente, siempre acompañado de texto e ícono.
+   */
+  tone?: 'neutral' | 'alert';
+  /** Elemento contenedor. `aside` para contenido complementario. */
+  as?: 'aside' | 'section';
+  class?: string;
+}
+
+const { eyebrow, title, tone = 'neutral', as: Tag = 'aside', class: className } = Astro.props;
+const hasIcon = Astro.slots.has('icon');
+---
+
+<Tag class:list={['c-panel', `c-panel--${tone}`, className]}>
+  <div class="c-panel__head">
+    {
+      hasIcon && (
+        <span class="c-panel__badge" aria-hidden="true">
+          <slot name="icon" />
+        </span>
+      )
+    }
+    {eyebrow && <p class="c-panel__eyebrow">{eyebrow}</p>}
+    {title && <p class="c-panel__title">{title}</p>}
+  </div>
+  <div class="c-panel__body">
+    <slot />
+  </div>
+  <slot name="footer" />
+</Tag>

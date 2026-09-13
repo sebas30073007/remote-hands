@@ -1,0 +1,83 @@
+---
+title: "Verificación — Visor Meta Quest"
+type: subsystem
+subsystemId: SUB-XR/VER
+status: validated
+responsibility: Resultados de verificación de la aplicación Unity y sus controles.
+---
+
+import { VerificationResult } from '@project';
+
+Todas las verificaciones de este subsistema son demostraciones sobre el
+headset real, no pruebas instrumentadas. Confirman que cada elemento de la
+interfaz responde en operación; no miden desempeño.
+
+## Visualización
+
+<VerificationResult
+  id="VER-XR-001"
+  requirement="El canvas world-space se muestra correctamente sobre el passthrough MR"
+  method="demonstration"
+  result="Funcional en el headset"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-XR-002"
+  requirement="El VideoPanel muestra el stream RGB del robot en tiempo real"
+  method="demonstration"
+  result="Verificado"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-XR-003"
+  requirement="El panel LiDAR 2D dibuja el grid de ocupación y permite cambiar de modo"
+  method="demonstration"
+  result="Verificado en los tres modos"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-XR-004"
+  requirement="El StatusPanel refleja conexión, estado de sensores y telemetría"
+  method="demonstration"
+  result="Verificado"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-XR-007"
+  requirement="La escena 3D dibuja las paredes y la nube de puntos del LiDAR"
+  method="demonstration"
+  result="Funcional"
+  status="pass"
+/>
+
+## Control
+
+<VerificationResult
+  id="VER-XR-005"
+  requirement="El joystick del headset conduce la base móvil (drive teleop)"
+  method="demonstration"
+  result="Funcional"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-XR-006"
+  requirement="Los sliders y el ghost robot comandan el manipulador 3 GDL y el gripper"
+  method="demonstration"
+  result="Funcional"
+  status="pass"
+/>
+
+## Pendiente
+
+<VerificationResult
+  id="VER-XR-008"
+  requirement="Gemelo digital URDF del robot dentro de la escena XR"
+  method="demonstration"
+  result="Sin implementar — planificado a mediano plazo"
+  status="pending"
+/>

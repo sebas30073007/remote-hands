@@ -1,0 +1,36 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+import StatusBadge from './StatusBadge.astro';
+import { projectStatusTone } from '../../lib/status-tone';
+
+/**
+ * Portada del proyecto — panel de estado del sistema, no una landing.
+ *
+ * Igual que `CourseHeader` en course-docs responde en segundos "qué es,
+ * si es para mí, cuánto dura y dónde empiezo", esta cabecera responde:
+ * qué es, en qué estado está, y qué partes tiene. El resto de la portada
+ * (arquitectura, subsistemas, artefactos clave, último release) es MDX
+ * normal debajo, con los componentes de project-docs — la cabecera solo
+ * cubre lo que hace falta ver antes de leer una sola línea.
+ */
+const { entry } = Astro.locals.starlightRoute;
+const { title, status, currentRelease, projectType } = entry.data;
+const { label: statusLabel, tone: statusTone } = projectStatusTone(status);
+---
+
+<header class="c-projecthead">
+  <p class="c-projecthead__kicker">Proyecto</p>
+  <h1 id="_top" transition:name="titulo-pagina">{title}</h1>
+
+  <div class="c-projecthead__meta">
+    <div class="c-projecthead__status">
+      <StatusBadge label={statusLabel} tone={statusTone} />
+    </div>
+    {currentRelease && <MetaItem label="Release actual" value={currentRelease} />}
+    {
+      projectType && projectType.length > 0 && (
+        <MetaItem label="Tipo" value={projectType.join(' · ')} mono={false} />
+      )
+    }
+  </div>
+</header>

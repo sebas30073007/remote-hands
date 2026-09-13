@@ -1,0 +1,95 @@
+---
+import StatusBadge from './StatusBadge.astro';
+import { replicationLevelTone } from '../../lib/status-tone';
+
+/**
+ * Contrato de replicación de una página.
+ *
+ * Es el componente que sostiene el objetivo de este sitio: que alguien de
+ * fuera pueda reconstruir el sistema completo o solo una parte. Cada página
+ * que documenta algo construible declara, arriba y sin rodeos, qué puede
+ * hacer el lector con lo que hay publicado.
+ *
+ * Las dos listas no son decorativas y no deben escribirse en abstracto:
+ *
+ * · `provides` enumera archivos y datos que existen de verdad en el sitio.
+ *   Si una entrada no se puede enlazar o abrir, no va aquí.
+ * · `missing` enumera lo que falta para subir al siguiente nivel, en
+ *   términos de material concreto ("DXF de las piezas de la torre"), nunca
+ *   de esfuerzo ("documentar mejor").
+ *
+ * Una página en `pending` con `missing` vacío es un error de autoría: si no
+ * se sabe qué falta, tampoco se sabe que falte algo.
+ *
+ * Uso:
+ * <ReplicationLevel
+ *   level="reproducible"
+ *   provides={['Gerbers listos para JLCPCB', 'Proyecto KiCad completo']}
+ *   missing={['Plantilla de stencil para pasta de soldadura']}
+ * />
+ */
+interface Props {
+  level: 'reproducible' | 'buildable' | 'described' | 'pending';
+  /** Qué hay publicado, en archivos y datos concretos. */
+  provides?: string[];
+  /** Qué falta para alcanzar el siguiente nivel. */
+  missing?: string[];
+}
+
+const NEXT_LEVEL = {
+  described: 'Construible',
+  buildable: 'Reproducible',
+  pending: 'Descrito',
+} as const;
+
+const SUMMARY = {
+  reproducible:
+    'Están los archivos de fabricación. Puedes producir una copia idéntica sin rediseñar nada.',
+  buildable:
+    'Está la geometría acotada y el procedimiento. Tendrás que adaptarlos a tus herramientas y materiales.',
+  described:
+    'Está el diseño explicado, con las dimensiones críticas y la razón de cada decisión. Sirve para rediseñar, no para copiar.',
+  pending: 'Todavía no hay material publicado suficiente para reconstruir esta parte.',
+} as const;
+
+const { level, provides = [], missing = [] } = Astro.props;
+const { label, tone } = replicationLevelTone(level);
+const next = NEXT_LEVEL[level as keyof typeof NEXT_LEVEL];
+---
+
+<section class="c-replication" aria-labelledby={`replication-${level}`}>
+  <div class="c-replication__head">
+    <h2 class="c-replication__title" id={`replication-${level}`}>Nivel de replicación</h2>
+    <StatusBadge label={label} tone={tone} />
+  </div>
+
+  <p class="c-replication__summary">{SUMMARY[level]}</p>
+
+  {
+    provides.length > 0 && (
+      <div class="c-replication__group">
+        <h3 class="c-replication__grouptitle">Lo que encuentras aquí</h3>
+        <ul class="c-replication__list c-replication__list--has">
+          {provides.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+
+  {
+    missing.length > 0 && (
+      <div class="c-replication__group">
+        <h3 class="c-replication__grouptitle">
+          {next ? `Lo que falta para llegar a «${next}»` : 'Lo que falta'}
+        </h3>
+        <ul class="c-replication__list c-replication__list--gap">
+          {missing.map((item) => (
+            <li>{item}</li>
+          ))}
+        </ul>
+      </div>
+    )
+  }
+</section>

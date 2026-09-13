@@ -1,0 +1,73 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+import StatusBadge from './StatusBadge.astro';
+import { verificationStatusTone } from '../../lib/status-tone';
+
+const METHOD_LABEL = {
+  test: 'Prueba',
+  measurement: 'Medición',
+  inspection: 'Inspección',
+  analysis: 'Análisis',
+  demonstration: 'Demostración',
+} as const;
+
+/**
+ * Resultado de verificación — deliberadamente no se llama `TestResult`:
+ * puede ser una prueba, una medición, una
+ * inspección, un análisis o una demostración, y un "PASS" suelto no es
+ * documentación de ingeniería si no apunta a evidencia real. `evidence`
+ * son rutas dentro de `public/datasets/` o `public/images/` — no botones
+ * de descarga con estilo, enlaces directos al dato.
+ *
+ * Uso:
+ * <VerificationResult id="VER-LAT-003" requirement="REQ-COM-004"
+ *   method="measurement" result="72.4 ms" status="pass"
+ *   evidence={[
+ *     { href: '/datasets/wfiot_latency_summary.csv', label: 'CSV crudo' },
+ *     { href: '/images/latency-distribution.svg', label: 'Distribución' },
+ *   ]} />
+ */
+interface Evidence {
+  href: string;
+  label?: string;
+}
+interface Props {
+  id: string;
+  requirement?: string;
+  method: keyof typeof METHOD_LABEL;
+  result: string;
+  status: 'pass' | 'fail' | 'pending';
+  evidence?: Evidence[];
+}
+
+const { id, requirement, method, result, status, evidence } = Astro.props;
+const { label: statusLabel, tone: statusTone } = verificationStatusTone(status);
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+---
+
+<figure class="c-verification">
+  <figcaption class="c-verification__head">
+    <span class="c-verification__id">{id}</span>
+    <StatusBadge label={statusLabel} tone={statusTone} />
+  </figcaption>
+
+  <div class="c-verification__meta">
+    {requirement && <MetaItem label="Requisito" value={requirement} />}
+    <MetaItem label="Método" value={METHOD_LABEL[method]} mono={false} />
+    <MetaItem label="Resultado" value={result} />
+  </div>
+
+  {
+    evidence && evidence.length > 0 && (
+      <ul class="c-verification__evidence">
+        {evidence.map((e) => (
+          <li>
+            <a href={e.href.startsWith('http') ? e.href : `${base}${e.href}`}>
+              {e.label ?? e.href.split('/').pop()}
+            </a>
+          </li>
+        ))}
+      </ul>
+    )
+  }
+</figure>

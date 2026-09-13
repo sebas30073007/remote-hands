@@ -1,0 +1,945 @@
+/* ===================================================================
+   Islas
+
+   El chrome del sitio no es una superficie continua con filetes: son
+   tarjetas blancas apoyadas sobre Mist. El ritmo lo da el contraste de
+   superficie —Blanco sobre Mist—, no el color: exactamente el recurso
+   que pide el sistema SEBS cuando una composición se siente plana.
+
+   ESTRUCTURA (a partir de 50rem)
+   La página es una rejilla de dos columnas con la cabecera arriba:
+
+       ┌──────────────────────────────────────────┐
+       │ cabecera (en flujo: se va con el scroll) │
+       ├───────────┬──────────────────────────────┤
+       │  temario  │  contenido │ índice          │
+       │ (sticky)  │  ── una sola tarjeta ──      │
+       └───────────┴──────────────────────────────┘
+
+   La cabecera NO está fija. Al bajar desaparece y las columnas suben a
+   ocupar la ventana: es lo que evita que el contenido pase por debajo de
+   una barra flotante. El temario y el índice son `sticky`, así que se
+   quedan a la vista mientras el contenido corre.
+
+   Todo se hace sobre la estructura que Starlight ya renderiza; no se
+   duplica ninguno de sus componentes de layout. Las reglas van sin capa
+   para ganarle a `@layer starlight.core`.
+   =================================================================== */
+
+:root {
+  --isla-gap: 20px;
+  --isla-sombra: 0 1px 2px rgba(17, 19, 23, 0.04), 0 8px 24px rgba(17, 19, 23, 0.06);
+  --isla-radio: var(--radius-xl);
+  /* La cabecera no es una isla: es una banda continua, así que su altura
+     es toda útil y no hay que sumarle márgenes. 4 rem deja unos 12 px de
+     aire por arriba y por abajo alrededor de la marca y del buscador. */
+  --sl-nav-height: 4rem;
+}
+
+body {
+  background: var(--mist);
+}
+
+/* -------------------------------------------------------------------
+   Cabecera
+   ------------------------------------------------------------------- */
+/* Banda continua de borde a borde: sin márgenes ni radio. Es la única
+   pieza que no es isla, y por eso recupera el alto que las tarjetas
+   gastan en separarse. */
+header.header {
+  height: var(--sl-nav-height);
+  padding: 0;
+  border-bottom: none;
+  background: var(--graphite);
+}
+
+/* La cabecera es la única superficie `dark` de la página.
+
+   El ritmo visual de SEBS se construye alternando Blanco y Grafito como
+   superficies, no añadiendo color: una banda oscura arriba y tarjetas
+   claras debajo es el patrón por defecto del sistema. Declarando aquí
+   los tokens de superficie, todo lo que vive dentro —marca, buscador,
+   foco— se adapta solo, sin una sola regla duplicada. */
+header.header > .header {
+  --surface: var(--graphite);
+  --surface-secondary: var(--graphite-raised);
+  --text: var(--technical-white);
+  --text-secondary: var(--alloy-light);
+  --divider: var(--divider-dark);
+  --signal-text: var(--sebs-signal-light);
+
+  height: 100%;
+  padding-inline: 0;
+  border-radius: 0;
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: none;
+}
+
+/* Marca a dos líneas: nombre del curso y descriptor. */
+.c-brand {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  padding-inline-start: var(--space-xl);
+  color: var(--text);
+  text-decoration: none;
+  white-space: nowrap;
+  min-width: 0;
+}
+
+.c-brand__name {
+  font-size: 1.0625rem;
+  font-weight: 700;
+  letter-spacing: -0.01em;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.c-brand__kicker {
+  font-size: 0.75rem;
+  font-weight: 500;
+  line-height: 1.2;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Los dos buscadores
+
+   Buscan cosas distintas —texto completo el de la cabecera, títulos del
+   temario el del sidebar— pero son el mismo control, así que se ven
+   igual: píldora sobre Mist, mismo alto, mismo tipo, mismo icono.
+   Las medidas compartidas viven aquí.
+   ------------------------------------------------------------------- */
+:root {
+  --busca-alto: 2.5rem;
+  --busca-pad: var(--space-lg);
+}
+
+/* `site-search` es `display: contents`; el ancho hay que darlo al botón,
+   que además trae un `max-width: 22rem` propio de Starlight. */
+site-search button[data-open-modal] {
+  width: 100%;
+  max-width: none;
+  height: var(--busca-alto);
+  padding-inline: var(--busca-pad) var(--space-sm);
+  gap: var(--space-sm);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-round);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+}
+
+site-search button[data-open-modal]:hover {
+  border-color: var(--text-secondary);
+  color: var(--text);
+}
+
+site-search button[data-open-modal] svg {
+  width: 1rem;
+  height: 1rem;
+}
+
+site-search button[data-open-modal] > kbd {
+  gap: var(--space-xs);
+}
+
+site-search button[data-open-modal] kbd {
+  padding-inline: var(--space-xs);
+  border-radius: var(--radius-xs);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+}
+
+/* ===================================================================
+   Rejilla de la página (≥ 50rem)
+   =================================================================== */
+@media (min-width: 50rem) {
+  .page {
+    display: grid;
+    grid-template-columns: var(--sl-sidebar-width) minmax(0, 1fr);
+    grid-template-areas:
+      'cabecera cabecera'
+      'temario contenido';
+    align-content: start;
+  }
+
+  /* Contraer/desplegar el temario anima el ancho del raíl en vez de
+     saltar de golpe —misma cantidad de columnas en los dos estados, solo
+     cambia cuánto mide la primera, así que el navegador puede interpolar
+     el `grid-template-columns` completo—. El contenido de la columna
+     (texto, buscador) sigue apareciendo/desapareciendo de golpe con
+     `display: none`: es la anchura del raíl la que se sentía brusca, no
+     esas etiquetas. */
+  @media (prefers-reduced-motion: no-preference) {
+    .page {
+      transition: grid-template-columns 200ms var(--ease, ease);
+    }
+  }
+
+  /* La cabecera vuelve al flujo: deja de flotar sobre el contenido. */
+  header.header {
+    grid-area: cabecera;
+    position: static;
+    width: auto;
+  }
+
+  nav.sidebar {
+    grid-area: temario;
+    min-width: 0;
+  }
+
+  .main-frame {
+    grid-area: contenido;
+    padding-top: 0;
+    padding-inline-start: 0;
+    min-width: 0;
+  }
+
+  /* Temario: columna real, pegada al borde superior al hacer scroll. */
+  .sidebar-pane {
+    /* `inset: auto` primero: Starlight lo deja anclado con `inset-block`,
+       y si se resetea después machacaría el `top` del sticky. */
+    inset: auto;
+    position: sticky;
+    top: var(--isla-gap);
+    z-index: auto;
+    width: calc(100% - var(--isla-gap));
+    height: calc(100vh - 2 * var(--isla-gap));
+    margin: var(--isla-gap) 0 var(--isla-gap) var(--isla-gap);
+    border-inline-end: none;
+    border-radius: var(--isla-radio);
+    background: var(--technical-white);
+    box-shadow: var(--isla-sombra);
+    overflow-y: auto;
+    scrollbar-width: thin;
+  }
+
+  .sidebar-content {
+    padding: var(--space-lg);
+    gap: var(--space-lg);
+  }
+
+  /* Contenido e índice comparten UNA tarjeta, separados por un filete. */
+  .main-frame > .lg\:sl-flex {
+    margin: var(--isla-gap) var(--isla-gap) var(--isla-gap) var(--isla-gap);
+    border-radius: var(--isla-radio);
+    background: var(--technical-white);
+    box-shadow: var(--isla-sombra);
+  }
+
+  .main-pane > main {
+    margin: 0;
+    padding-bottom: var(--space-2xl);
+    border-radius: 0;
+    background: none;
+    box-shadow: none;
+  }
+}
+
+/* -------------------------------------------------------------------
+   Temario contraído
+
+   Queda un raíl estrecho con el botón de desplegar. La medida vive en
+   `--sl-sidebar-width`, que es la que gobierna la rejilla: cambiarla
+   reajusta las tres columnas a la vez.
+   ------------------------------------------------------------------- */
+:root[data-nav-collapsed] {
+  --sl-sidebar-width: 4.25rem;
+}
+
+@media (min-width: 50rem) {
+  /* Sin scroll no hace falta barra, y su hueco descentraba el icono. */
+  [data-nav-collapsed] .sidebar-pane {
+    overflow: hidden;
+    scrollbar-width: none;
+  }
+
+  [data-nav-collapsed] .sidebar-content {
+    padding-inline: 0;
+  }
+
+  [data-nav-collapsed] .c-nav > *:not(.c-nav__toggle),
+  [data-nav-collapsed] .sidebar-content > .md\:sl-hidden {
+    display: none;
+  }
+
+  /* Cuadrado y centrado en el raíl: sin padding lateral que lo desplace. */
+  [data-nav-collapsed] .c-nav__toggle {
+    justify-content: center;
+    width: 2.25rem;
+    height: 2.25rem;
+    margin: 0 auto;
+    padding: 0;
+  }
+
+  [data-nav-collapsed] .c-nav__toggle-text {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+    white-space: nowrap;
+  }
+}
+
+/* Discreto y pegado al borde derecho del panel: ni ocupa todo el ancho
+   ni compite con el temario. */
+.c-nav__toggle {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  width: fit-content;
+  margin: 0 0 var(--space-md) auto;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid transparent;
+  border-radius: var(--radius-md);
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  color: var(--text-secondary);
+  cursor: pointer;
+}
+
+.c-nav__toggle:hover {
+  border-color: var(--divider);
+  color: var(--text);
+}
+
+.c-nav__toggle svg {
+  flex: none;
+}
+
+/* -------------------------------------------------------------------
+   Filtro del temario
+   ------------------------------------------------------------------- */
+.c-nav__search {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: var(--busca-alto);
+  margin-bottom: var(--space-lg);
+  padding-inline: var(--busca-pad);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-round);
+  background: var(--surface-secondary);
+  color: var(--text-secondary);
+}
+
+.c-nav__search svg {
+  flex: none;
+  width: 1rem;
+  height: 1rem;
+}
+
+/* Patrón de foco de formulario de SEBS (components.md §6): el campo
+   quita su outline y el foco lo dibuja el contenedor. */
+.c-nav__search:focus-within {
+  border-color: var(--sebs-signal); /* sebs-allow: borde de foco */
+  box-shadow: 0 0 0 3px var(--sebs-signal-tint); /* sebs-allow: borde de foco */
+}
+
+.c-nav__search input {
+  width: 100%;
+  min-width: 0;
+  border: 0;
+  background: none;
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  color: var(--text);
+}
+
+.c-nav__search input::placeholder {
+  color: var(--text-secondary);
+}
+
+.c-nav__search input:focus {
+  outline: none;
+}
+
+/* El botón de borrado nativo se pinta en el azul del sistema, fuera de
+   paleta. Se retira: Esc limpia el campo. */
+.c-nav__search input::-webkit-search-cancel-button {
+  appearance: none;
+}
+
+.c-nav__empty {
+  margin: 0 0 var(--space-md);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Jerarquía del temario: árbol de líneas
+
+   La pertenencia se lee siguiendo la línea hasta el padre, como en el
+   árbol de un proyecto. Nada de fondos por nivel: la estructura la
+   dibujan el tronco vertical y el codo de cada rama, así que un nivel
+   más cuesta sangría y no un tono de gris más.
+
+   Esa sangría por nivel es `--arbol-margen` + `--arbol-sangria` = 10 px.
+   Eran 20 px, y con el temario ordenado por cosa —y no por fase del
+   ciclo de vida— el árbol ganó profundidad: el robot llega a cinco
+   niveles (raíz › El sistema › Robot › Sistemas embebidos › página).
+   A 20 px eso se comía 80 px de ancho útil y partía en dos líneas
+   etiquetas como «Controlador de drivers (CL57T)». A 10 px, los cinco
+   niveles completos ocupan 40 px: menos que tres niveles antes.
+
+   10 px es el suelo, y el que manda es el codo, no el texto. El codo
+   mide `--arbol-sangria - 3px` y tiene que leerse como un trazo que une
+   el tronco con la hoja; por debajo de ~5 px deja de parecer una línea
+   y parece basura de render. Si hiciera falta más ancho útil todavía,
+   el siguiente recorte es el `padding` horizontal de los enlaces —que
+   es constante, no se acumula por nivel—, no esta sangría.
+
+   El tronco es el `border-inline-start` de cada `<ul>`; el codo, un
+   `::before` de cada `<li>`; y el último hermano tapa el tramo de tronco
+   que le sobra por debajo, que es lo que produce la forma `└`.
+   ------------------------------------------------------------------- */
+#starlight__sidebar {
+  --arbol-sangria: 8px;
+  --arbol-margen: 2px;
+  --arbol-fila: 28px;
+  /* Bastante más presente que un divisor: la línea es la estructura, no
+     un adorno, y con Mist puro se perdía. */
+  --arbol-linea: color-mix(in srgb, var(--alloy) 55%, var(--technical-white));
+}
+
+/* --- Nodos que agrupan: se comportan como carpetas ------------------
+   Versalitas, caret y **sin fondo al pasar por encima**: solo se aviva
+   el texto. Es la diferencia que hace legible de un vistazo qué abre y
+   qué navega. */
+#starlight__sidebar .group-label .large {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+#starlight__sidebar summary {
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+}
+
+#starlight__sidebar summary:hover .large,
+#starlight__sidebar summary:hover .caret {
+  color: var(--text);
+}
+
+#starlight__sidebar .caret {
+  width: 0.875rem;
+  height: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* Tronco */
+#starlight__sidebar details > ul {
+  margin-inline-start: var(--arbol-margen);
+  padding-inline-start: var(--arbol-sangria);
+  border-inline-start: 1px solid var(--arbol-linea);
+}
+
+#starlight__sidebar details > ul > li {
+  position: relative;
+  margin: 0;
+}
+
+/* Codo de la rama */
+#starlight__sidebar details > ul > li::before {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--arbol-sangria));
+  top: calc(var(--arbol-fila) / 2);
+  width: calc(var(--arbol-sangria) - 3px);
+  height: 1px;
+  background: var(--arbol-linea);
+}
+
+/* El último hermano cierra el tronco: de `├` pasa a `└`. */
+#starlight__sidebar details > ul > li:last-child::after {
+  content: '';
+  position: absolute;
+  inset-inline-start: calc(-1 * var(--arbol-sangria) - 1px);
+  top: calc(var(--arbol-fila) / 2 + 1px);
+  bottom: -1px;
+  width: 1px;
+  background: var(--surface);
+}
+
+/* Fuera la sangría y el filete propios de Starlight: los sustituye el
+   árbol. */
+#starlight__sidebar ul ul li {
+  margin-inline-start: 0;
+  padding-inline-start: 0;
+  border-inline-start: none;
+}
+
+#starlight__sidebar .top-level > li + li {
+  margin-top: var(--space-xs);
+}
+
+/* --- Hojas: son las páginas -----------------------------------------
+   Caja de texto normal y, al pasar por encima, superficie. Si algo se
+   ilumina en bloque, es una página. */
+#starlight__sidebar a {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  font-size: 0.8125rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+/* Icono de página (`Sidebar.astro`, morphicons): mismo color que el texto
+   del enlace, así que el hover y la página actual lo tiñen gratis, sin
+   ninguna regla propia — es justo lo que evita que el icono sea la única
+   señal de qué página es la actual. */
+.c-nav-icon {
+  display: contents;
+  color: inherit;
+}
+
+.c-nav-icon svg {
+  flex: none;
+}
+
+#starlight__sidebar a:hover,
+#starlight__sidebar a:focus {
+  background: var(--surface-secondary);
+  color: var(--text);
+}
+
+/* --- Página actual ---------------------------------------------------
+   Sin fondo, sin barra y sin color de acento: peso tipográfico, y la
+   rama que lleva hasta ella en Grafito. Se localiza siguiendo la línea,
+   que es justo cómo se lee un árbol. */
+#starlight__sidebar a[aria-current='page'] {
+  color: var(--text);
+  font-weight: 600;
+}
+
+#starlight__sidebar details > ul > li:has(> a[aria-current='page'])::before {
+  background: var(--text);
+  width: calc(var(--arbol-sangria) - 2px);
+}
+
+/* -------------------------------------------------------------------
+   Índice de la página (columna derecha, ≥ 72rem)
+   ------------------------------------------------------------------- */
+@media (min-width: 72rem) {
+  .right-sidebar {
+    position: sticky;
+    top: var(--isla-gap);
+    width: 100%;
+    height: auto;
+    max-height: calc(100vh - 2 * var(--isla-gap));
+    padding-top: 0;
+    border-inline-start: none;
+    overflow: visible;
+  }
+
+  .right-sidebar-panel {
+    display: flex;
+    flex-direction: column;
+    max-height: calc(100vh - 2 * var(--isla-gap));
+    padding: var(--space-lg);
+    overflow: hidden;
+  }
+
+  /* El índice tiene ancho propio y se ancla al borde derecho de la
+     tarjeta: el sobrante de la columna queda a su izquierda, como aire.
+     Sin esto, en pantallas anchas el texto se quedaba pegado al filete
+     con medio panel vacío a la derecha. */
+  .right-sidebar-panel > .sl-container {
+    display: flex;
+    flex-direction: column;
+    min-height: 0;
+    width: 100%;
+    max-width: 16rem;
+    margin-inline-start: auto;
+  }
+
+  /* La cabecera repite la rejilla de la página: el título sobre el
+     temario y el buscador exactamente sobre la columna de contenido.
+     Se usa `100%` y no `100vw` para que la barra de scroll no desplace
+     la alineación. */
+  header.header > .header {
+    /* Ancho interior de la tarjeta de contenido. La banda va de borde a
+       borde, así que hay que descontar los dos huecos de las islas. */
+    --isla-fila: calc(100% - var(--sl-sidebar-width) - 2 * var(--isla-gap));
+    /* La misma expresión que usa `.main-pane` dentro de esa tarjeta. */
+    --isla-central: min(
+      calc(var(--isla-fila) - var(--sl-sidebar-width)),
+      calc(
+        var(--sl-content-width) +
+          (var(--isla-fila) - var(--sl-content-width) - var(--sl-sidebar-width)) / 2
+      )
+    );
+
+    display: grid;
+    gap: 0;
+    /* La primera columna llega justo al borde de la tarjeta de contenido. */
+    grid-template-columns:
+      calc(var(--sl-sidebar-width) + var(--isla-gap))
+      var(--isla-central)
+      1fr;
+  }
+
+  /* Con el temario contraído la primera columna mide 68 px y la marca no
+     cabe. Ahí manda la legibilidad: la marca toma su ancho natural y el
+     buscador ocupa el resto. */
+  [data-nav-collapsed] header.header > .header {
+    grid-template-columns: auto 1fr;
+  }
+
+  /* El buscador cae exactamente sobre la columna de texto: mismo ancho
+     máximo (`--sl-content-width`) y mismo borde derecho que el
+     `.sl-container` del contenido, que Starlight alinea a la derecha de
+     su panel. */
+  header.header > .header > div:nth-child(2) {
+    justify-content: flex-end;
+    padding-inline: var(--sl-content-pad-x);
+  }
+
+  site-search button[data-open-modal] {
+    max-width: var(--sl-content-width);
+  }
+}
+
+.c-toc {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  gap: var(--space-md);
+}
+
+/* El mismo sangrado que los ítems, para que el rótulo y la lista
+   arranquen en la misma vertical. */
+.c-toc__label {
+  margin: 0;
+  padding-inline-start: calc(var(--space-sm) + 2px);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* El título del panel ya lo pone `.c-toc__label`; el de Starlight se
+   conserva solo para lectores de pantalla, que lo usan como etiqueta
+   del `<nav>`. */
+.c-toc h2#starlight__on-this-page {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.c-toc starlight-toc {
+  display: block;
+  min-height: 0;
+  overflow-y: auto;
+  scrollbar-width: thin;
+}
+
+.c-toc starlight-toc a {
+  padding-block: 0.2rem;
+  padding-inline: calc(0.75rem * var(--depth, 0) + var(--space-sm)) var(--space-sm);
+  border-inline-start: 2px solid transparent;
+  border-radius: 0;
+  font-size: 0.8125rem;
+  line-height: 1.35;
+  color: var(--text-secondary);
+}
+
+.c-toc starlight-toc a:hover {
+  color: var(--text);
+}
+
+/* Activo por peso y barra, no por color: el presupuesto de rojo de
+   "estado activo" se gasta en el temario. */
+.c-toc starlight-toc a[aria-current='true'] {
+  border-inline-start-color: var(--text);
+  color: var(--text);
+  font-weight: 600;
+}
+
+/* -------------------------------------------------------------------
+   Anterior / siguiente
+
+   El botón es el nombre de la página; el rótulo de dirección va fuera,
+   como etiqueta. Píldora discreta, no una tarjeta.
+   ------------------------------------------------------------------- */
+.c-pag {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: space-between;
+  gap: var(--space-lg);
+  margin-top: var(--space-2xl);
+}
+
+.c-pag__lado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.c-pag__lado--fin {
+  align-items: flex-end;
+  text-align: end;
+  margin-inline-start: auto;
+}
+
+.c-pag__label {
+  margin: 0;
+  padding-inline: var(--space-md);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.sl-markdown-content a.c-pag__btn,
+.c-pag__btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  max-width: 100%;
+  padding: var(--space-sm) var(--space-lg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-round);
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.c-pag__btn:hover {
+  border-color: var(--text-secondary);
+  background: var(--surface-secondary);
+  color: var(--text);
+}
+
+.c-pag__btn svg {
+  flex: none;
+  color: var(--text-secondary);
+}
+
+.c-pag__btn span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+/* -------------------------------------------------------------------
+   Ruta de migas
+   ------------------------------------------------------------------- */
+.c-crumbs ol {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs) var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+.c-crumbs li {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.c-crumbs li + li::before {
+  content: '›';
+  color: var(--divider);
+}
+
+.c-crumbs a {
+  color: var(--text-secondary);
+  text-decoration: none;
+}
+
+.c-crumbs a:hover {
+  color: var(--text);
+  text-decoration: underline;
+}
+
+.c-crumbs [aria-current='page'] {
+  color: var(--text);
+}
+
+/* -------------------------------------------------------------------
+   Índice en línea
+
+   Solo aparece cuando la columna derecha no cabe. Va justo bajo el
+   título, dentro del flujo de lectura.
+   ------------------------------------------------------------------- */
+.c-inline-toc {
+  margin-top: var(--space-xl);
+  padding: var(--space-lg);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface-secondary);
+}
+
+@media (min-width: 72rem) {
+  .c-inline-toc {
+    display: none;
+  }
+}
+
+.c-inline-toc__title {
+  margin: 0 0 var(--space-md);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-inline-toc ul {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-inline-toc a {
+  display: block;
+  padding-block: 2px;
+  font-size: 0.875rem;
+  color: var(--text);
+  text-decoration: none;
+}
+
+.c-inline-toc a:hover {
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+}
+
+/* -------------------------------------------------------------------
+   Estrecho: el temario vuelve a ser un panel superpuesto y la cabecera
+   se queda fija, que es lo que se espera de una barra móvil.
+   ------------------------------------------------------------------- */
+@media (max-width: 49.99rem) {
+  :root {
+    --isla-gap: 12px;
+    --sl-nav-height: 4.5rem;
+  }
+
+  .c-brand {
+    padding-inline-start: var(--space-lg);
+  }
+
+  /* Starlight reserva sitio a la derecha para el botón de menú flotante
+     con un `padding-inline-end` en la cabecera; al ponerla a cero para
+     alinear la rejilla se perdía y el buscador quedaba debajo del botón. */
+  header.header > .header {
+    padding-inline-end: calc(var(--sl-menu-button-size) + var(--space-xl));
+  }
+
+  .sidebar-pane {
+    border-radius: 0;
+    box-shadow: none;
+  }
+
+  .sidebar-content {
+    padding: var(--space-lg);
+  }
+
+  /* El botón de menú flota sobre la banda oscura: un círculo blanco ahí
+     resulta tosco y además chocaba con la esquina de la tarjeta. Se
+     integra en la superficie `dark` y se recoge hacia dentro. */
+  starlight-menu-button button {
+    inset-inline-end: var(--space-lg);
+    border: 1px solid var(--divider-dark);
+    background-color: var(--graphite-raised);
+    color: var(--technical-white);
+    box-shadow: none;
+  }
+
+  starlight-menu-button button:hover {
+    background-color: var(--graphite);
+  }
+
+  starlight-menu-button [aria-expanded='true'] button,
+  starlight-menu-button button[aria-expanded='true'] {
+    background-color: var(--graphite-raised);
+    color: var(--technical-white);
+  }
+
+  /* Bajo 50rem el texto y el atajo de teclado del buscador desaparecen
+     (regla propia de Starlight): solo queda el icono. La píldora de
+     escritorio, con su relleno asimétrico (`--busca-pad` a la izquierda,
+     `--space-sm` a la derecha) y su alto propio, se quedaba entonces como
+     un óvalo con la lupa descentrada, de tamaño y color distintos al botón
+     de menú de al lado. Aquí se iguala al mismo círculo: mismo diámetro
+     (`--sl-menu-button-size`), mismo relleno simétrico (cero, centrado) y
+     el mismo tratamiento oscuro que ya lleva el botón de menú. */
+  site-search button[data-open-modal] {
+    width: var(--sl-menu-button-size);
+    height: var(--sl-menu-button-size);
+    justify-content: center;
+    padding: 0;
+    border-color: var(--divider-dark);
+    border-radius: 50%;
+    background-color: var(--graphite-raised);
+    color: var(--technical-white);
+  }
+
+  site-search button[data-open-modal]:hover {
+    border-color: var(--divider-dark);
+    background-color: var(--graphite);
+    color: var(--technical-white);
+  }
+
+  site-search button[data-open-modal] svg {
+    margin: 0;
+  }
+
+  .main-pane > main {
+    margin: 0 var(--isla-gap) var(--isla-gap);
+    padding-bottom: var(--space-xl);
+    border-radius: var(--isla-radio);
+    background: var(--technical-white);
+    box-shadow: var(--isla-sombra);
+  }
+
+  .c-nav__toggle {
+    display: none;
+  }
+}
+
+/* El filete que separa la cabecera del cuerpo mide lo que mide la
+   columna de texto, no lo que mide el panel: si va en el panel se
+   extiende por la izquierda, más allá del contenido, y queda descolgado.
+   Ahora que no hay filete vertical hacia el índice, esto es lo único que
+   marca la separación. */
+.content-panel + .content-panel {
+  border-top: none;
+  padding-top: 0;
+}
+
+.content-panel + .content-panel > .sl-container {
+  padding-top: var(--space-xl);
+  border-top: 1px solid var(--divider);
+}

@@ -1,0 +1,36 @@
+---
+import Default from '@astrojs/starlight/components/Head.astro';
+import { ClientRouter } from 'astro:transitions';
+
+/**
+ * Añade el router de transiciones de vistas de Astro sobre el `<head>` por
+ * defecto de Starlight (que no lo trae en esta versión).
+ *
+ * Sin esto, cada clic en el temario era una recarga dura de página: un
+ * parpadeo en blanco antes de que se pinte la siguiente. El sitio sigue
+ * siendo estático —cada URL se sirve igual, funciona sin JavaScript,
+ * `Ctrl+clic`/abrir en pestaña nueva no cambia—; `<ClientRouter />` solo
+ * intercepta los clics en enlaces del mismo origen para hacer un
+ * *crossfade* en vez de la recarga.
+ *
+ * Consecuencia que hay que respetar en el resto del sitio: el documento
+ * (`window`/`document`) ya no se recrea en cada navegación, así que un
+ * `<script>` normal —no `is:inline`— solo ejecuta su código de nivel
+ * superior una vez, la primera vez que se carga esa URL de módulo; en la
+ * siguiente transición NO se vuelve a ejecutar (el navegador ya tiene ese
+ * módulo evaluado). Por eso `Sidebar.astro` y `GlossaryTable.astro`
+ * envuelven su lógica en un listener de `astro:page-load` —ese evento sí
+ * se dispara en cada transición, incluida la primera carga— en vez de
+ * dejarla suelta en el nivel superior del script.
+ *
+ * Segunda consecuencia, esta sobre el elemento `<html>`: al intercambiar,
+ * Astro copia sus atributos desde el documento nuevo, que es HTML estático
+ * recién servido. Cualquier atributo que solo exista porque lo puso un
+ * script —`data-theme` y `data-nav-collapsed`— se pierde en cada
+ * navegación si no se repone en `astro:after-swap`. Lo hace
+ * `ThemeProvider.astro`.
+ */
+---
+
+<Default />
+<ClientRouter />

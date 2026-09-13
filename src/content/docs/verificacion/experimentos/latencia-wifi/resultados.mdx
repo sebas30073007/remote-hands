@@ -1,0 +1,183 @@
+---
+title: "Resultados — experimento de latencia WiFi"
+description: Análisis estadístico real de 7 350 sondeos de latencia sobre 7 condiciones de carga de red.
+---
+
+import { VerificationResult, Artifact } from '@project';
+
+El experimento reunió **7 350 sondeos medidos** sobre siete condiciones de
+carga, con las muestras de warm-up ya excluidas.
+
+<figure>
+  <img
+    src="/remote-hands/images/fig-rtt-caja-por-condicion.png"
+    alt="Diagrama de caja del RTT medido por condición de carga"
+  />
+  <figcaption>RTT por condición de carga. La caja muestra el rango intercuartílico; los bigotes, la dispersión que importa para el P95.</figcaption>
+</figure>
+
+Todas las cifras de esta página proceden de
+`IEEE_IOT/analysis/stats_report.md` del proyecto original, que
+`wfiot_stats_analysis.py` generó a partir de los CSV crudos exportados desde
+la Meta Quest.
+
+<Artifact href="/datasets/stats_summary.csv" name="stats_summary.csv" contents="Resumen estadístico por condición: media, mediana, P95, P99, jitter" />
+<Artifact href="/datasets/stats_report.md" name="stats_report.md" contents="Reporte completo del análisis estadístico" />
+
+## Estadística descriptiva por condición
+
+| Condición | n | Media (ms) | Mediana (ms) | Mín (ms) | Máx (ms) | P95 (ms) | P99 (ms) | Jitter σ (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: | ---: | ---: | ---: |
+| C1 · control solo | 1050 | 22,54 | 16,62 | 3,44 | 303,57 | 58,10 | 117,43 | 23,38 |
+| C2 · video normal | 1050 | 20,20 | 15,87 | 3,63 | 111,47 | 55,26 | 76,84 | 15,24 |
+| C3 · LiDAR detail | 1050 | 19,63 | 15,65 | 3,62 | 121,90 | 55,45 | 86,74 | 15,91 |
+| C4 · LiDAR medium | 1050 | 22,68 | 17,30 | 3,31 | 156,37 | 63,60 | 93,49 | 19,00 |
+| C5 · LiDAR panorama | 1050 | 24,51 | 17,86 | 3,89 | 117,50 | 65,53 | 82,84 | 18,98 |
+| C6 · full detail | 1050 | 20,34 | 16,13 | 3,93 | 130,75 | 55,32 | 71,45 | 15,01 |
+| C7 · full panorama | 1050 | 25,08 | 17,60 | 3,56 | 118,67 | 71,87 | 83,86 | 19,79 |
+
+<figure>
+  <img
+    src="/remote-hands/images/fig1_rtt_percentiles_by_condition.png"
+    alt="Percentiles de RTT por condición de carga"
+  />
+  <figcaption>Percentiles de RTT por condición. El P95 se mantiene por debajo del criterio de 100 ms en las siete condiciones.</figcaption>
+</figure>
+
+<VerificationResult
+  id="VER-LAT-001"
+  requirement="REQ-COM-002"
+  method="measurement"
+  result="P95 máximo 71,87 ms (C7), P99 máximo 117,43 ms (C1)"
+  status="pass"
+  evidence={[
+    { href: '/datasets/stats_summary.csv', label: 'stats_summary.csv' },
+    { href: '/datasets/stats_report.md', label: 'stats_report.md' },
+  ]}
+/>
+
+El P95 se mantiene por debajo de 100 ms en las siete condiciones probadas.
+Eso incluye la carga combinada más pesada, C7, que suma video y LiDAR
+panorama con unos 37 Mbps de carga ofrecida.
+
+El resultado contraintuitivo está en la cola de la distribución. La
+condición con la cola más larga no es ninguna de las cargadas, sino **C1, la
+de solo comandos**: acumula un P99 de 117,43 ms y el RTT máximo de todo el
+experimento, 303,57 ms. Esa asimetría apunta a que la cola no la produce el
+tráfico de video ni el de LiDAR, sino variabilidad de la red independiente
+de la carga aplicada. Los clústeres de ráfagas, más abajo, refuerzan esa
+lectura.
+
+## Significancia estadística
+
+La prueba ómnibus de **Kruskal-Wallis** sobre RTT por condición da
+H = 70,26 con p &lt; 0,001, para k = 7 y n = 7350. Las siete condiciones no
+son, por tanto, estadísticamente idénticas.
+
+Cada condición se compara después contra C1 con la prueba U de
+Mann-Whitney, con corrección de Holm por comparaciones múltiples. La delta
+de Cliff acompaña a cada p para dar el tamaño del efecto:
+
+| Condición | p (Holm) | Delta de Cliff | Lectura |
+| --- | ---: | ---: | --- |
+| C2 · video normal | 0,077 | −0,056 | Sin diferencia significativa |
+| C3 · LiDAR detail | 0,003 | −0,087 | Significativamente **menor** que C1 |
+| C4 · LiDAR medium | 0,614 | 0,013 | Sin diferencia significativa |
+| C5 · LiDAR panorama | 0,015 | 0,074 | Significativamente **mayor** que C1 |
+| C6 · full detail | 0,151 | −0,045 | Sin diferencia significativa |
+| C7 · full panorama | 0,015 | 0,075 | Significativamente **mayor** que C1 |
+
+Las deltas de Cliff son pequeñas en todos los casos: |δ| &lt; 0,1. Con 1 050
+muestras por condición, el tamaño de muestra basta para detectar diferencias
+estadísticamente, pero su magnitud práctica es modesta.
+
+## Probabilidad de cola — P(RTT &gt; 100 ms)
+
+| Condición | n | n sobre 100 ms | % sobre 100 ms |
+| --- | ---: | ---: | ---: |
+| C1 · control solo | 1050 | 14 | 1,333 % |
+| C2 · video normal | 1050 | 2 | 0,190 % |
+| C3 · LiDAR detail | 1050 | 4 | 0,381 % |
+| C4 · LiDAR medium | 1050 | 9 | 0,857 % |
+| C5 · LiDAR panorama | 1050 | 5 | 0,476 % |
+| C6 · full detail | 1050 | 1 | 0,095 % |
+| C7 · full panorama | 1050 | 1 | 0,095 % |
+
+<figure>
+  <img
+    src="/remote-hands/images/fig-cola-vs-carga.png"
+    alt="Probabilidad de cola del RTT frente a la carga ofrecida"
+  />
+  <figcaption>Probabilidad de cola frente a carga ofrecida. La relación no es monótona: la condición más liviana no es la de menor cola.</figcaption>
+</figure>
+
+## Clústeres de ráfagas
+
+Un sondeo por encima de 100 ms no dice mucho por sí solo. Lo relevante es si
+esos sondeos aparecen dispersos o agrupados. Aquí se agrupan en un mismo
+clúster los eventos separados por menos de 5 s.
+
+<figure>
+  <img
+    src="/remote-hands/images/fig-rafagas-c1.png"
+    alt="Serie temporal de los eventos de latencia alta en la condición C1"
+  />
+  <figcaption>Los eventos de C1 en el tiempo. Se ve por qué 13 de los 14 caen en un solo clúster de 2,82 s en vez de repartirse por la corrida.</figcaption>
+</figure>
+
+| Condición | Eventos &gt; 100 ms | Clústeres | Mayor clúster | Duración | RTT máx. (ms) |
+| --- | ---: | ---: | ---: | ---: | ---: |
+| C1 · control solo | 14 | 2 | 13 | 2,82 s | 303,57 |
+| C2 · video normal | 2 | 1 | 2 | 3,11 s | 111,47 |
+| C3 · LiDAR detail | 4 | 1 | 4 | 1,01 s | 121,90 |
+| C4 · LiDAR medium | 9 | 2 | 8 | 2,82 s | 156,37 |
+| C5 · LiDAR panorama | 5 | 2 | 3 | 5,53 s | 117,50 |
+| C6 · full detail | 1 | 1 | 1 | 0,00 s | 130,75 |
+| C7 · full panorama | 1 | 1 | 1 | 0,00 s | 118,67 |
+
+C1 concentra 13 de sus 14 eventos en un solo clúster de 2,82 s. La cola de
+esa condición no es degradación sostenida: es un episodio puntual de red
+dentro de una corrida por lo demás limpia. Eso explica por qué la condición
+más liviana registra el peor máximo de todo el experimento.
+
+## Modelo de carga ofrecida
+
+El tráfico sintético que compite con los sondeos tiene estos tamaños:
+
+| Fuente | Payload |
+| --- | --- |
+| Video JPEG (640×480, calidad 85) | 9 756 bytes por frame, de media |
+| LiDAR `detail` | 120 122 bytes |
+| LiDAR `medium` | 480 122 bytes |
+| LiDAR `panorama` | 1 080 124 bytes |
+
+| Condición | Carga ofrecida (Mbps) | Mediana (ms) | P95 (ms) |
+| --- | ---: | ---: | ---: |
+| C1 | 0,000 | 16,62 | 58,10 |
+| C2 | 2,342 | 15,87 | 55,26 |
+| C3 | 11,532 | 15,65 | 55,45 |
+| C4 | 30,728 | 17,30 | 63,60 |
+| C5 | 34,564 | 17,86 | 65,53 |
+| C6 | 13,873 | 16,13 | 55,32 |
+| C7 | 36,905 | 17,60 | 71,87 |
+
+La correlación de Spearman entre carga ofrecida y P95 es **ρ = 0,750 con
+p = 0,052**, sobre las siete condiciones. Es una tendencia positiva que roza
+el umbral convencional de significancia, sin cruzarlo. La lectura razonable
+es que la cola de latencia sí crece con la carga, pero siete condiciones no
+bastan para afirmarlo con significancia estadística formal.
+
+## Conclusión
+
+La hipótesis del experimento **se sostiene** con los datos medidos. El P95
+se mantiene por debajo de 100 ms incluso bajo carga combinada: el valor más
+alto observado es 71,87 ms, en C7, un 28 % por debajo del umbral.
+
+Los peores casos individuales no aparecen donde cabría esperarlos. Tanto el
+P99 más alto como el RTT máximo se registran en C1, la condición más
+liviana, y se concentran en un único episodio de 2,82 s. Lo que domina la
+cola es la variabilidad de la red, no la carga de datos del robot.
+
+Esa segunda lectura es una interpretación de los datos hecha al migrar la
+documentación. Falta que el autor la revise antes de darla por buena para
+publicación.

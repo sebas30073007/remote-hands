@@ -1,0 +1,50 @@
+---
+title: Resumen del proyecto
+description: Qué es Remote Hands, a qué problema responde y qué demuestra el prototipo.
+---
+
+Remote Hands es un sistema robótico de operación remota para tareas
+logísticas de última milla en centros de distribución local. Su propósito es
+habilitar el teletrabajo de personas con discapacidad motriz: el operador
+controla el robot desde una interfaz XR, sin necesidad de estar físicamente
+en el almacén.
+
+<figure>
+  <img
+    src="/remote-hands/images/build/ensamble-manipulador-sobre-movil.webp"
+    alt="Manipulador montado sobre la plataforma móvil, formando el robot completo"
+  />
+  <figcaption>Remote Hands: un manipulador de 3 GDL sobre una plataforma móvil diferencial, teleoperado desde un visor de realidad mixta.</figcaption>
+</figure>
+
+El proyecto nace del cruce de dos tendencias. La primera es la demanda
+logística creciente del comercio electrónico. La segunda es la baja
+participación laboral formal de personas con discapacidad motriz, causada
+por la falta de herramientas de trabajo adaptadas y no por falta de
+capacidad. El desarrollo de ambas está en
+[Contexto](/remote-hands/academico/contexto/) y
+[Problemática](/remote-hands/academico/problematica/).
+
+## Qué demuestra el prototipo
+
+El prototipo es un robot móvil con manipulador de 3 GDL, operado desde una
+Meta Quest y coordinado por una NUC embarcada. La arquitectura completa está
+en [Sistema · Arquitectura](/remote-hands/sistema/arquitectura/resumen/).
+
+Los tres subsistemas —robot móvil, servidor/percepción e interfaz XR— están
+construidos y verificados por separado. La integración de control extremo a
+extremo sigue en proceso; el estado real de cada uno está en la
+[portada](/remote-hands/).
+
+## Extensión académica
+
+Este proyecto es además un *Proyecto Terminal* universitario, con marco de
+investigación propio: pregunta de investigación, metodología de diseño de
+ingeniería en cuatro fases y marco teórico sobre logística, discapacidad,
+robótica de teleoperación y usabilidad. El detalle completo está en
+[Documentación académica](/remote-hands/academico/contexto/).
+
+Esa sección es una extensión de `@sebs/project-docs`, no parte del framework
+genérico. Un proyecto de ingeniería sin componente académico —una PCB
+personal, por ejemplo— no necesita pregunta de investigación ni marco
+teórico, y no arrastra esas páginas.

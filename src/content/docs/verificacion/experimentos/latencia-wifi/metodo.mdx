@@ -1,0 +1,87 @@
+---
+title: "Método — experimento de latencia WiFi"
+description: Cómo se ejecuta el simulador de latencia, se configura Unity/Quest y se extraen los datos.
+---
+
+Reproducir el experimento requiere dos máquinas: una PC que ejecuta el
+simulador del nodo edge, y una Meta Quest con la aplicación de prueba
+instalada. Esta página cubre el montaje, la ejecución y la extracción de los
+datos. El diseño experimental está en el
+[protocolo](/remote-hands/verificacion/experimentos/latencia-wifi/protocolo/).
+
+## Requisitos
+
+| Componente | Requisito |
+| --- | --- |
+| PC (simulador) | Windows / Linux / macOS, Python 3.10+ |
+| Python | `pyzmq ≥ 25`, `opencv-python ≥ 4.8`, `numpy ≥ 1.24` |
+| Red | PC y Quest en la misma red WiFi (preferible 5 GHz) |
+| Quest | Meta Quest 3, APK con `WFIoTLatencyTestScene` |
+| Unity | Scripts copiados desde `validation/Assets/Scripts/WFIoTLatency/` |
+
+## Simulador Python
+
+```bash
+cd <repo>/validation/tools
+python wfiot_nuc_latency_simulator.py --host 0.0.0.0 --video-fps 30 --stat-hz 2 --lidar-hz 12 --jpeg-quality 85
+```
+
+Para las condiciones de LiDAR panorama (C5 y C7), con payload reducido:
+
+```bash
+python wfiot_nuc_latency_simulator.py --lidar-hz 4 --compact-lidar
+```
+
+Al arrancar, el simulador imprime su propia IP y los puertos que deja
+activos. Para averiguar la IP abre un socket UDP hacia 8.8.8.8, sin llegar a
+enviar datos. El significado de cada puerto está en [Comunicaciones del
+sistema](/remote-hands/sistema/arquitectura/comunicaciones/#puertos-zmq-verificados).
+
+## Ejecución en la Quest
+
+Por cada condición del experimento:
+
+1. Selecciona el preset de condición (C1 a C7) en el dropdown de la
+   aplicación.
+2. Confirma que los toggles de video y LiDAR coinciden con lo que el preset
+   declara.
+3. Pulsa **Start**. La corrida dura 60 s a 10 Hz.
+
+Al terminar, la aplicación exporta dos CSV automáticamente:
+
+```text
+/sdcard/Android/data/<bundle_id>/files/
+  wfiot_latency_results_YYYYMMDD_HHMMSS.csv   ← detalle por muestra
+  wfiot_latency_summary_YYYYMMDD_HHMMSS.csv   ← resumen estadístico
+```
+
+Para extraerlos por ADB:
+
+```bash
+adb pull /sdcard/Android/data/<bundle_id>/files/ ./csv_export/
+```
+
+## Columnas relevantes
+
+| CSV | Columna | Descripción |
+| --- | --- | --- |
+| detalle | `rtt_ms` | RTT observado en milisegundos |
+| detalle | `warmup` | `true` = descartar del análisis estadístico |
+| resumen | `rtt_p95_ms` | Percentil 95 — 95 % de las muestras tuvieron RTT ≤ este valor |
+| resumen | `jitter_std_ms` | Desviación estándar de la latencia |
+| resumen | `loss_percent` | Porcentaje de sondeos sin ACK recibido |
+
+## Análisis estadístico
+
+El script `validation/tools/wfiot_stats_analysis.py` procesa los CSV crudos y
+produce seis análisis:
+
+- Kruskal-Wallis, como prueba ómnibus entre condiciones.
+- Comparaciones pareadas de Mann-Whitney, con corrección de Holm.
+- Intervalos de confianza por bootstrap.
+- Probabilidad de cola.
+- Clústeres de ráfagas.
+- Modelo de carga ofrecida.
+
+Los números que arroja sobre los datos reales están en
+[Resultados](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/).

@@ -1,0 +1,52 @@
+---
+title: "Referencia — Comunicación"
+description: Puertos ZMQ y puertos serie del sistema, en una sola tabla de consulta.
+---
+
+Consulta rápida de todos los canales de comunicación del sistema. El
+contrato completo y el razonamiento de por qué están divididos así viven
+en [Comunicaciones del
+sistema](/remote-hands/sistema/arquitectura/comunicaciones/).
+
+## Puertos ZMQ (Meta Quest ↔ NUC)
+
+| Puerto | Socket | Dirección | Contenido |
+| --- | --- | --- | --- |
+| 5002 | SUB bind | Quest → NUC | Comandos JSON (tópico `cmd`) |
+| 5001 | PUB bind | NUC → Quest | `latency_ack`, `stat`, `mode_ack`, `lidar_grid`, `gripper_state` |
+| 5555 | PUB bind | NUC → Quest | `video_rgb` (bytes JPEG) |
+| 5007 | PUB bind | NUC → Quest | Reservado — datos binarios |
+
+## Puertos serie (NUC ↔ electrónica embebida)
+
+| Puerto | Dispositivo | Protocolo | Uso |
+| --- | --- | --- | --- |
+| COM3 | RPLiDAR C1 | Serial 460 800 baud | LiDAR 2D |
+| COM4 | Puente H maestro (ESP32-C3) | USB-CDC, ASCII + binario I²C reenviado | Tracción + puente al bus I²C |
+| COM5 | Controlador gripper (ESP32-C3) | USB-CDC, 115 200 baud, ASCII | Gripper |
+| USB3 | Intel RealSense D435i | USB3 (driver propio) | Video + percepción RGB-D |
+
+## Bus I²C interno (detrás del Puente H maestro)
+
+| Dirección | Nodo | Función |
+| --- | --- | --- |
+| `0x08` | Puente H esclavo | Motor de tracción izquierdo |
+| `0x0B` | Controlador CL57T | 3 ejes del manipulador (PUL/DIR) |
+
+## Comandos de texto — Puente H (modo maestro/esclavo local)
+
+| Comando | Acción |
+| --- | --- |
+| `F` / `B` / `L` / `R` / `S` | Adelante / atrás / izquierda / derecha / detener |
+| `T` | Activar modo prueba |
+| `-255` a `+255` | Consigna numérica directa (saturada a ±70 % de duty) |
+
+## Comandos de texto — Gripper (COM5, ASCII)
+
+| Comando | Argumento | Descripción |
+| --- | --- | --- |
+| `m <mm>` | posición absoluta | Ir a posición en mm |
+| `o <mm>` / `c <mm>` | delta mm | Abrir / cerrar delta mm |
+| `to` / `tc` | — | Ir a completamente abierto / cerrado |
+| `s` / `b` | — | Stop suave / freno activo inmediato |
+| `sc` / `so` | — | Guardar posición actual como cerrado / abierto (calibración) |

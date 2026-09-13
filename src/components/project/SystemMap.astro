@@ -1,0 +1,122 @@
+---
+/**
+ * Mapa del sistema — el diagrama de arquitectura como navegación.
+ *
+ * La portada de un proyecto de ingeniería tiene una ventaja que no tiene un
+ * temario: el lector ya sabe qué forma tiene la máquina, o la va a aprender
+ * en el primer diagrama que vea. Si el diagrama y el menú usan las mismas
+ * palabras, navegar deja de ser un ejercicio de adivinar en qué categoría
+ * metió el autor cada cosa. Este componente cierra ese círculo: los nodos
+ * del dibujo SON los enlaces a los subsistemas.
+ *
+ * No es una imagen con zonas clicables. Es HTML: cada nodo es un `<a>` de
+ * verdad, así que escala con el texto, se lee con lector de pantalla, se
+ * navega con teclado y se apila solo en pantalla estrecha. Un mapa de
+ * imagen no hace ninguna de las cuatro.
+ *
+ * Dirigido por datos a propósito: el framework no sabe que Remote Hands
+ * tiene tres subsistemas ni cómo se llaman. Eso lo declara la portada.
+ *
+ * Uso:
+ * <SystemMap
+ *   nodes={[{ role: 'Operador', name: 'Visor Meta Quest', summary: '…', href: '/…/' }]}
+ *   links={[{ protocol: 'ZMQ · WiFi', forward: 'comandos', back: 'video y estado', href: '/…/' }]}
+ * />
+ *
+ * `links` describe los enlaces ENTRE nodos consecutivos, así que siempre
+ * hay uno menos que nodos.
+ */
+interface Node {
+  /** Papel en el sistema: «Operador», «Coordinador»… Opcional. */
+  role?: string;
+  /** Nombre del subsistema. El mismo que usa el temario. */
+  name: string;
+  /** Una línea: qué resuelve. */
+  summary: string;
+  href: string;
+}
+
+interface Link {
+  /** Medio físico y protocolo. Se compone en mono: es dato técnico. */
+  protocol: string;
+  /** Qué viaja hacia el nodo siguiente. */
+  forward: string;
+  /** Qué viaja de vuelta. Opcional — no todo enlace es bidireccional. */
+  back?: string;
+  /** Página que documenta el contrato de este enlace. */
+  href?: string;
+}
+
+interface Props {
+  nodes: Node[];
+  links?: Link[];
+  /** Rótulo accesible del mapa. */
+  label?: string;
+}
+
+const { nodes, links = [], label = 'Mapa del sistema' } = Astro.props;
+
+if (links.length && links.length !== nodes.length - 1) {
+  throw new Error(
+    `SystemMap: ${nodes.length} nodos necesitan ${nodes.length - 1} enlaces, ` +
+      `se recibieron ${links.length}.`
+  );
+}
+---
+
+<nav class="c-sysmap" aria-label={label}>
+  <ol class="c-sysmap__flow">
+    {
+      nodes.map((node, i) => (
+        <>
+          <li class="c-sysmap__item">
+            <a class="c-sysmap__node" href={node.href}>
+              {node.role && <span class="c-sysmap__role">{node.role}</span>}
+              <span class="c-sysmap__name">{node.name}</span>
+              <span class="c-sysmap__summary">{node.summary}</span>
+              <span class="c-sysmap__go" aria-hidden="true">
+                Ver subsistema
+              </span>
+            </a>
+          </li>
+
+          {links[i] && (
+            <li class="c-sysmap__item c-sysmap__item--link">
+              {/* El enlace es opcional: sin `href` el tramo es rótulo, no
+                  navegación, y entonces no debe recibir foco de teclado. */}
+              {links[i].href ? (
+                <a class="c-sysmap__edge" href={links[i].href}>
+                  <span class="c-sysmap__proto">{links[i].protocol}</span>
+                  <span class="c-sysmap__payload">
+                    <span class="c-sysmap__dir">
+                      <span aria-hidden="true">→</span> {links[i].forward}
+                    </span>
+                    {links[i].back && (
+                      <span class="c-sysmap__dir">
+                        <span aria-hidden="true">←</span> {links[i].back}
+                      </span>
+                    )}
+                  </span>
+                </a>
+              ) : (
+                <span class="c-sysmap__edge">
+                  <span class="c-sysmap__proto">{links[i].protocol}</span>
+                  <span class="c-sysmap__payload">
+                    <span class="c-sysmap__dir">
+                      <span aria-hidden="true">→</span> {links[i].forward}
+                    </span>
+                    {links[i].back && (
+                      <span class="c-sysmap__dir">
+                        <span aria-hidden="true">←</span> {links[i].back}
+                      </span>
+                    )}
+                  </span>
+                </span>
+              )}
+            </li>
+          )}
+        </>
+      ))
+    }
+  </ol>
+</nav>

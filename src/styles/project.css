@@ -1,0 +1,1057 @@
+/* ===================================================================
+   @sebs/project-docs — componentes de ingeniería
+
+   Mismas reglas que course.css (components.md §8), sin excepción:
+   · ningún hex crudo: color siempre desde `var(--surface|text|divider)`;
+   · spacing y radios siempre en tokens;
+   · ningún estado depende solo del color;
+   · todo funciona en claro y oscuro sin duplicar CSS.
+
+   Este archivo NO repite lo que ya vive en `islands.css` (chrome: cabecera,
+   temario, índice, migas) ni en `sebs-tokens.css`/`starlight-bridge.css`
+   (tokens, superficies). Solo el vocabulario nuevo: cabeceras de tipo de
+   página, tablas de datos, requisitos, verificación y artefactos.
+   =================================================================== */
+
+.sr-only {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: 0;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+  border: 0;
+}
+
+.sl-markdown-content figure img {
+  display: block;
+  width: 100%;
+  height: auto;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+}
+
+.sl-markdown-content figcaption {
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Contenedores de layout dentro del contenido: espaciado propio.
+
+   Starlight separa hermanos con
+   `.sl-markdown-content :not(a,strong,em,...) + :not(a,strong,em,...)
+   { margin-top: 1rem }`. El selector es descendiente, no de hijo directo,
+   así que la regla no se queda en el nivel del artículo: se cuela dentro
+   de cualquier contenedor propio y empuja sus celdas hacia abajo. En una
+   fila de `MetaItem` eso desalinea la primera celda respecto del resto
+   (la primera no tiene hermano previo y no recibe el margen), que es
+   exactamente lo que se veía en `Requirement` y `VerificationResult`.
+
+   Todos los contenedores de abajo espacian con `gap`, así que el margen
+   heredado no aporta nada y solo rompe la alineación. Regla para mantener
+   esta lista: si añades un contenedor `flex`/`grid` con `gap` que pueda
+   renderizarse dentro de una página de contenido, va aquí.
+   ------------------------------------------------------------------- */
+.sl-markdown-content
+  :is(
+    .c-meta,
+    .c-checklist,
+    .c-checklist li,
+    .c-panel,
+    .c-panel__head,
+    .c-projecthead__meta,
+    .c-projecthead__status,
+    .c-subsystemhead__meta,
+    .c-subsystemhead__status,
+    .c-decisionhead__meta,
+    .c-releasehead__meta,
+    .c-requirement__head,
+    .c-requirement__meta,
+    .c-verification__head,
+    .c-verification__meta,
+    .c-verification__evidence,
+    .c-file,
+    .c-file__link,
+    .c-file__foot,
+    .c-replication__head,
+    .c-replication__list,
+    .mermaid
+  )
+  > * {
+  margin-top: 0;
+}
+
+/* -------------------------------------------------------------------
+   Primitivas heredadas de course-docs (Panel / MetaItem / CheckList):
+   candidatas ya identificadas a @sebs/docs-core (brief §29). Se repiten
+   aquí en vez de importar el CSS del otro proyecto porque los dos
+   frameworks todavía viven en repos separados sin `docs-core` real.
+   ------------------------------------------------------------------- */
+.c-meta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+.c-meta__label {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-meta__value {
+  font-size: 0.875rem;
+  line-height: 1.45;
+  color: var(--text);
+  overflow-wrap: anywhere;
+}
+
+.c-meta__value--mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.c-checklist {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-sm);
+}
+
+.c-checklist li {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-md);
+  margin: 0;
+  line-height: 1.5;
+}
+
+.c-checklist__mark {
+  flex: none;
+  margin-top: 0.2em;
+  color: var(--text-secondary);
+}
+
+.c-panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-md);
+  margin-block: var(--space-2xl);
+  padding: var(--space-xl);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+.c-panel__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-lg);
+}
+
+.c-panel__badge {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 36px;
+  height: 36px;
+  border-radius: var(--radius-round);
+  background: var(--surface-secondary);
+  color: var(--text);
+}
+
+.c-panel__eyebrow {
+  margin: 0;
+  font-weight: 500;
+  font-size: 0.75rem;
+  line-height: 1.35;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-panel__title {
+  margin: 0;
+  font-weight: 600;
+  color: var(--text);
+}
+
+.c-panel__body > :first-child {
+  margin-top: 0;
+}
+
+.c-panel__body > :last-child {
+  margin-bottom: 0;
+}
+
+/* -------------------------------------------------------------------
+   Cabeceras de tipo de página
+   (ProjectHeader, SubsystemHeader, DecisionHeader, ReleaseHeader,
+   ExperimentHeader — todas comparten kicker + h1 + fila de meta, con
+   pequeñas variantes por tipo).
+   ------------------------------------------------------------------- */
+.c-projecthead,
+.c-subsystemhead,
+.c-decisionhead,
+.c-releasehead,
+.c-experimenthead {
+  margin-top: var(--space-lg);
+}
+
+.c-projecthead__kicker,
+.c-subsystemhead__kicker,
+.c-decisionhead__kicker,
+.c-releasehead__kicker,
+.c-experimenthead__kicker {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-subsystemhead__id,
+.c-decisionhead__id,
+.c-experimenthead__id {
+  color: var(--text);
+}
+
+.c-projecthead h1,
+.c-subsystemhead h1,
+.c-decisionhead h1,
+.c-releasehead h1,
+.c-experimenthead h1 {
+  margin: 0;
+  font-size: var(--sl-text-h1);
+  line-height: 1.1;
+  font-weight: 800;
+  letter-spacing: -0.02em;
+  color: var(--text);
+}
+
+.c-subsystemhead__responsibility {
+  margin: var(--space-md) 0 0;
+  font-size: 1rem;
+  line-height: 1.5;
+  color: var(--text-secondary);
+  max-width: 42rem;
+}
+
+.c-projecthead__meta,
+.c-subsystemhead__meta,
+.c-decisionhead__meta,
+.c-releasehead__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  align-items: end;
+  gap: var(--space-lg) var(--space-xl);
+  margin-top: var(--space-xl);
+  padding: var(--space-xl) 0;
+  border-block: 1px solid var(--divider);
+}
+
+.c-projecthead__status,
+.c-subsystemhead__status {
+  display: flex;
+  align-items: center;
+  gap: var(--space-sm);
+}
+
+.c-subsystemhead__revision {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Iconos de grupo del temario
+
+   Los inyecta `src/overrides/Sidebar.astro` dentro de `.group-label`. El
+   icono acompaña a una versalita de 11 px, así que va a 13 px: más grande
+   competiría con el texto en vez de anclarlo.
+
+   Hereda el color de la etiqueta —secundario en reposo, avivado al pasar
+   por encima— porque el icono no comunica un estado propio. Identifica la
+   sección; el estado lo lleva el grupo.
+   ------------------------------------------------------------------- */
+#starlight__sidebar .group-label {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+/* El icono le come ancho a la etiqueta, y las más largas ya iban al límite
+   del raíl. Un tracking algo menor lo devuelve: sigue leyéndose como
+   versalita y evita que «Servidor / percepción» parta en dos líneas, que
+   rompía el ritmo vertical de la lista. El ajuste vive aquí y no en
+   `islands.css` para no divergir del layout que ese archivo comparte con
+   course-docs. */
+#starlight__sidebar .group-label .large {
+  letter-spacing: 0.055em;
+}
+
+/* -------------------------------------------------------------------
+   StatusBadge — píldora de estado, texto + color, nunca solo color.
+   ------------------------------------------------------------------- */
+.c-status {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.1875rem var(--space-md);
+  border-radius: var(--radius-round);
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  font-weight: 500;
+  letter-spacing: 0.02em;
+  border: 1px solid var(--divider);
+  color: var(--text);
+  background: var(--surface-secondary);
+}
+
+.c-status--ok {
+  color: var(--estado-ok);
+  border-color: var(--estado-ok);
+}
+
+.c-status--warn {
+  /* Engine Yellow falla como texto sobre blanco (references/color.md §159):
+     mismo patrón que la insignia de `Why` en course-docs — el color vive
+     en el borde, el texto va en Grafito. Nada de hex fuera de la paleta. */
+  color: var(--graphite);
+  border-color: var(--engine-yellow);
+}
+
+.c-status--error {
+  color: var(--sebs-signal); /* sebs-allow: indicador de estado FAIL, no superficie */
+  border-color: var(--sebs-signal);
+}
+
+.c-status--info {
+  color: var(--electric-blue);
+  border-color: var(--electric-blue);
+}
+
+.c-status--neutral {
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   ParameterTable / InterfaceTable / RevisionHistory
+   ------------------------------------------------------------------- */
+.c-datatable {
+  margin: var(--space-xl) 0;
+}
+
+.c-datatable__caption {
+  margin: 0 0 var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+  text-align: left;
+}
+
+.c-datatable__table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.c-datatable__table th,
+.c-datatable__table td {
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+  border-bottom: 1px solid var(--divider);
+  vertical-align: top;
+}
+
+.c-datatable__table th {
+  font-weight: 600;
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.c-datatable__mono {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.c-revisions {
+  margin-top: var(--space-lg);
+}
+
+/* -------------------------------------------------------------------
+   Requirement / VerificationResult — objetos trazables, no cards
+   decorativas. Borde izquierdo en vez de caja completa: se leen como
+   registro, no como callout de aviso.
+   ------------------------------------------------------------------- */
+.c-requirement,
+.c-verification {
+  margin: var(--space-xl) 0;
+  padding: var(--space-lg) var(--space-xl);
+  border-inline-start: 3px solid var(--divider);
+  background: var(--surface-secondary);
+  border-radius: 0 var(--radius-md) var(--radius-md) 0;
+}
+
+.c-requirement__head,
+.c-verification__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  margin: 0 0 var(--space-md);
+}
+
+.c-requirement__id,
+.c-verification__id {
+  font-family: var(--font-mono);
+  font-weight: 600;
+  font-size: 0.875rem;
+  color: var(--text);
+}
+
+.c-requirement__body {
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text);
+}
+
+.c-requirement__body > :first-child {
+  margin-top: 0;
+}
+
+.c-requirement__body > :last-child {
+  margin-bottom: 0;
+}
+
+.c-requirement__meta,
+.c-verification__meta {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: var(--space-md) var(--space-xl);
+  margin-top: var(--space-lg);
+  padding-top: var(--space-lg);
+  border-top: 1px solid var(--divider);
+}
+
+.c-verification__evidence {
+  margin: var(--space-md) 0 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-sm) var(--space-lg);
+}
+
+.c-verification__evidence a {
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+/* -------------------------------------------------------------------
+   Artifact — igual a `CourseFile` de course-docs, vocabulario neutro.
+   ------------------------------------------------------------------- */
+.c-file {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: var(--space-2xl) 0;
+  padding: 0;
+}
+
+.c-file__label {
+  align-self: flex-start;
+  margin: 0 0 var(--space-sm);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.sl-markdown-content a.c-file__link,
+.c-file__link {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  text-align: center;
+  gap: var(--space-sm);
+  width: 100%;
+  max-width: 100%;
+  padding: var(--space-md);
+  border-radius: var(--radius-lg);
+  color: var(--text);
+  text-decoration: none;
+}
+
+.c-file__link:hover {
+  background: var(--surface-secondary);
+  color: var(--text);
+}
+
+.c-file__link .c-fileicon {
+  width: 44px;
+  height: 53px;
+  color: var(--text-secondary);
+}
+
+.c-file__link:hover .c-fileicon {
+  color: var(--text);
+}
+
+.c-fileicon__ext {
+  font-family: var(--font-mono);
+  font-size: 9px;
+  font-weight: 500;
+  letter-spacing: 0.04em;
+  fill: currentColor;
+}
+
+.c-file__name {
+  font-weight: 600;
+  font-size: 0.9375rem;
+  line-height: 1.35;
+  overflow-wrap: anywhere;
+}
+
+.c-file__foot {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-sm);
+  width: 100%;
+  margin: 0;
+  cursor: pointer;
+  list-style: none;
+}
+
+.c-file__meta {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: center;
+  gap: var(--space-xs) var(--space-sm);
+  margin: 0;
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  line-height: 1.4;
+  color: var(--text-secondary);
+}
+
+.c-file__meta > span + span::before {
+  content: '·';
+  margin-inline-end: var(--space-sm);
+}
+
+.c-file__ibtn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: none;
+  width: 1.25rem;
+  height: 1.25rem;
+  color: var(--text-secondary);
+}
+
+.c-file__ibtn svg {
+  display: block;
+}
+
+.c-file__foot:hover .c-file__ibtn,
+.c-file__info[open] .c-file__ibtn {
+  color: var(--text);
+}
+
+.sl-markdown-content .c-file__info {
+  margin-top: var(--space-xs);
+  border-inline-start: none;
+  padding-inline-start: 0;
+}
+
+.sl-markdown-content .c-file__info summary {
+  margin-inline-start: 0;
+  padding-inline-start: 0;
+}
+
+.sl-markdown-content .c-file__info summary::before {
+  display: none;
+  content: none;
+}
+
+.sl-markdown-content .c-file__info[open] > summary {
+  margin-bottom: 0;
+}
+
+.c-file__info summary::marker {
+  content: '';
+}
+
+.c-file__info summary::-webkit-details-marker {
+  display: none;
+}
+
+.c-file__desc {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  text-align: center;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Model3D — visor .glb, idéntico al de course-docs.
+   ------------------------------------------------------------------- */
+.c-model3d {
+  position: relative;
+  margin: var(--space-lg) 0 0;
+}
+
+.c-model3d__viewer {
+  display: block;
+  width: 100%;
+  aspect-ratio: 4 / 3;
+  min-height: 22rem;
+  max-height: 32rem;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+  --poster-color: transparent;
+}
+
+.c-model3d__badge {
+  position: absolute;
+  top: var(--space-md);
+  left: var(--space-md);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-round);
+  background: var(--surface);
+  color: var(--text-secondary);
+  font-size: 0.75rem;
+  font-weight: 500;
+  pointer-events: none;
+}
+
+.c-model3d figcaption {
+  margin-top: var(--space-sm);
+  font-size: 0.875rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+/* -------------------------------------------------------------------
+   Botones — el rojo de señal solo aquí (regla de course-docs, se
+   conserva sin cambio: ~1-2% del área visible).
+   ------------------------------------------------------------------- */
+.c-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  padding: var(--space-md) var(--space-xl);
+  border-radius: var(--radius-md);
+  font-family: var(--font-sans);
+  font-weight: 600;
+  font-size: 0.875rem;
+  line-height: 1.25;
+  text-decoration: none;
+  transition: background var(--dur-micro) var(--ease), border-color var(--dur-micro) var(--ease);
+}
+
+.sl-markdown-content a.c-btn {
+  text-decoration: none;
+}
+
+.c-btn--primary {
+  background: var(--sebs-signal); /* sebs-allow: boton primario, uno por vista */
+  color: var(--technical-white);
+  border: 1px solid transparent;
+}
+
+.c-btn--primary:hover,
+.c-btn--primary:focus {
+  background: var(--sebs-signal-hover); /* sebs-allow: hover del boton primario */
+  color: var(--technical-white);
+}
+
+.c-btn--secondary {
+  background: transparent;
+  color: var(--text);
+  border: 1px solid var(--divider);
+}
+
+.c-btn--secondary:hover {
+  border-color: var(--text-secondary);
+  color: var(--text);
+}
+
+/* -------------------------------------------------------------------
+   ReplicationLevel — el contrato de replicación de la página.
+
+   Va arriba del contenido y tiene que leerse antes que nada, así que
+   pesa visualmente más que un `Panel` normal: borde completo y no una
+   barra lateral. Las dos listas se distinguen por marca tipográfica
+   (`✓` / `·` como pseudo-elemento) además de por color, porque ningún
+   estado puede depender solo del color.
+   ------------------------------------------------------------------- */
+.c-replication {
+  margin: var(--space-xl) 0 var(--space-3xl);
+  padding: var(--space-xl);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface-secondary);
+}
+
+.c-replication__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-md);
+  flex-wrap: wrap;
+}
+
+.sl-markdown-content .c-replication__title {
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+  border: 0;
+  padding: 0;
+}
+
+.c-replication__summary {
+  margin: var(--space-md) 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.55;
+  color: var(--text);
+  max-width: 46rem;
+}
+
+.c-replication__group {
+  margin-top: var(--space-xl);
+}
+
+.sl-markdown-content .c-replication__grouptitle {
+  margin: 0 0 var(--space-sm);
+  font-family: var(--font-sans);
+  font-size: 0.8125rem;
+  font-weight: 600;
+  line-height: 1.4;
+  color: var(--text);
+  text-transform: none;
+  letter-spacing: 0;
+  border: 0;
+  padding: 0;
+}
+
+.c-replication__list {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+}
+
+.c-replication__list li {
+  position: relative;
+  margin: 0;
+  padding-inline-start: var(--space-xl);
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--text);
+}
+
+.c-replication__list li::before {
+  position: absolute;
+  inset-inline-start: 0;
+  font-family: var(--font-mono);
+  font-size: 0.8125rem;
+}
+
+.c-replication__list--has li::before {
+  content: '\2713'; /* ✓ */
+  color: var(--estado-ok);
+}
+
+.c-replication__list--gap li::before {
+  content: '\2014'; /* — */
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Diagramas mermaid.
+
+   Se renderizan en el build como SVG en línea (`strategy: 'inline-svg'`
+   en `astro.config.mjs`), así que llegan al navegador ya dibujados: sin
+   JavaScript de mermaid en la página y sin salto de layout al cargar.
+
+   Mermaid emite el SVG con `width`/`height` fijos en píxeles, calculados
+   contra su propio lienzo. Sin esto, un diagrama ancho se sale de la
+   columna en pantallas estrechas en vez de escalarse.
+   ------------------------------------------------------------------- */
+.sl-markdown-content .mermaid,
+.sl-markdown-content p:has(> svg[id^='mermaid']) {
+  margin: var(--space-2xl) 0;
+  text-align: center;
+}
+
+.sl-markdown-content svg[id^='mermaid'] {
+  width: 100%;
+  max-width: 100%;
+  height: auto;
+  /* El texto de mermaid se dimensiona en el lienzo original; al escalar a
+     la columna, un diagrama muy ancho lo dejaría ilegible. Este mínimo
+     obliga al contenedor a permitir scroll antes que a encoger de más. */
+  min-width: min(100%, 30rem);
+}
+
+/* -------------------------------------------------------------------
+   Mapa del sistema (`SystemMap.astro`)
+
+   El diagrama de arquitectura convertido en navegación. Tres decisiones
+   de fondo:
+
+   1. Es HTML, no una imagen con zonas clicables. Los nodos son `<a>` de
+      verdad, así que escalan con el tamaño de letra del usuario, se
+      navegan con teclado y se apilan solos en pantalla estrecha. Un mapa
+      de imagen no hace ninguna de las tres.
+   2. Construido en gris. La jerarquía la sostienen la superficie, el
+      borde y el espaciado. El rojo de señal SEBS aparece SOLO al apuntar
+      o al enfocar un nodo: en reposo el mapa no tiene ni un píxel de
+      acento, que es lo que exige la regla del 1–2%.
+   3. El protocolo de cada enlace va en mono. Es dato técnico —medio,
+      bus, puerto—, que es el único uso autorizado de IBM Plex Mono.
+   ------------------------------------------------------------------- */
+.c-sysmap {
+  margin: var(--space-2xl) 0;
+}
+
+.c-sysmap__flow {
+  display: flex;
+  align-items: stretch;
+  gap: var(--space-sm);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Starlight numera y sangra las listas del contenido; aquí el orden ya lo
+   comunica el flujo de izquierda a derecha. */
+.sl-markdown-content .c-sysmap__flow {
+  padding-inline-start: 0;
+}
+
+/* Los enlaces del contenido van subrayados siempre —es la regla del
+   puente con Starlight, y es correcta para texto corrido—. Un nodo del
+   mapa no es texto corrido: es una caja entera que ya se anuncia como
+   clicable por su borde, su superficie y su llamada a la acción.
+   Subrayarle las cuatro líneas del resumen lo vuelve ilegible. Mismo
+   patrón que `a.c-btn`. */
+.sl-markdown-content a.c-sysmap__node,
+.sl-markdown-content a.c-sysmap__edge {
+  text-decoration: none;
+}
+
+/* El hover genérico tiñe de rojo el texto del enlace. En el nodo eso
+   pintaría de acento un párrafo entero, muy por encima del 1–2%: el rojo
+   se queda en el borde y en la llamada a la acción. */
+.sl-markdown-content a.c-sysmap__node:hover {
+  color: var(--text);
+}
+
+.c-sysmap__item {
+  display: flex;
+  margin: 0;
+  padding: 0;
+}
+
+.c-sysmap__item::marker {
+  content: '';
+}
+
+/* Los nodos reparten el ancho sobrante; los tramos de enlace solo ocupan
+   lo suyo. Así tres subsistemas quedan del mismo tamaño aunque sus
+   nombres midan distinto. */
+.c-sysmap__item:not(.c-sysmap__item--link) {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+.c-sysmap__item--link {
+  flex: 0 1 auto;
+  align-items: center;
+}
+
+/* --- Nodo: un subsistema ------------------------------------------- */
+.c-sysmap__node {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  width: 100%;
+  padding: var(--space-md);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+  color: var(--text);
+  text-decoration: none;
+  transition:
+    border-color var(--dur-micro) var(--ease),
+    background var(--dur-micro) var(--ease);
+}
+
+.c-sysmap__role {
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-sysmap__name {
+  font-size: 1rem;
+  font-weight: 700;
+  line-height: 1.25;
+}
+
+.c-sysmap__summary {
+  font-size: 0.8125rem;
+  line-height: 1.45;
+  color: var(--text-secondary);
+}
+
+/* La llamada a la acción se reserva para el hover: en reposo el mapa se
+   lee como diagrama, no como una fila de botones. */
+.c-sysmap__go {
+  margin-top: auto;
+  padding-top: var(--space-xs);
+  font-size: 0.75rem;
+  font-weight: 600;
+  color: var(--text-secondary);
+  opacity: 0;
+  transition:
+    opacity var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.c-sysmap__go::after {
+  content: ' →';
+}
+
+/* El único rojo del componente, y solo mientras dura la interacción. */
+.c-sysmap__node:hover,
+.c-sysmap__node:focus-visible {
+  border-color: var(--sebs-signal); /* sebs-allow: borde de foco/hover */
+  background: var(--surface-secondary);
+}
+
+.c-sysmap__node:hover .c-sysmap__go,
+.c-sysmap__node:focus-visible .c-sysmap__go {
+  opacity: 1;
+  color: var(--signal-text);
+}
+
+.c-sysmap__node:focus-visible {
+  outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
+  outline-offset: 2px;
+}
+
+/* --- Tramo: el enlace entre dos nodos ------------------------------- */
+.c-sysmap__edge {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--space-xs);
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-sm);
+  color: var(--text-secondary);
+  text-decoration: none;
+  text-align: center;
+}
+
+a.c-sysmap__edge:hover,
+a.c-sysmap__edge:focus-visible {
+  color: var(--signal-text);
+  background: var(--surface-secondary);
+}
+
+a.c-sysmap__edge:focus-visible {
+  outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
+  outline-offset: 2px;
+}
+
+.c-sysmap__proto {
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  letter-spacing: 0.01em;
+  white-space: nowrap;
+}
+
+/* Sin `gap`: las dos direcciones son dos renglones del mismo dato, y el
+   interlineado ya los separa. Cualquier hueco extra los volvería dos
+   bloques distintos. */
+.c-sysmap__payload {
+  display: flex;
+  flex-direction: column;
+  font-size: 0.6875rem;
+  line-height: 1.45;
+}
+
+.c-sysmap__dir {
+  white-space: nowrap;
+}
+
+/* --- Apilado en pantalla estrecha ----------------------------------- */
+/* Por debajo de este ancho tres columnas dejan a cada nodo con menos de
+   una palabra por línea. El mapa se vuelve vertical y las flechas de los
+   tramos siguen leyéndose: «→» sigue significando «hacia el siguiente»,
+   que en vertical es «hacia abajo». */
+@media (max-width: 48rem) {
+  .c-sysmap__flow {
+    flex-direction: column;
+    gap: var(--space-xs);
+  }
+
+  .c-sysmap__item--link {
+    justify-content: center;
+  }
+
+  .c-sysmap__edge {
+    flex-direction: row;
+    gap: var(--space-sm);
+    flex-wrap: wrap;
+  }
+
+  .c-sysmap__payload {
+    flex-direction: row;
+    gap: var(--space-sm);
+  }
+
+  /* En táctil no hay hover: la llamada a la acción se queda visible. */
+  .c-sysmap__go {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-sysmap__node,
+  .c-sysmap__go {
+    transition: none;
+  }
+}

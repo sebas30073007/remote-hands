@@ -1,0 +1,65 @@
+---
+title: Visor Meta Quest
+type: subsystem
+subsystemId: SUB-XR
+status: validated
+disciplines:
+  - Software
+  - XR / Unity
+  - UX
+responsibility: Operación remota del robot en realidad mixta desde Meta Quest 3.
+inputs:
+  - Video, telemetría, LiDAR (NUC, por ZMQ)
+outputs:
+  - Comandos de movimiento, manipulador y modos de percepción (ZMQ, puerto 5002)
+---
+
+import { StatusBadge, InterfaceTable } from '@project';
+
+La interfaz de operación es una aplicación Unity para **Meta Quest 3**.
+Desde ella, el operador ve el entorno del robot en realidad mixta
+—passthrough—, conduce la base móvil, maneja el manipulador y cambia los
+modos de percepción.
+
+Todos los controles viven en un canvas world-space que flota frente al
+operador.
+
+## Qué se puede replicar
+
+<InterfaceTable
+  caption="Nivel de replicación por parte"
+  columns={['Parte', 'Nivel', 'Qué lo limita']}
+  rows={[
+    ['Contrato ZMQ con la NUC', 'Reproducible', 'Nada: puertos, tópicos y esquema de comandos están completos'],
+    ['Lógica de la aplicación', 'Descrito', 'Los 25 scripts están, pero sin escenas ni prefabs'],
+    ['Interfaz y controles', 'Descrito', 'Sin las escenas de Unity ni capturas del headset'],
+  ]}
+/>
+
+La asimetría es deliberada y conviene entenderla antes de empezar: **el
+protocolo está completo, la aplicación no**. Con lo publicado aquí se puede
+escribir un cliente propio —en Unity, en Unreal o en un escritorio— que hable
+con el robot exactamente igual que este. Lo que no se puede es recompilar
+esta app concreta.
+
+## Componentes
+
+- **[Interfaz y controles](/remote-hands/sistema/subsistemas/interfaz-xr/interfaz/)**
+  — paneles, drive teleop, manipulador, gripper y LiDAR 3D.
+- **[Unity y comunicación ZMQ](/remote-hands/sistema/subsistemas/interfaz-xr/unity/)**
+  — stack tecnológico, endpoints y referencia de comandos.
+- **[Verificación](/remote-hands/sistema/subsistemas/interfaz-xr/verificacion/)**
+  — qué se probó de la aplicación y con qué resultado.
+
+## Estado del subsistema
+
+| Funcionalidad | Estado |
+| --- | --- |
+| Proyecto Unity compilado en Meta Quest 3 | <StatusBadge label="Funcional" tone="ok" /> |
+| Stream de video RGB @ ~30 fps | <StatusBadge label="Verificado" tone="ok" /> |
+| Panel LiDAR 2D (3 modos) | <StatusBadge label="Verificado" tone="ok" /> |
+| StatusPanel con telemetría | <StatusBadge label="Verificado" tone="ok" /> |
+| Drive teleop desde joystick | <StatusBadge label="Funcional" tone="ok" /> |
+| Control de manipulador 3 GDL y gripper | <StatusBadge label="Funcional" tone="ok" /> |
+| LiDAR 3D — paredes y nube de puntos | <StatusBadge label="Funcional" tone="ok" /> |
+| Gemelo digital URDF | <StatusBadge label="Mediano plazo" tone="neutral" /> |

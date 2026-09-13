@@ -1,0 +1,18 @@
+---
+import Default from '@astrojs/starlight/components/TableOfContents.astro';
+
+/**
+ * Índice de la página, compacto.
+ *
+ * Una lección larga puede tener veinte encabezados, así que la lista va
+ * densa y con scroll propio dentro de la tarjeta en lugar de estirarla.
+ *
+ * El filtro por título vive en el sidebar (`Sidebar.astro`): filtra el
+ * temario completo, que es donde una lista larga cuesta de recorrer.
+ */
+---
+
+<div class="c-toc">
+  <p class="c-toc__label">En esta página</p>
+  <Default />
+</div>

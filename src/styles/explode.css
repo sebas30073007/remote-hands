@@ -1,0 +1,453 @@
+/* ===================================================================
+   Navegación por vista explosionada (`ExplodeNav.astro`) y conmutador
+   UI/UX (`UiModeToggle.astro`).
+
+   La interfaz se construyó en gris. El rojo de señal aparece en dos sitios
+   y nada más: el contorno de la pieza que se apunta (interacción) y el de
+   la pieza activa cuando la página es una hoja —el Puente H, el CL57T…—
+   (estado activo, uno por vista). Los renders sí llevan color —el del CAD—:
+   es contenido, como una fotografía del producto, no señal de interfaz.
+
+   Los enlaces del temario heredan `#starlight__sidebar a` (caja flexible,
+   relleno, hover con superficie). Por eso las reglas que tocan enlaces van
+   con el mismo prefijo de id: sin él perderían por especificidad.
+   =================================================================== */
+
+/* --- Modo ----------------------------------------------------------- */
+.c-xnav {
+  display: none;
+}
+
+:root[data-ui='explosion'] .c-xnav {
+  display: block;
+}
+
+:root[data-ui='explosion'] .c-nav__clasico,
+:root[data-ui='explosion'] .c-nav__search,
+:root[data-ui='explosion'] .c-nav__empty {
+  display: none;
+}
+
+/* `hidden` tiene que ganar siempre: los bloques por nodo (migas, listados)
+   declaran su propio `display`, y sin esto se mostraban los once a la vez. */
+.c-xnav [hidden] {
+  display: none !important;
+}
+
+/* Temario contraído a raíl: el panel se oculta igual que el clásico. */
+:root[data-ui='explosion'][data-nav-collapsed] .c-xnav {
+  display: none;
+}
+
+/* Panel más ancho solo en este modo: 300 px no alcanzaban para una
+   explosión legible con sus globos. El temario de lista conserva su
+   ancho, que está afinado para su sangría. */
+@media (min-width: 50rem) {
+  :root[data-ui='explosion']:not([data-nav-collapsed]) {
+    --sl-sidebar-width: 23rem;
+  }
+}
+
+/* Los enlaces del panel no se subrayan: son filas de navegación, como
+   las del temario clásico, no enlaces en texto corrido. */
+#starlight__sidebar .c-xnav a {
+  text-decoration: none;
+}
+
+/* --- Pestañas ------------------------------------------------------- */
+.c-xnav__tabs {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: var(--space-xs);
+  margin-bottom: var(--space-md);
+  padding: var(--space-xs);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: var(--surface-secondary);
+}
+
+.c-xnav__tab {
+  padding: var(--space-sm) var(--space-xs);
+  border: 0;
+  border-radius: var(--radius-sm);
+  background: transparent;
+  color: var(--text-secondary);
+  font-family: var(--font-sans);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.c-xnav__tab:hover {
+  color: var(--text);
+}
+
+.c-xnav__tab[aria-selected='true'] {
+  background: var(--technical-white);
+  color: var(--text);
+  box-shadow: 0 0 0 1px var(--divider);
+}
+
+.c-xnav__tab:focus-visible {
+  outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
+  outline-offset: 1px;
+}
+
+/* --- Migas ---------------------------------------------------------- */
+.c-xnav__migas {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-xs);
+  margin: 0 0 var(--space-sm);
+  padding-inline: var(--space-xs);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+#starlight__sidebar .c-xnav__migas a {
+  display: inline;
+  padding: 0;
+  font-size: inherit;
+  color: var(--text-secondary);
+  text-decoration: none;
+  background: none;
+}
+
+#starlight__sidebar .c-xnav__migas a:hover {
+  color: var(--text);
+  background: none;
+}
+
+.c-xnav__aqui {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.c-xnav__sep {
+  color: var(--alloy);
+}
+
+/* --- Escenario ------------------------------------------------------ */
+.c-xnav__stage {
+  position: relative;
+  width: 100%;
+  overflow: hidden;
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  /* Blanco, no `mist`: los renders son grises claros y sobre mist perdían
+     contraste. El borde basta para delimitar el escenario. */
+  background: var(--technical-white);
+}
+
+.c-xnav__escena {
+  position: absolute;
+  inset: 0;
+  transform-origin: 0 0;
+}
+
+.c-xnav__escena[data-visible='false'] {
+  visibility: hidden;
+  pointer-events: none;
+}
+
+.c-xnav__ens,
+.c-xnav__capa {
+  position: absolute;
+  left: var(--x);
+  top: var(--y);
+  width: var(--w);
+  height: var(--h);
+}
+
+.c-xnav__ens img,
+.c-xnav__capa img {
+  display: block;
+  width: 100%;
+  height: 100%;
+  max-width: none;
+  user-select: none;
+  -webkit-user-drag: none;
+}
+
+/* Ensamblado: se ve la imagen del conjunto, con la profundidad real entre
+   piezas. Explotado: las capas, cada una en su sitio. El relevo es
+   instantáneo porque las capas empiezan exactamente donde está el
+   conjunto, píxel a píxel. */
+.c-xnav__ens {
+  opacity: 1;
+  transition: opacity 120ms var(--ease);
+}
+
+.c-xnav__capa {
+  opacity: 0;
+  transform: none;
+  pointer-events: none;
+  transition:
+    transform 340ms var(--ease),
+    opacity 120ms var(--ease);
+}
+
+.c-xnav__escena[data-explotada='true'] > .c-xnav__ens {
+  opacity: 0;
+  pointer-events: none;
+}
+
+.c-xnav__escena[data-explotada='true'] > .c-xnav__capa {
+  opacity: 1;
+  transform: translate(var(--tx), var(--ty));
+  pointer-events: auto;
+}
+
+.is-instantanea,
+.is-instantanea * {
+  transition: none !important;
+}
+
+/* Zona clicable: el polígono sacado del canal alfa, no la caja. Las
+   piezas ensambladas se solapan, y una caja robaría el clic de la vecina. */
+.c-xnav__hit {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  overflow: visible;
+  pointer-events: none;
+}
+
+/* Los polígonos solo reciben el puntero cuando su imagen es la que se ve:
+   el conjunto mientras está ensamblado, las capas cuando está explotado.
+   Sin este acotamiento, las capas invisibles —la Quest guardada dentro del
+   robot, por ejemplo— robaban el clic. `visiblePainted` y no `all`, para
+   respetar además la escena oculta con `visibility`. */
+.c-xnav__hit polygon {
+  fill: transparent;
+  pointer-events: none;
+  cursor: pointer;
+}
+
+.c-xnav__escena[data-explotada='false'] > .c-xnav__ens .c-xnav__hit polygon,
+.c-xnav__escena[data-explotada='true'] > .c-xnav__capa .c-xnav__hit polygon {
+  pointer-events: visiblePainted;
+}
+
+/* Pieza apuntada o activa: contorno que sigue la silueta y el resto se
+   atenúa. Son dos anillos de 1 px sacados del alfa —cada `drop-shadow`
+   se aplica sobre el resultado del anterior—: primero blanco, luego rojo
+   por fuera. El blanco no es adorno: en el CAD las piezas impresas del
+   gripper y las poleas son rojas, y un contorno rojo directo sobre ellas
+   desaparecía. Con el halo se lee sobre cualquier color de pieza. */
+.c-xnav__capa[data-hover] img,
+.c-xnav__capa[data-activa] img {
+  filter: drop-shadow(1px 0 0 var(--technical-white)) drop-shadow(-1px 0 0 var(--technical-white))
+    drop-shadow(0 1px 0 var(--technical-white)) drop-shadow(0 -1px 0 var(--technical-white))
+    drop-shadow(1px 0 0 var(--sebs-signal)) drop-shadow(-1px 0 0 var(--sebs-signal))
+    drop-shadow(0 1px 0 var(--sebs-signal)) drop-shadow(0 -1px 0 var(--sebs-signal)); /* sebs-allow: pieza apuntada/activa */
+}
+
+.c-xnav__escena[data-explotada='true']:has(.c-xnav__capa[data-hover]) > .c-xnav__capa:not([data-hover]),
+.c-xnav__escena[data-explotada='true']:has(.c-xnav__capa[data-activa]):not(:has(.c-xnav__capa[data-hover]))
+  > .c-xnav__capa:not([data-activa]) {
+  opacity: 0.45;
+}
+
+/* --- Globos numerados ----------------------------------------------- */
+/* La convención de un despiece: cada pieza lleva un número, y el número se
+   repite en la lista de piezas. Así el dibujo y el texto se leen juntos
+   sin etiquetas que tapen el render. */
+#starlight__sidebar .c-xnav__globo {
+  position: absolute;
+  display: grid;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  padding: 0;
+  border: 1px solid var(--alloy);
+  border-radius: var(--radius-round);
+  background: var(--technical-white);
+  color: var(--text);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  font-weight: 500;
+  line-height: 1;
+  transform: translate(-50%, -50%);
+  opacity: 0;
+  transition:
+    opacity var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease);
+}
+
+#starlight__sidebar .c-xnav__escena[data-explotada='true'] .c-xnav__globo {
+  opacity: 1;
+  transition-delay: 240ms, 0ms;
+}
+
+#starlight__sidebar .c-xnav__capa[data-hover] .c-xnav__globo,
+#starlight__sidebar .c-xnav__capa[data-activa] .c-xnav__globo {
+  border-color: var(--sebs-signal); /* sebs-allow: pieza apuntada/activa */
+  background: var(--technical-white);
+}
+
+.c-xnav__pista {
+  margin: var(--space-sm) 0 0;
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+  text-align: center;
+}
+
+.c-xnav[data-explotada='true'] .c-xnav__pista {
+  display: none;
+}
+
+/* --- Listados ------------------------------------------------------- */
+.c-xnav__titulo {
+  margin: var(--space-lg) 0 var(--space-xs);
+  padding-inline: var(--space-sm);
+  font-size: 0.6875rem;
+  font-weight: 600;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-xnav__panel > .c-xnav__lista > li:first-child.c-xnav__subgrupo > .c-xnav__titulo {
+  margin-top: 0;
+}
+
+.c-xnav__piezas,
+.c-xnav__docs,
+.c-xnav__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-xnav__piezas li,
+.c-xnav__docs li,
+.c-xnav__lista li {
+  margin: 0;
+}
+
+#starlight__sidebar .c-xnav__piezas a {
+  gap: var(--space-sm);
+}
+
+.c-xnav__num {
+  display: grid;
+  flex: none;
+  place-items: center;
+  width: 1.25rem;
+  height: 1.25rem;
+  border: 1px solid var(--mist);
+  border-radius: var(--radius-round);
+  font-family: var(--font-mono);
+  font-size: 0.625rem;
+  color: var(--text-secondary);
+}
+
+.c-xnav__baja {
+  margin-left: auto;
+  color: var(--alloy);
+}
+
+#starlight__sidebar .c-xnav a[aria-current='page'],
+#starlight__sidebar .c-xnav__piezas li[data-activa] > a {
+  color: var(--text);
+  font-weight: 600;
+}
+
+#starlight__sidebar .c-xnav__piezas li[data-activa] .c-xnav__num,
+#starlight__sidebar .c-xnav__piezas a[aria-current='page'] .c-xnav__num {
+  border-color: var(--text);
+  color: var(--text);
+}
+
+#starlight__sidebar .c-xnav__piezas a[data-hover] {
+  background: var(--surface-secondary);
+  color: var(--text);
+}
+
+.c-xnav__subgrupo .c-xnav__lista {
+  margin-bottom: var(--space-xs);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .c-xnav__capa,
+  .c-xnav__ens,
+  .c-xnav__globo {
+    transition: none !important;
+  }
+}
+
+/* --- Conmutador UI/UX (cabecera, superficie dark) ------------------- */
+.c-uimode {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-sm);
+  height: 2rem;
+  margin-inline-start: var(--space-md);
+  padding: 0 var(--space-md);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-md);
+  background: transparent;
+  color: var(--text);
+  font-family: var(--font-sans);
+  font-size: 0.75rem;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  white-space: nowrap;
+  cursor: pointer;
+  transition:
+    background var(--dur-micro) var(--ease),
+    border-color var(--dur-micro) var(--ease),
+    color var(--dur-micro) var(--ease);
+}
+
+.c-uimode:hover {
+  border-color: var(--alloy);
+}
+
+.c-uimode__estado {
+  padding-inline-start: var(--space-sm);
+  border-inline-start: 1px solid var(--divider);
+  font-family: var(--font-mono);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0;
+  color: var(--text-secondary);
+}
+
+/* Activo: la pastilla se invierte a blanco sobre la cabecera grafito. Es
+   contraste de superficie, no color: el rojo de la vista ya lo gasta el
+   panel. */
+.c-uimode[aria-pressed='true'] {
+  border-color: var(--technical-white);
+  background: var(--technical-white);
+  color: var(--graphite);
+}
+
+.c-uimode[aria-pressed='true'] .c-uimode__estado {
+  border-color: var(--mist);
+  color: var(--alloy);
+}
+
+.c-uimode:focus-visible {
+  outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
+  outline-offset: 2px;
+}
+
+@media (max-width: 50rem) {
+  .c-uimode {
+    margin-inline-start: var(--space-sm);
+    padding: 0 var(--space-sm);
+  }
+
+  .c-uimode__estado {
+    display: none;
+  }
+}

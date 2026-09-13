@@ -1,0 +1,158 @@
+---
+title: "Interfaz y controles"
+description: Paneles, drive teleop, control de manipulador y feedback multisensorial en el headset.
+---
+
+import { ReplicationLevel, ParameterTable } from '@project';
+
+La aplicación corre en modo passthrough MR sobre el Meta Quest 3. Un canvas
+world-space flotante agrupa tres paneles, y el operador interactúa con ellos
+por *ray interaction* desde los controladores del headset.
+
+<figure>
+  <img
+    src="/remote-hands/images/ui-realidad-mixta.png"
+    alt="Vista de la interfaz de teleoperación en realidad mixta sobre Meta Quest"
+  />
+  <figcaption>La interfaz tal como la ve el operador: paneles de estado y sensores superpuestos sobre el entorno real.</figcaption>
+</figure>
+
+| Panel | Posición | Función |
+| --- | --- | --- |
+| Izquierdo | Izq. | Estado de conexión, controles de cámara, parada de emergencia |
+| Central | Centro | Stream de video principal y grid LiDAR 2D |
+| Derecho | Der. | Sliders de manipulador y gripper, rotación de cámara |
+
+La interfaz pide a la NUC solo los datos que está mostrando. Los streams que
+nadie tiene abierto **no se transmiten**.
+
+<ReplicationLevel
+  level="described"
+  provides={[
+    'Disposición de los tres paneles y función de cada control',
+    'Parámetros del teleoperado, los rangos articulares y el código de color del grid',
+    'Modos de control, su exclusividad y qué arma cada uno',
+    'Valores de feedback háptico y de audio',
+  ]}
+  missing={[
+    'Las escenas y prefabs de Unity que materializan estos paneles',
+    'Capturas o grabación de la interfaz en funcionamiento dentro del headset',
+  ]}
+/>
+
+## Panel izquierdo
+
+El `RobotStatusPanel` se refresca a ~5 Hz desde el tópico `stat`. Muestra el
+estado de conexión, la IP de la NUC y la del headset, el modo activo, los
+FPS y la resolución del video, y el estado de cada sensor.
+
+**Parada de emergencia.** Un botón envía `stop_all` y `master_disarm` a la
+vez. Detiene toda la locomoción y deja los motores en `DISARMED` de
+inmediato.
+
+**IP de la NUC.** Un teclado numérico virtual permite cambiar la IP sin
+quitarse el headset. Hace falta porque la red del laboratorio no asigna IP
+fija a la NUC, según se explica en [Puesta en
+marcha](/remote-hands/operacion/puesta-en-marcha/). La aplicación guarda el
+valor en `PlayerPrefs`, así que sobrevive entre sesiones.
+
+## Panel central
+
+<ParameterTable
+  caption="Stream de video"
+  rows={[
+    { parameter: 'Resolución', value: '640×480', unit: 'px' },
+    { parameter: 'Tasa de cuadros', value: '~30', unit: 'fps' },
+    { parameter: 'Latencia objetivo', value: '< 150', unit: 'ms', notes: 'extremo a extremo, sin medir formalmente todavía' },
+  ]}
+/>
+
+La resolución de 640×480 es un techo empírico, no una elección arbitraria.
+Por encima de ese valor aparecen frames en blanco y caídas de FPS.
+
+El grid LiDAR 2D usa un código de color fijo:
+
+| Color | Significado |
+| --- | --- |
+| Blanco | Espacio libre |
+| Negro | Obstáculo |
+| Verde | Posición del robot |
+| Azul | Frente del robot |
+
+Los modos `detail`, `medium` y `panorama` usan el mismo radio y el mismo
+tamaño de grid descritos en
+[Percepción](/remote-hands/sistema/subsistemas/servidor-percepcion/percepcion/).
+
+## Panel derecho — manipulador y gripper
+
+El panel tiene cuatro sliders independientes:
+
+| Control | Articulación | Rango |
+| --- | --- | --- |
+| Base | Rotación de la base | −80° a +80° |
+| Codo | Articulación del codo | 0° a 136,5° |
+| Muñeca | Orientación de la muñeca | −220° a 0° |
+| Gripper | Apertura de la pinza | 0 mm a 80 mm |
+
+Mientras el operador ajusta los sliders, un modelo 3D —el *ghost robot*—
+muestra la pose que resultaría, antes de enviar nada al robot real.
+
+Dos botones cierran la interacción. **Home** envía `manip_home`, que dispara
+la rutina de homing en el CL57T. **Implement** envía la pose completa en un
+solo mensaje.
+
+## Drive teleop — joystick derecho
+
+```text
+joystick.y (±1) → v (avance/retroceso)
+joystick.x (±1) → w (giro)
+
+left  = clamp(v - w, -255, 255)
+right = clamp(v + w, -255, 255)
+```
+
+<ParameterTable
+  caption="Parámetros del teleoperado de base"
+  rows={[
+    { parameter: 'Frecuencia de envío', value: '15', unit: 'Hz' },
+    { parameter: 'Zona muerta en Unity', value: '18', unit: '%', notes: 'Sobre el joystick crudo, antes de enviar' },
+    { parameter: 'Ganancia de giro', value: '1,0', unit: '—' },
+    { parameter: 'Velocidad máxima', value: '±255', unit: 'raw', notes: '≈ ±70 % de duty en hardware' },
+    { parameter: 'Watchdog en la NUC', value: '350', unit: 'ms', notes: 'sin comando en ese plazo, se fuerza un stop' },
+  ]}
+/>
+
+### Hay dos zonas muertas, no una
+
+Es la clase de detalle que cuesta horas si se descubre depurando. El
+joystick pasa por **dos** filtros de reposo, en dos máquinas distintas:
+
+| Dónde | Valor | Sobre qué actúa |
+| --- | --- | --- |
+| Unity, antes de enviar | 0,18 | El eje crudo del joystick del Quest |
+| NUC, al recibir `drive_cmd` | 0,08 | La velocidad normalizada ya mezclada |
+
+Manda la de Unity, que es la más alta: un valor filtrado ahí nunca llega a
+la NUC. La de la NUC es una segunda red de seguridad, y protege también
+frente a un cliente distinto de esta aplicación. Cambiar solo una de las dos
+produce un comportamiento que no cuadra con ninguna de ellas.
+
+## Modos de control
+
+Los tres modos son exclusivos: solo uno puede estar activo a la vez.
+
+| Modo | Qué habilita | Qué arma |
+| --- | --- | --- |
+| Mobile | Drive teleop con el joystick | Tracción |
+| Manip | Sliders de manipulador y gripper | CL57T |
+| Base | Rotación del brazo | — |
+
+Al desactivar todos los modos, la interfaz envía `stop_all` y
+`master_disarm`.
+
+## Feedback multisensorial
+
+| Evento | Audio | Háptico |
+| --- | --- | --- |
+| Hover sobre un control | Suave (vol. 0,6) | 0,08 amp / 0,08 Hz / 30 ms |
+| Click | Marcado (vol. 0,8) | 0,18 amp / 0,18 Hz / 50 ms |

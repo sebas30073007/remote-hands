@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-164.3 -171.53 195.92 177.73" role="img"
+     aria-label="Plano de Balero plano: envolvente de 155 por 155 milímetros con 0 barrenos">
+  <title>Balero plano — plano cotado</title>
+  <g fill="none" stroke="currentColor" stroke-width="1.01"
+     stroke-linejoin="round" stroke-linecap="round">
+    <path d="M -22.73 -135.1 L -11.41 -146.41 L -8.59 -143.59 L -19.9 -132.27 Z M -11.41 -8.59 L -22.73 -19.9 L -19.9 -22.73 L -8.59 -11.41 Z M -132.27 -135.1 L -135.1 -132.27 L -146.41 -143.59 L -143.59 -146.41 Z M -146.41 -11.41 L -135.1 -22.73 L -132.27 -19.9 L -143.59 -8.59 Z M 0 0 L 0 -155 L -155 -155 L -155 0 Z" />
+    
+  </g>
+  <g stroke="currentColor" stroke-width="0.42" opacity="0.4" fill="none">
+    
+  </g>
+  <g stroke="currentColor" stroke-width="0.6" opacity="0.7" fill="none">
+    <path d="M -155 -162.75 H 0" />
+    <path d="M -155 -165.13 v 4.77" />
+    <path d="M 0 -165.13 v 4.77" />
+    <path d="M 7.75 -155 V 0" />
+    <path d="M 5.37 -155 h 4.77" />
+    <path d="M 5.37 0 h 4.77" />
+  </g>
+  <g fill="currentColor" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="5.17">
+    <text x="-77.5" y="-165.59" text-anchor="middle">155 mm</text>
+    <text x="10.85" y="-77.5" dominant-baseline="middle">155 mm</text>
+  </g>
+  <g fill="currentColor" font-family="IBM Plex Mono, ui-monospace, monospace"
+     font-size="4.65" opacity="0.85">
+    
+  </g>
+</svg>

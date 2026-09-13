@@ -1,0 +1,88 @@
+---
+title: Requisitos de sistema
+description: Requisitos verificables extraídos del comportamiento ya documentado y probado del sistema.
+---
+
+import { Requirement } from '@project';
+
+Los requisitos verificables del sistema, agrupados por seguridad, función, comunicación y desempeño. Cada uno nombra el subsistema responsable y su criterio de verificación, de modo que se pueda trazar contra la evidencia real del proyecto.
+
+## Sobre el origen de estos requisitos
+
+El proyecto original no mantenía requisitos formalizados como objetos
+independientes. Vivían implícitos en el comportamiento documentado y
+verificado de cada subsistema.
+
+Los requisitos de abajo se derivaron de ese comportamiento real durante la
+migración de la documentación. Son una **primera propuesta de
+formalización**, no requisitos que el proyecto haya registrado en su
+momento. Falta que el autor los revise y confirme, o corrija su prioridad y
+su redacción.
+
+## Seguridad
+
+<Requirement id="REQ-SAF-001" subsystem="Robot móvil — Puente H" priority="must"
+  verification="VER-PH-002" status="pass">
+  El controlador de tracción debe arrancar en estado `DISARMED`, con la
+  salida al motor deshabilitada, y requerir un comando `ARM` explícito antes
+  de aceptar movimiento.
+</Requirement>
+
+<Requirement id="REQ-SAF-002" subsystem="Robot móvil — Puente H" priority="must"
+  status="pass">
+  Todo paquete de comando I²C con checksum inválido debe descartarse sin
+  ejecutar movimiento; el motor conserva su último estado válido.
+</Requirement>
+
+<Requirement id="REQ-SAF-003" subsystem="Robot móvil — Gripper" priority="must"
+  verification="VER-GRIP-002" status="pass">
+  El controlador del gripper debe detener el motor en un máximo de 500&nbsp;ms
+  si el encoder no registra cambio de posición mientras el motor está
+  activo (detección de stall).
+</Requirement>
+
+## Movimiento
+
+<Requirement id="REQ-MAN-001" subsystem="Robot móvil — Manipulador" priority="must"
+  verification="VER-MAN-001" status="pass">
+  El manipulador debe alcanzar el rango de movimiento de diseño en cada una
+  de sus tres articulaciones: base −80° a +80°, codo 0° a 136,5°, muñeca
+  −220° a 0°.
+</Requirement>
+
+<Requirement id="REQ-MAN-002" subsystem="Robot móvil — CL57T" priority="should"
+  verification="VER-CL-002" status="pass">
+  El sistema debe ejecutar una rutina de calibración (homing) por
+  articulación al encender, sin intervención de la NUC.
+</Requirement>
+
+## Comunicación
+
+<Requirement id="REQ-COM-001" subsystem="Servidor / percepción" priority="must" status="pass">
+  El sistema debe separar video, sensores/estado y comandos en canales ZMQ
+  independientes, de modo que desactivar el video no interrumpa el control
+  ni la telemetría.
+</Requirement>
+
+<Requirement id="REQ-COM-002" subsystem="Servidor / percepción" priority="should"
+  verification="EXP-LAT-001" status="pending">
+  La latencia de protocolo (RTT) entre la interfaz XR y la NUC debe mantener
+  un P95 por debajo de 100&nbsp;ms bajo la carga combinada de video y LiDAR
+  en modo detallado.
+</Requirement>
+
+**REQ-COM-002 necesita confirmación.** Su umbral de 100 ms procede de la
+literatura de teleoperación citada en el [marco
+teórico](/remote-hands/academico/marco-teorico/), no de un valor que el
+proyecto haya fijado. Se marca como `pending` por esa razón, no porque los
+datos lo incumplan: el [experimento de
+latencia](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/)
+midió un P95 máximo de 71,87 ms, por debajo del umbral en las siete
+condiciones probadas.
+
+## Trazabilidad
+
+La matriz que cruza requisitos, subsistemas y verificaciones está pendiente.
+Construirla exige cerrar antes la revisión de esta página, porque no tiene
+sentido trazar requisitos que todavía son una propuesta. Ver
+[Trazabilidad](/remote-hands/sistema/requisitos/trazabilidad/).

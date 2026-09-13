@@ -1,0 +1,39 @@
+---
+/**
+ * Recuadro dummy para el hueco de una captura que todavía no existe.
+ *
+ * Marca dónde va la imagen y qué debería mostrar, sin fingir contenido real
+ * (§20 del brief: nada de marcadores de posición disfrazados de contenido
+ * terminado) — el borde discontinuo y la etiqueta "Imagen pendiente" hacen
+ * imposible confundirlo con una captura de verdad. En cuanto llega la
+ * imagen real, se sustituye por un `<figure>` normal con `![alt](ruta)`;
+ * este componente deja de usarse en esa página, no se le pasa una imagen.
+ */
+interface Props {
+  /** Qué captura hace falta y qué debe verse en ella. */
+  caption: string;
+  /** Proporción del hueco, para que no salte el layout al llegar la imagen real. */
+  aspect?: string;
+}
+
+const { caption, aspect = '16 / 9' } = Astro.props;
+---
+
+<figure class="c-image-placeholder">
+  <div class="c-image-placeholder__box" style={`aspect-ratio: ${aspect}`}>
+    <svg viewBox="0 0 24 24" width="28" height="28" aria-hidden="true" focusable="false">
+      <rect x="2.5" y="4.5" width="19" height="15" rx="1.5" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <circle cx="8" cy="10" r="1.75" fill="none" stroke="currentColor" stroke-width="1.5" />
+      <path
+        d="M4 16.5 9 12l3.5 3.2L15 12.5l5 5"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="1.5"
+        stroke-linecap="round"
+        stroke-linejoin="round"
+      />
+    </svg>
+    <span class="c-image-placeholder__label">Imagen pendiente</span>
+  </div>
+  <figcaption>{caption}</figcaption>
+</figure>

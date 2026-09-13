@@ -1,0 +1,55 @@
+---
+title: "Estado actual"
+type: release
+version: "sin versionar formalmente"
+date: "2026 (Proyecto Terminal)"
+---
+
+El proyecto original no llevaba un esquema de versionado formal, ni para
+hardware ni para software. Esta página describe por tanto el **estado real
+verificado** de cada pieza, no una release numerada: asignar un número de
+versión que nadie definió sería inventar información.
+
+Adoptar un esquema de versionado hacia adelante es una decisión pendiente.
+
+## Estado por pieza
+
+La columna «Fuente» indica el documento del repositorio original de donde
+procede cada estado.
+
+| Pieza | Estado verificado | Fuente |
+| --- | --- | --- |
+| Plataforma móvil (mecánica) | Construida y probada | `03-robot-agv/plataforma-movil.md` |
+| Manipulador 3 GDL (mecánica) | Construido y probado | `03-robot-agv/manipulador.md` |
+| PCB Puente H (×2) | Diseñadas, ensambladas y probadas | `03-robot-agv/electronica.md` |
+| PCB CL57T | Diseñada, ensamblada y probada | `03-robot-agv/controlador-cl57t.md` |
+| Firmware Puente H (`main_movil_final.py`) | Funcional, 1 175 líneas | `03-robot-agv/sistemas-embebidos.md` |
+| Firmware CL57T (`main_manipulador_final.py`) | Funcional, 933 líneas | `03-robot-agv/sistemas-embebidos.md` |
+| Firmware gripper (`main_gripper_final.py`) | Funcional, 703 líneas | `03-robot-agv/sistemas-embebidos.md` |
+| Stack NUC (Python 3.12 + ZMQ) | Funcional — ver detalle abajo | `03-robot-agv/software.md` |
+| Integración XR → NUC → electrónica | En proceso | varias fuentes |
+
+## Funcionalidad extremo a extremo
+
+Estado en la última verificación registrada:
+
+| Funcionalidad | Estado |
+| --- | --- |
+| Control de motores individual por USB-C | Verificado |
+| Control por WiFi y BLE | Verificado |
+| Integración de control de base desde interfaz XR | Funcional |
+| Control completo del manipulador 3 GDL | Funcional |
+| Control del gripper desde interfaz XR | Funcional |
+
+## Próximo hito
+
+Todavía sin definir. El propio proyecto original dejó cuatro candidatos
+anotados en `11-pendientes.md`:
+
+- PCB dedicada para el gripper, que reemplace el montaje actual en
+  protoboard.
+- Modelo cinemático del robot móvil, para odometría y trayectorias
+  programadas.
+- Cinemática inversa del manipulador.
+- Captura de los encoders de tracción, para cerrar el lazo de control de
+  velocidad.

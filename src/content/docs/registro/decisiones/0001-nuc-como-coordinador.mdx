@@ -1,0 +1,82 @@
+---
+title: "ADR-0001 — La NUC como coordinador único"
+type: decision
+decisionId: ADR-0001
+decisionStatus: accepted
+date: "2026 (Proyecto Terminal)"
+---
+
+La decisión de arquitectura más determinante del proyecto: poner una NUC a bordo como único coordinador, en lugar de exponer el control de motores al operador remoto o de resolver la percepción en los microcontroladores. Este registro deja el contexto, las opciones consideradas y las consecuencias que se aceptaron.
+
+## Contexto
+
+El robot tiene que combinar tres exigencias que operan en escalas de tiempo
+muy distintas:
+
+| Exigencia | Escala de tiempo | Naturaleza |
+| --- | --- | --- |
+| Control de motores | Microsegundos a milisegundos | Determinista, sin margen para jitter |
+| Percepción (LiDAR, cámara RGB-D) | Decenas de Hz | Intensiva en cómputo |
+| Comunicación con el operador remoto | Latencia variable sobre WiFi | No fiable: admite pérdida de paquetes |
+
+Ninguna arquitectura de un solo nivel de control resuelve bien las tres a la
+vez: exponer el control de motores directamente al operador remoto
+heredaría la incertidumbre de la red; resolver percepción y comunicación
+dentro de los propios microcontroladores de motor los sobrecargaría con
+responsabilidades ajenas a su función.
+
+## Alternativas consideradas
+
+**Control directo desde la Meta Quest a cada controlador embebido**, sin
+computadora intermedia. Descartada por dos motivos. Expondría el control de
+motores en tiempo real a la latencia y a la pérdida de paquetes de WiFi.
+Además multiplicaría la lógica de protocolo que la interfaz XR tendría que
+conocer: un protocolo por controlador, en lugar de un solo contrato ZMQ.
+
+**ROS como middleware de coordinación.** Descartado por simplicidad y
+portabilidad. El equipo prefirió un stack propio en Python 3.12 con ZeroMQ,
+sin la sobrecarga de un framework de robótica completo para un sistema de
+este tamaño.
+
+**Un microcontrolador único como coordinador**, en lugar de una NUC.
+Descartada por capacidad de cómputo: la percepción con RealSense y RPLiDAR,
+más el streaming de video a la Meta Quest, exceden lo que un ESP32-C3 puede
+sostener.
+
+## Decisión
+
+La **NUC actúa como coordinador único** entre el operador y la electrónica
+embebida.
+
+Recibe de la Meta Quest comandos simples por ZMQ —una velocidad deseada, un
+ángulo objetivo— y coordina los sensores del robot. Después traduce esos
+comandos a instrucciones para tres controladores ESP32-C3 independientes.
+
+Cada controlador resuelve el control de bajo nivel de su propio subsistema
+—tracción, manipulador o gripper— sin que la NUC intervenga en tiempo real.
+
+## Consecuencias
+
+**Favorables:**
+
+- La interfaz XR se mantiene simple: habla un solo protocolo con un solo
+  destino.
+- El control de motores en tiempo real queda aislado de la variabilidad de
+  WiFi. Vive enteramente sobre USB e I²C, que son deterministas.
+- Los tres controladores embebidos se pueden reemplazar o extender por
+  separado, sin tocar el resto del sistema.
+
+**Costos aceptados:**
+
+- La NUC es un punto único de coordinación. Si falla, el robot pierde todo
+  el control remoto, porque el diseño actual no tiene coordinador
+  redundante.
+- Se renunció a un ecosistema de robótica maduro a cambio de un stack más
+  simple y hecho a medida. Cualquier funcionalidad de ROS que haga falta en
+  el futuro habrá que construirla.
+
+## Estado
+
+Aceptada y en producción. Es la arquitectura descrita en [Arquitectura del
+sistema](/remote-hands/sistema/arquitectura/resumen/), y está verificada
+sobre el robot construido.

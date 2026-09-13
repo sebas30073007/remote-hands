@@ -1,0 +1,43 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+import StatusBadge from './StatusBadge.astro';
+import { projectStatusTone } from '../../lib/status-tone';
+
+/**
+ * Cabecera de subsistema — lo que `LessonHeader` es para course-docs.
+ *
+ * Ficha técnica de una sola mirada: qué es, de qué disciplinas se
+ * compone, quién responde por él, qué entra y qué sale. "Responsibility"
+ * es deliberadamente una frase corta, no una descripción — el resto de
+ * la página (Overview, Architecture, Key parameters, Interfaces,
+ * Artifacts, Verification status) la desarrolla.
+ */
+const { entry } = Astro.locals.starlightRoute;
+const { title, subsystemId, status, revision, disciplines, responsibility, owner, inputs, outputs } =
+  entry.data;
+const { label: statusLabel, tone: statusTone } = projectStatusTone(status);
+---
+
+<header class="c-subsystemhead">
+  <p class="c-subsystemhead__kicker">
+    Subsistema{subsystemId && <span class="c-subsystemhead__id"> · {subsystemId}</span>}
+  </p>
+  <h1 id="_top" transition:name="titulo-pagina">{title}</h1>
+
+  {responsibility && <p class="c-subsystemhead__responsibility">{responsibility}</p>}
+
+  <div class="c-subsystemhead__meta">
+    <div class="c-subsystemhead__status">
+      <StatusBadge label={statusLabel} tone={statusTone} />
+      {revision && <span class="c-subsystemhead__revision">{revision}</span>}
+    </div>
+    {
+      disciplines && disciplines.length > 0 && (
+        <MetaItem label="Disciplinas" value={disciplines.join(' · ')} mono={false} />
+      )
+    }
+    {owner && <MetaItem label="Responsable" value={owner} mono={false} />}
+    {inputs && inputs.length > 0 && <MetaItem label="Entradas" value={inputs.join(' · ')} />}
+    {outputs && outputs.length > 0 && <MetaItem label="Salidas" value={outputs.join(' · ')} />}
+  </div>
+</header>

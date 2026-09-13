@@ -1,0 +1,187 @@
+/* ===================================================================
+   Puente Starlight ↔ SEBS
+
+   Starlight expone su tema como custom properties `--sl-*`
+   (ver node_modules/@astrojs/starlight/style/props.css). Aquí se
+   reasignan a los tokens SEBS, de forma que TODO el chrome del sitio
+   —nav, sidebar, TOC, buscador, código, tablas— hereda la identidad
+   sin duplicar CSS.
+
+   Starlight define sus estilos dentro de `@layer starlight.*`. Este
+   archivo va sin capa: las declaraciones sin capa ganan a cualquier
+   capa, así que no hacen falta selectores artificialmente específicos.
+
+   Además se declaran los tokens semánticos de superficie SEBS
+   (--surface, --text, --divider…), que son los que consumen los
+   componentes de curso.
+
+   TEMA: este proyecto se publica en claro y solo en claro. La paleta va
+   en `:root` sin condicionar a `data-theme`, así que la página se ve
+   correcta incluso con JavaScript desactivado. Los overrides
+   `ThemeProvider` y `ThemeSelect` completan la decisión.
+   Para reactivar el tema doble, ver "Tema" en el README.
+   =================================================================== */
+
+/* -------------------------------------------------------------------
+   Superficie `light` de SEBS (Technical White)
+   Starlight nombra sus grises pensando en oscuro; en claro el
+   significado se invierte: `white` es el color del texto y `black` el
+   del fondo.
+   ------------------------------------------------------------------- */
+:root,
+::backdrop {
+  /* Tipografía del sistema SEBS */
+  --sl-font: var(--font-sans);
+  --sl-font-mono: var(--font-mono);
+
+  /* Escala tipográfica SEBS (typography.md §2), en rem para respetar el zoom */
+  --sl-text-h1: clamp(2rem, 1.55rem + 2vw, 2.5rem);   /* 32 → 40px */
+  --sl-text-h2: clamp(1.75rem, 1.5rem + 1.1vw, 2rem); /* 28 → 32px */
+  --sl-text-h3: 1.5rem;                               /* 24px */
+  --sl-text-h4: 1.25rem;                              /* 20px */
+  --sl-text-h5: 1rem;                                 /* 16px */
+
+  --sl-color-white: var(--graphite);
+  --sl-color-gray-1: var(--graphite);
+  --sl-color-gray-2: var(--graphite);
+  --sl-color-gray-3: var(--alloy);
+  --sl-color-gray-4: var(--alloy);
+  --sl-color-gray-5: var(--mist);
+  --sl-color-gray-6: var(--mist);
+  --sl-color-gray-7: var(--mist);
+  --sl-color-black: var(--technical-white);
+
+  --sl-color-accent-low: var(--mist);
+  --sl-color-accent: var(--sebs-signal);
+  --sl-color-accent-high: var(--sebs-signal);
+
+  --sl-color-text: var(--graphite);
+  --sl-color-text-accent: var(--sebs-signal);
+  --sl-color-text-invert: var(--technical-white);
+  --sl-color-bg: var(--technical-white);
+  --sl-color-bg-nav: var(--technical-white);
+  --sl-color-bg-sidebar: var(--technical-white);
+  --sl-color-bg-inline-code: var(--mist);
+  --sl-color-bg-accent: var(--mist);
+  --sl-color-hairline-light: var(--mist);
+  --sl-color-hairline: var(--mist);
+  --sl-color-hairline-shade: var(--mist);
+
+  --surface: var(--technical-white);
+  --surface-secondary: var(--mist);
+  --text: var(--graphite);
+  --text-secondary: var(--alloy);
+  --divider: var(--mist);
+  --signal-text: var(--sebs-signal);
+}
+
+/* -------------------------------------------------------------------
+   Presupuesto de rojo
+
+   Starlight pinta el ítem activo del sidebar con el color de acento
+   como FONDO (SidebarSublist.astro §129-135). Aquí el temario no gasta
+   señal en absoluto: el estado activo se resuelve con peso y con la
+   rama del árbol, en `islands.css`.
+   ------------------------------------------------------------------- */
+#starlight__sidebar a[aria-current='page'],
+#starlight__sidebar a[aria-current='page']:hover,
+#starlight__sidebar a[aria-current='page']:focus {
+  background-color: transparent;
+  box-shadow: none;
+}
+
+/* El título del sitio es identidad, no acción: nunca en rojo. */
+.site-title {
+  color: var(--text);
+}
+
+/* Starlight dibuja un separador vertical antes del selector de tema. Sin
+   selector y sin iconos sociales, esa línea quedaba suelta en la cabecera. */
+.social-icons:empty::after {
+  display: none;
+}
+
+/* Enlaces de contenido: subrayado siempre (nunca solo color) + señal al hover. */
+.sl-markdown-content a:not(:where(.not-content *)) {
+  color: var(--text);
+  text-decoration: underline;
+  text-underline-offset: 0.2em;
+  text-decoration-thickness: 1px;
+  text-decoration-color: var(--alloy);
+}
+.sl-markdown-content a:not(:where(.not-content *)):hover {
+  color: var(--signal-text); /* sebs-allow: hover de link en texto corrido */
+  text-decoration-color: currentColor;
+}
+
+/* El ítem actual del TOC se distingue por peso, no por color: el
+   presupuesto de rojo de "estado activo" ya lo gasta el sidebar, y la
+   prueba de conteo (color.md §3) admite un solo indicador por vista. */
+starlight-toc a[aria-current='true'] {
+  font-weight: 600;
+  color: var(--text);
+}
+
+starlight-toc a[aria-current='true']::after {
+  background-color: var(--text-secondary);
+}
+
+/* Foco visible y consistente en todo el sitio. */
+:focus-visible {
+  outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
+  outline-offset: 2px;
+}
+
+/* -------------------------------------------------------------------
+   Tipografía
+   ------------------------------------------------------------------- */
+.sl-markdown-content :is(h1, h2, h3, h4, h5, h6) {
+  color: var(--text);
+  /* Sin esto, un título que rompe línea deja una palabra sola colgando en
+     la segunda —el navegador reparte el texto por ancho de columna, no por
+     lectura—. `balance` reparte los saltos entre líneas más parejo. */
+  text-wrap: balance;
+}
+.sl-markdown-content h1,
+.sl-markdown-content h2 {
+  font-weight: 800;
+  letter-spacing: -0.02em;
+}
+.sl-markdown-content h2 {
+  font-weight: 700;
+  letter-spacing: -0.01em;
+}
+.sl-markdown-content :is(h3, h4) {
+  font-weight: 600;
+}
+.sl-markdown-content h5 {
+  font-weight: 500;
+}
+
+/* Datos técnicos: el mono es lo que hace que un dato se lea como dato. */
+.sl-markdown-content :is(code, kbd, samp) {
+  font-family: var(--font-mono);
+}
+
+/* Tablas técnicas — patrón de components.md §5 */
+.sl-markdown-content th {
+  font-family: var(--font-sans);
+  font-weight: 500;
+  font-size: var(--sl-text-2xs);
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+/* -------------------------------------------------------------------
+   Motion
+   ------------------------------------------------------------------- */
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
+}

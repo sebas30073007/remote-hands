@@ -1,0 +1,78 @@
+---
+title: "Verificación — Servidor / percepción"
+type: subsystem
+subsystemId: SUB-SERVIDOR/VER
+status: in-review
+responsibility: Resultados de verificación de canales de datos y comunicación WiFi robot-NUC.
+---
+
+import { VerificationResult } from '@project';
+
+La verificación de este subsistema comprueba dos cosas: que cada canal de
+datos publica a la frecuencia esperada, y que el enlace WiFi entre el robot
+y la NUC se mantiene estable durante una sesión de trabajo.
+
+## Frecuencia por canal
+
+<VerificationResult
+  id="VER-SRV-001"
+  requirement="El canal lidar_grid (RPLiDAR C1) publica entre 10 y 12 Hz"
+  method="measurement"
+  result="10–12 Hz medidos"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-SRV-002"
+  requirement="El canal video_rgb (RealSense D435i) publica a unos 30 fps"
+  method="measurement"
+  result="~30 fps medidos"
+  status="pass"
+/>
+
+<VerificationResult
+  id="VER-SRV-003"
+  requirement="El tópico stat publica a unos 2 Hz"
+  method="measurement"
+  result="~2 Hz medidos"
+  status="pass"
+/>
+
+## Lazo de comando
+
+<VerificationResult
+  id="VER-SRV-004"
+  requirement="Un comando recibido en el puerto 5002 llega hasta el motor"
+  method="test"
+  result="Confirmado el canal de comando hasta el motor; el lazo completo no se verificó"
+  status="pending"
+/>
+
+## Enlace WiFi
+
+<VerificationResult
+  id="VER-SRV-005"
+  requirement="El enlace robot ↔ NUC se mantiene estable durante una sesión"
+  method="demonstration"
+  result="Sin desconexiones en una prueba de 10 minutos"
+  status="pass"
+/>
+
+## Pruebas pendientes
+
+Las siguientes pruebas quedaron documentadas en el proyecto original sin
+ejecutarse:
+
+| Prueba | Estado |
+| --- | --- |
+| Telemetría de encoders de tracción (10–20 Hz) | Pendiente de integración |
+| Latencia de red local y extremo a extremo (XR → robot → XR) | Pendiente de medir |
+| SLAM: generación de mapa en pasillo estructurado | Pendiente |
+| Watchdog: el robot se detiene al perder conexión | Pendiente |
+| Stream RGB-D completo al headset XR | Pendiente |
+
+Conviene no confundir la segunda con el [experimento de latencia
+WiFi](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/) que
+sí está ejecutado. Aquel mide el protocolo entre la interfaz MR y un nodo
+edge simulado. La prueba pendiente mide el lazo físico completo, con el
+robot real dentro.

@@ -1,0 +1,25 @@
+---
+/**
+ * Botón de descarga directa.
+ *
+ * Al pasar por encima o al enfocarlo con teclado, la etiqueta se sustituye
+ * por «Clic para descargar»: confirma la acción antes de que el usuario
+ * suelte el clic, sin depender de JavaScript.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief): no sabe qué archivo
+ * descarga ni de qué curso es. Eso lo decide quien lo usa.
+ */
+interface Props {
+  href: string;
+  /** Lo que identifica esta variante: "x64", "ARM64", "Universal · Apple Silicon e Intel". */
+  label: string;
+  hint?: string;
+}
+
+const { href, label, hint = 'Clic para descargar' } = Astro.props;
+---
+
+<a class="c-download" href={href}>
+  <span class="c-download__label">{label}</span>
+  <span class="c-download__hint" aria-hidden="true">{hint}</span>
+</a>

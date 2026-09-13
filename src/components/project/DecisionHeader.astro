@@ -1,0 +1,30 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+import StatusBadge from './StatusBadge.astro';
+import { decisionStatusTone } from '../../lib/status-tone';
+
+/**
+ * Cabecera de un registro de decisión (ADR).
+ *
+ * El cuerpo de la página sigue el formato ADR estándar en Markdown
+ * normal: Contexto, Alternativas, Decisión, Consecuencias. Esta cabecera
+ * solo resuelve el encabezado: ID, estado, fecha y, si aplica, qué la
+ * reemplazó.
+ */
+const { entry } = Astro.locals.starlightRoute;
+const { title, decisionId, decisionStatus, date, supersededBy } = entry.data;
+const { label: statusLabel, tone: statusTone } = decisionStatusTone(decisionStatus);
+---
+
+<header class="c-decisionhead">
+  <p class="c-decisionhead__kicker">
+    Decisión de ingeniería{decisionId && <span class="c-decisionhead__id"> · {decisionId}</span>}
+  </p>
+  <h1 id="_top" transition:name="titulo-pagina">{title}</h1>
+
+  <div class="c-decisionhead__meta">
+    <StatusBadge label={statusLabel} tone={statusTone} />
+    {date && <MetaItem label="Fecha" value={date} mono={false} />}
+    {supersededBy && <MetaItem label="Reemplazada por" value={supersededBy} />}
+  </div>
+</header>

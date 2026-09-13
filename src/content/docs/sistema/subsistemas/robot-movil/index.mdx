@@ -1,0 +1,97 @@
+---
+title: Robot
+type: subsystem
+subsystemId: SUB-ROBOT
+status: validated
+revision: "—"
+disciplines:
+  - Mecánica
+  - Electrónica
+  - Firmware
+  - Control
+responsibility: Movimiento físico del robot y manipulación de objetos.
+owner: "—"
+inputs:
+  - Comandos de movimiento y manipulador (NUC, por USB/I²C)
+outputs:
+  - Estado de motores, ejes y gripper
+  - Telemetría de finales de carrera y calibración
+---
+
+import { StatusBadge, InterfaceTable } from '@project';
+
+<figure>
+  <img src="/remote-hands/images/robot-agv.png" alt="Robot completo con manipulador montado sobre la plataforma móvil" />
+  <figcaption>Robot completo: plataforma móvil diferencial con manipulador de 3 GDL.</figcaption>
+</figure>
+
+Este subsistema integra dos piezas construidas por caminos distintos: una
+**plataforma móvil diferencial rehabilitada** y un **manipulador de 3 GDL
+construido desde cero**.
+
+Ambas resuelven su propio movimiento de bajo nivel con controladores
+embebidos dedicados. La NUC solo les envía consignas simples, según el
+reparto descrito en [Arquitectura del
+sistema](/remote-hands/sistema/arquitectura/resumen/).
+
+## Componentes
+
+**Mecánica**
+
+- [Plataforma móvil](/remote-hands/sistema/subsistemas/robot-movil/plataforma-movil/)
+  — base diferencial rehabilitada y su integración estructural.
+- [Manipulador 3 GDL](/remote-hands/sistema/subsistemas/robot-movil/manipulador/)
+  — diseño, manufactura por corte láser, ensamble y CAD.
+
+**Electrónica y firmware**
+
+- [Electrónica — Puente H](/remote-hands/sistema/subsistemas/robot-movil/electronica/)
+  — PCB propia con ESP32-C3 para la tracción.
+- [Controlador CL57T](/remote-hands/sistema/subsistemas/robot-movil/controladores/cl57t/)
+  — los tres ejes del manipulador.
+- [Controlador del gripper](/remote-hands/sistema/subsistemas/robot-movil/controladores/gripper/)
+  — control por posición en milímetros, sin PCB dedicada.
+- [Software embebido](/remote-hands/sistema/subsistemas/robot-movil/firmware/)
+  — los tres controladores como conjunto, y el reparto entre firmware
+  ESP32-C3 y stack de la NUC.
+
+**Validación**
+
+- [Verificación](/remote-hands/sistema/subsistemas/robot-movil/verificacion/)
+  — resultados de prueba por componente.
+
+## Qué se puede replicar
+
+Cada componente se documenta hasta donde su material real lo permite, y cada
+página declara su propio nivel con el detalle de qué falta. Esta tabla es el
+resumen, para decidir por dónde entrar sin abrirlas todas.
+
+<InterfaceTable
+  caption="Nivel de replicación por componente"
+  columns={['Componente', 'Nivel', 'Qué lo limita']}
+  rows={[
+    ['Módulo Puente H', 'Construible', 'Falta el valor del Zener y los números de parte de proveedor'],
+    ['Controlador de drivers', 'Construible', 'Falta la configuración de micropasos y corriente de los CL57T'],
+    ['Controlador del gripper', 'Construible', 'Falta la referencia del motor Pololu y los STL de las pinzas'],
+    ['Manipulador 3 GDL', 'Descrito', 'Solo 5 de ~80 piezas tienen DXF publicado; sin BOM mecánica'],
+    ['Plataforma móvil', 'Descrito', 'La base es rehabilitada y no está identificada por modelo'],
+  ]}
+/>
+
+La electrónica y el firmware son la parte más replicable del robot: hay
+archivos de fabricación, listas de materiales y código completo. La mecánica
+va por detrás, y lo que la frena está identificado pieza por pieza en
+[Manipulador 3
+GDL](/remote-hands/sistema/subsistemas/robot-movil/manipulador/).
+
+## Estado del subsistema
+
+| Componente | Estado |
+| --- | --- |
+| Plataforma móvil diferencial | <StatusBadge label="Construida y probada" tone="ok" /> |
+| Manipulador 3 GDL | <StatusBadge label="Construido y probado" tone="ok" /> |
+| Módulos Puente H (PCB, ×2) | <StatusBadge label="Diseñados, ensamblados y probados" tone="ok" /> |
+| Firmware Puente H | <StatusBadge label="Funcional en todos los modos" tone="ok" /> |
+| Firmware CL57T | <StatusBadge label="Funcional — homing, compensación de muñeca" tone="ok" /> |
+| Firmware gripper | <StatusBadge label="Funcional — control mm, detección de stall" tone="ok" /> |
+| Control NUC ↔ ESP32-C3 ↔ XR | <StatusBadge label="Integración en proceso" tone="warn" /> |

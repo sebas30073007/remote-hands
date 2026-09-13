@@ -1,0 +1,85 @@
+---
+/**
+ * Tema fijo: claro. Y estado del temario aplicado antes del primer pintado.
+ *
+ * Starlight renderiza `<html data-theme="dark">` en el servidor y deja que
+ * su ThemeProvider lo corrija en el cliente según localStorage o la
+ * preferencia del sistema. Este override sustituye toda esa lógica por una
+ * línea: el tema de este curso es claro y no se negocia.
+ *
+ * El script va en línea y en el `<head>`, así que se ejecuta antes de que
+ * se pinte nada: no hay parpadeo. `starlight-bridge.css` además define la
+ * paleta clara en `:root` sin condición, de modo que la página se ve bien
+ * incluso con JavaScript desactivado.
+ *
+ * Para recuperar el selector claro/oscuro, ver "Tema" en el README.
+ */
+---
+
+<script is:inline>
+  (() => {
+    /**
+     * Todo lo que este archivo escribe vive en el elemento `<html>`, y ahí
+     * está el detalle que obliga a envolverlo en una función: con
+     * `<ClientRouter />` (ver `Head.astro`), al navegar Astro copia los
+     * atributos del `<html>` del documento nuevo sobre el actual. Ese
+     * documento nuevo es HTML estático recién servido, así que trae otra
+     * vez el `data-theme="dark"` del servidor y NO trae el
+     * `data-nav-collapsed` que solo existía en memoria — el tema volvía a
+     * "dark" y el temario contraído se re-expandía solo en cada clic del
+     * temario (verificado: 48 px de raíl pasaban a 238 px con
+     * localStorage todavía en "collapsed").
+     *
+     * El script en línea tampoco se vuelve a ejecutar: Astro lo marca con
+     * `data-astro-exec` y lo salta en los intercambios siguientes. Por eso
+     * se registra un listener de `astro:after-swap`, que sí se dispara en
+     * cada navegación y lo hace antes de pintar, y el `document` sobrevive
+     * a las transiciones, así que basta registrarlo una vez.
+     */
+    const aplicar = () => {
+      document.documentElement.dataset.theme = 'light';
+
+      // Estado del temario contraído, aplicado antes del primer pintado
+      // para que la columna no salte al cargar. Lo alterna `Sidebar.astro`.
+      try {
+        if (localStorage.getItem('remote-hands-nav') === 'collapsed') {
+          document.documentElement.setAttribute('data-nav-collapsed', '');
+        } else {
+          document.documentElement.removeAttribute('data-nav-collapsed');
+        }
+      } catch {}
+
+      // Modo de navegación: temario de lista (por defecto) o vista
+      // explosionada. Lo alterna `UiModeToggle.astro`. Aplicarlo aquí, antes
+      // de pintar, evita que el panel aparezca con el temario de lista y
+      // salte al otro un instante después.
+      try {
+        if (localStorage.getItem('remote-hands-ui') === 'explosion') {
+          document.documentElement.dataset.ui = 'explosion';
+        } else {
+          delete document.documentElement.dataset.ui;
+        }
+      } catch {}
+
+      // Starlight trae su propio mecanismo de persistencia del temario
+      // (`sl-sidebar-state` en sessionStorage): al navegar guarda qué ramas
+      // quedaron abiertas y, en la página siguiente, las vuelve a aplicar
+      // por índice de posición — pensado para su propio acordeón por
+      // defecto. Choca con el nuestro: aquí cada página ya calcula en el
+      // servidor qué rama debe estar abierta (la que contiene la página
+      // actual, ver `astro.config.mjs`), y ese estado guardado la pisaba
+      // con el de la página anterior en cuanto el hash de la estructura
+      // del temario (igual en todo el sitio) coincidía — la rama correcta
+      // llegaba abierta desde el servidor y un instante después se veía
+      // cerrar sola. Se limpia aquí, antes de que el script de Starlight
+      // la lea, para que el estado que manda siempre sea el que acaba de
+      // calcular el servidor.
+      try {
+        sessionStorage.removeItem('sl-sidebar-state');
+      } catch {}
+    };
+
+    aplicar();
+    document.addEventListener('astro:after-swap', aplicar);
+  })();
+</script>

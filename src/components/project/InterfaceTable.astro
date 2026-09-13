@@ -1,0 +1,47 @@
+---
+/**
+ * Tabla de interfaz — un contrato entre dos partes del sistema.
+ * Columnas libres a propósito: una interfaz
+ * de comunicación (canal/origen/destino/payload/frecuencia) y una
+ * interfaz electrónica (señal/origen/destino/nivel/conector) no comparten
+ * forma, y forzarlas a las mismas columnas perdería información en vez
+ * de estructurarla.
+ *
+ * Uso:
+ * <InterfaceTable
+ *   columns={['Canal', 'Origen', 'Destino', 'Payload', 'Frecuencia']}
+ *   rows={[['Comandos', 'Meta Quest', 'NUC', 'JSON', '60 Hz']]}
+ * />
+ */
+interface Props {
+  columns: string[];
+  rows: (string | number)[][];
+  caption?: string;
+}
+
+const { columns, rows, caption } = Astro.props;
+---
+
+<figure class="c-datatable">
+  {caption && <figcaption class="c-datatable__caption">{caption}</figcaption>}
+  <table class="c-datatable__table">
+    <thead>
+      <tr>
+        {columns.map((c) => (
+          <th>{c}</th>
+        ))}
+      </tr>
+    </thead>
+    <tbody>
+      {
+        rows.map((row) => (
+          <tr>
+            {row.map((cell, i) => (
+              <td class:list={{ 'c-datatable__mono': i > 0 }}>{cell}</td>
+            ))}
+          </tr>
+        ))
+      }
+    </tbody>
+  </table>
+</figure>

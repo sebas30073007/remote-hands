@@ -1,0 +1,24 @@
+---
+/**
+ * Insignia de estado — vocabulario de ingeniería, no de curso.
+ *
+ * Un solo componente visual para todos los estados que aparecen en
+ * project-docs: estado de proyecto/subsistema (concept → archived),
+ * estado de requisito o verificación (pass/fail/pending), estado de
+ * decisión (accepted/proposed/superseded/rejected). El texto siempre
+ * acompaña al color — ningún estado depende solo de él (regla heredada
+ * de course-docs, brief §22).
+ *
+ * Candidata a @sebs/docs-core cuando @sebs/course-docs tenga un caso de
+ * uso real para ella (hoy no lo tiene: sus tres colores de estado son
+ * insignias circulares de 36 px, no píldoras de texto).
+ */
+interface Props {
+  label: string;
+  tone?: 'ok' | 'warn' | 'neutral' | 'error' | 'info';
+}
+
+const { label, tone = 'neutral' } = Astro.props;
+---
+
+<span class:list={['c-status', `c-status--${tone}`]}>{label}</span>

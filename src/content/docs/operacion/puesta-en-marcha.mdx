@@ -1,0 +1,65 @@
+---
+title: Puesta en marcha
+type: procedure
+duration: "~5 min"
+---
+
+import { ParameterTable } from '@project';
+
+Llevar el robot de apagado a operativo toma unos **5 minutos**. Casi todo
+ese tiempo es el arranque de la NUC; los pasos manuales son pocos.
+
+## Alimentación
+
+El sistema usa tres baterías LiPo independientes, una por subsistema de
+potencia:
+
+<ParameterTable
+  caption="Baterías"
+  rows={[
+    { parameter: 'LiPo 6S', value: '6', unit: 'celdas', notes: 'Puentes H — alimenta los MOSFETs de tracción' },
+    { parameter: 'LiPo 3S — NUC', value: '3', unit: 'celdas', notes: 'NUC y motor del gripper (12 V, en paralelo)' },
+    { parameter: 'LiPo 3S — manipulador', value: '3', unit: 'celdas', notes: 'Drivers CL57T' },
+  ]}
+/>
+
+Conecta las tres antes de encender la NUC. Así todos los módulos embebidos y
+los drivers quedan energizados desde el inicio.
+
+## Secuencia de arranque
+
+1. **Conecta las tres baterías**, en cualquier orden. Los módulos ESP32-C3
+   arrancan solos, en estado `DISARMED`, y se quedan esperando comandos.
+
+2. **Enciende la NUC.** Ejecuta sola el script principal de Python 3.12, sin
+   que haga falta intervenir. Ese script levanta el middleware ZMQ,
+   inicializa el streaming de video y de LiDAR, y abre las conexiones
+   seriales con los módulos embebidos por COM4 y COM5.
+
+3. **Averigua la IP de la NUC.** La red del laboratorio no asigna IPs fijas,
+   así que cambia en cada arranque. Desde una PC en la misma red:
+
+   ```bash
+   arp -a
+   ```
+
+   Si conoces el hostname de la NUC, también sirve:
+
+   ```bash
+   ping <hostname-de-la-NUC>
+   ```
+
+   La vía más directa es conectar un monitor externo a la NUC y leer la IP
+   en su terminal.
+
+4. **Escribe esa IP en la aplicación de la Meta Quest.** El campo de IP del
+   servidor debe apuntar a la dirección del paso anterior. Este es el único
+   punto de fricción del arranque: con una IP fija, el paso desaparecería.
+
+5. **Comprueba que el sistema responde.** Deberías tener video en vivo,
+   telemetría y control de movimiento disponibles desde la interfaz XR.
+
+**Antes de armar cualquier controlador**, verifica que el área de trabajo
+del robot esté despejada. Los módulos arrancan en `DISARMED` por diseño,
+pero el paso a `ARMED` surte efecto de inmediato en cuanto se envía el
+comando.

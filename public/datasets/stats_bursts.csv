@@ -1,0 +1,8 @@
+condition,n_events,n_clusters,largest_cluster,largest_span_s,max_rtt_ms
+C1_control_only,14,2,13,2.815683126449585,303.5662
+C2_video_normal,2,1,2,3.113638162612915,111.4726
+C3_lidar_detail,4,1,4,1.006638765335083,121.902
+C4_lidar_medium,9,2,8,2.8239939212799072,156.3673
+C5_lidar_panorama,5,2,3,5.526448488235474,117.5022
+C6_full_detail,1,1,1,0.0,130.7514
+C7_full_panorama,1,1,1,0.0,118.6714

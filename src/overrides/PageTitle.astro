@@ -1,0 +1,42 @@
+---
+import Default from '@astrojs/starlight/components/PageTitle.astro';
+import Breadcrumbs from '../components/core/Breadcrumbs.astro';
+import OnThisPage from '../components/core/OnThisPage.astro';
+import ProjectHeader from '../components/project/ProjectHeader.astro';
+import SubsystemHeader from '../components/project/SubsystemHeader.astro';
+import DecisionHeader from '../components/project/DecisionHeader.astro';
+import ReleaseHeader from '../components/project/ReleaseHeader.astro';
+import ExperimentHeader from '../components/project/ExperimentHeader.astro';
+
+/**
+ * Cabecera de página completa — mismo patrón que course-docs.
+ *
+ * El autor declara `type` en el frontmatter y la cabecera correcta
+ * aparece sola. `procedure` y `reference` usan el título normal de
+ * Starlight a propósito: un procedimiento operativo o una página de
+ * referencia no necesitan el mismo andamiaje que un subsistema o una
+ * decisión (mismo criterio que course-docs aplica a Referencia rápida,
+ * §17 del brief original).
+ */
+const { type } = Astro.locals.starlightRoute.entry.data;
+---
+
+<Breadcrumbs />
+
+{
+  type === 'project' ? (
+    <ProjectHeader />
+  ) : type === 'subsystem' ? (
+    <SubsystemHeader />
+  ) : type === 'decision' ? (
+    <DecisionHeader />
+  ) : type === 'release' ? (
+    <ReleaseHeader />
+  ) : type === 'experiment' ? (
+    <ExperimentHeader />
+  ) : (
+    <Default />
+  )
+}
+
+<OnThisPage />

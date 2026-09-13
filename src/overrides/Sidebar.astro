@@ -1,0 +1,369 @@
+---
+import Default from '@astrojs/starlight/components/Sidebar.astro';
+import ExplodeNav from '../components/project/ExplodeNav.astro';
+import MorphIcon from 'morphicons/astro';
+import { ChevronsLeft } from 'lucide';
+
+/**
+ * Nota de portabilidad (@sebs/project-docs, sesión 24/08/2026 noche):
+ * este override viene de @sebs/course-docs. Se conserva el toggle de
+ * contraer/desplegar, el acordeón de máximo dos ramas abiertas y el filtro
+ * por título tal cual — son genéricos, no saben nada de KiCad. Lo que SÍ
+ * era específico del curso (el mapa `PARES` de icono-por-slug, más abajo en
+ * el bloque `<script>`) se quitó: un temario de proyecto de ingeniería no
+ * tiene "página de tipo herramientas/práctica" repetida por módulo, así que
+ * no hay un mapa equivalente que inventar todavía. Si `@sebs/project-docs`
+ * necesita iconos de temario, debe surgir de contenido real (regla del
+ * brief de course-docs, §14: no construir por especulación).
+ */
+
+/**
+ * Navegación del curso con filtro por título.
+ *
+ * El buscador de la cabecera busca dentro del texto de toda la
+ * documentación; este otro filtra el temario, que es la vista de "todo el
+ * proyecto". Son dos preguntas distintas: "¿dónde se explica esto?" y
+ * "¿cómo se llamaba esa página?".
+ *
+ * Un grupo se mantiene visible si coincide su propia etiqueta o la de
+ * cualquiera de sus hijos, y se abre solo mientras dura el filtro.
+ */
+
+/*
+ * Los dos temarios se renderizan siempre, y `data-ui` en `<html>` decide
+ * cuál se ve (ver `UiModeToggle.astro`). Renderizar ambos cuesta poco —el
+ * nuevo son listas cortas e imágenes diferidas, que en modo lista no se
+ * descargan porque su contenedor no se muestra— y a cambio el cambio de
+ * modo es instantáneo, sin recargar la página.
+ */
+const { sidebar } = Astro.locals.starlightRoute;
+---
+
+<div class="c-nav" data-nav>
+  <button
+    type="button"
+    class="c-nav__toggle"
+    data-nav-toggle
+    aria-expanded="true"
+    aria-controls="starlight__sidebar"
+  >
+    <MorphIcon
+      icon={ChevronsLeft}
+      id="nav-toggle-icon"
+      size={16}
+      strokeWidth={1.75}
+      reducedMotion="user"
+    />
+    <span class="c-nav__toggle-text">Contraer</span>
+  </button>
+
+  <div class="c-nav__search" hidden data-nav-search>
+    <svg viewBox="0 0 16 16" width="14" height="14" aria-hidden="true" focusable="false">
+      <circle cx="7" cy="7" r="4.25" fill="none" stroke="currentColor" stroke-width="1.5"></circle>
+      <path d="M10.2 10.2 13.5 13.5" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"
+      ></path>
+    </svg>
+    <input
+      type="search"
+      placeholder="Buscar por título"
+      autocomplete="off"
+      spellcheck="false"
+      aria-label="Filtrar el temario por título"
+    />
+  </div>
+
+  <p class="c-nav__empty" hidden data-nav-empty>Ninguna página coincide.</p>
+
+  <div class="c-nav__clasico">
+    <Default />
+  </div>
+
+  <ExplodeNav sidebar={sidebar as any} pathname={Astro.url.pathname} />
+</div>
+
+<script>
+  // Todo el script vive dentro de `astro:page-load`: con `<ClientRouter />`
+  // activo (`Head.astro`), este archivo se compila a un módulo con `src`
+  // propio que el navegador solo evalúa una vez —la primera carga—, así
+  // que el código de nivel superior nunca se repite en transiciones
+  // posteriores. `astro:page-load` sí se dispara en cada una, incluida la
+  // primera, así que es el sitio correcto para (re)atar todo esto sobre el
+  // temario recién insertado en el DOM. Ver el comentario de
+  // `Head.astro` para el porqué completo.
+  document.addEventListener('astro:page-load', () => {
+  // --- Contraer / desplegar el temario -------------------------------
+  // El estado se guarda y se vuelve a aplicar antes del primer pintado
+  // desde `ThemeProvider.astro`, así que no hay salto al cargar. El icono
+  // (doble flecha) se morfea entre "«" y "»" en el clic; `sync(false, …)`
+  // solo lo pone de golpe en el estado que toque, sin animar —no es un
+  // cambio de estado, es la carga de la página—. El morfismo necesita
+  // `defineMorphIcon()`, que corre más abajo junto con los iconos de
+  // página (mismo import, no se carga `morphicons`/`lucide` dos veces);
+  // hasta que resuelva, `sync` deja el texto y el `aria-*` correctos y dos
+  // chevrons no puede tocar el icono todavía.
+  const toggle = document.querySelector<HTMLButtonElement>('[data-nav-toggle]');
+  type IconoToggle = HTMLElement & {
+    set: (icon: unknown) => void;
+    morphTo: (icon: unknown) => void;
+  };
+  const iconoToggle = document.getElementById('nav-toggle-icon') as IconoToggle | null;
+  let chevronsCache: { left: unknown; right: unknown } | undefined;
+
+  const syncToggle = (animar: boolean) => {
+    if (!toggle) return;
+    const contraido = document.documentElement.hasAttribute('data-nav-collapsed');
+    toggle.setAttribute('aria-expanded', String(!contraido));
+    toggle.setAttribute('aria-label', contraido ? 'Desplegar el temario' : 'Contraer el temario');
+    const texto = toggle.querySelector('.c-nav__toggle-text');
+    if (texto) texto.textContent = contraido ? 'Desplegar' : 'Contraer';
+
+    if (iconoToggle && chevronsCache) {
+      const destino = contraido ? chevronsCache.right : chevronsCache.left;
+      if (animar) iconoToggle.morphTo(destino);
+      else iconoToggle.set(destino);
+    }
+  };
+
+  if (toggle) {
+    toggle.addEventListener('click', () => {
+      const contraido = document.documentElement.toggleAttribute('data-nav-collapsed');
+      try {
+        localStorage.setItem('remote-hands-nav', contraido ? 'collapsed' : 'expanded');
+      } catch {}
+      syncToggle(true);
+    });
+
+    syncToggle(false);
+  }
+
+  // --- Chevron del toggle -------------------------------------------
+  // Los grupos del temario no llevan icono. Los llevaron: uno por cada una
+  // de las trece secciones, con la idea de que la estructura se barriera de
+  // un vistazo. En la práctica no distinguían nada —trece pictogramas
+  // grises del mismo tamaño y peso se leen como textura, no como señal— y
+  // competían con lo único que sí distingue una sección de otra, que es su
+  // nombre. Se retiraron a petición del autor.
+  //
+  // El chevron del botón «Contraer» sí conserva su morfismo, y es la única
+  // razón por la que se sigue cargando `morphicons`/`lucide` aquí: ahí el
+  // icono representa un estado que cambia con el clic, no una sección.
+  import('morphicons/element')
+    .then(({ defineMorphIcon }) => import('lucide').then((lucide) => {
+      defineMorphIcon();
+      chevronsCache = { left: lucide.ChevronsLeft, right: lucide.ChevronsRight };
+      syncToggle(false);
+    }))
+    .catch(() => {
+      // Mejora progresiva: sin el módulo, el temario funciona igual, solo
+      // sin morfismo en el chevron del toggle.
+    });
+
+  // --- Acordeón animado: como máximo dos ramas de nivel uno abiertas -----
+  // Cada <summary> se intercepta a mano para animar el alto en vez de
+  // dejar el salto instantáneo por defecto de <details>. La secuencia al
+  // abrir una tercera rama es a propósito secuencial y no simultánea:
+  // primero termina de abrirse la nueva, y solo entonces empieza a
+  // cerrarse la más antigua —así se ve qué reemplaza a qué, en vez de que
+  // la barra dé un brinco—. La rama de la página actual nunca se cierra
+  // por esta lógica (si el usuario la cierra a mano, se respeta). Los
+  // subgrupos anidados (p. ej. "Núcleo" dentro de "Test") no cuentan para
+  // el límite: son parte de la ramificación de su padre, no "padres" en sí.
+  const root = document.querySelector<HTMLElement>('[data-nav]');
+  if (root) {
+    const DURACION = 180;
+    const EASING = 'cubic-bezier(0.4, 0, 0.2, 1)';
+    const sinMovimiento = matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    const contenidoDe = (d: HTMLDetailsElement) => d.querySelector<HTMLElement>(':scope > ul');
+
+    const abrirAnimado = (d: HTMLDetailsElement) =>
+      new Promise<void>((resolve) => {
+        const ul = contenidoDe(d);
+        if (!ul || sinMovimiento) {
+          d.open = true;
+          resolve();
+          return;
+        }
+        d.open = true;
+        const alto = ul.scrollHeight;
+        ul.style.overflow = 'hidden';
+        ul.animate(
+          [
+            { height: '0px', opacity: 0.4 },
+            { height: `${alto}px`, opacity: 1 },
+          ],
+          { duration: DURACION, easing: EASING }
+        ).onfinish = () => {
+          ul.style.overflow = '';
+          ul.style.removeProperty('height');
+          resolve();
+        };
+      });
+
+    const cerrarAnimado = (d: HTMLDetailsElement) =>
+      new Promise<void>((resolve) => {
+        const ul = contenidoDe(d);
+        if (!ul || sinMovimiento) {
+          d.open = false;
+          resolve();
+          return;
+        }
+        const alto = ul.scrollHeight;
+        ul.style.overflow = 'hidden';
+        ul.animate(
+          [
+            { height: `${alto}px`, opacity: 1 },
+            { height: '0px', opacity: 0.4 },
+          ],
+          { duration: DURACION, easing: EASING }
+        ).onfinish = () => {
+          d.open = false;
+          ul.style.overflow = '';
+          ul.style.removeProperty('height');
+          resolve();
+        };
+      });
+
+    const detalles = [...root.querySelectorAll<HTMLDetailsElement>('details')];
+    const raiz = detalles.find((d) => !d.parentElement?.closest('details'));
+    const nivelUno = raiz
+      ? detalles.filter((d) => d !== raiz && d.parentElement?.closest('details') === raiz)
+      : [];
+    const grupoActual = nivelUno.find((g) => g.querySelector('a[aria-current="page"]'));
+
+    // La etiqueta del `<summary>` identifica al grupo entre una página y la
+    // siguiente (el árbol es el mismo en todo el sitio, así que es estable).
+    const etiquetaDe = (d: HTMLDetailsElement) => d.querySelector('summary')?.textContent?.trim() ?? '';
+
+    const EXTRA_KEY = 'remote-hands-nav-extra';
+    const guardarExtra = (abiertos: HTMLDetailsElement[]) => {
+      try {
+        sessionStorage.setItem(EXTRA_KEY, JSON.stringify(abiertos.map(etiquetaDe)));
+      } catch {}
+    };
+
+    let abiertosExtra: HTMLDetailsElement[] = [];
+    let animandoAcordeon = false;
+
+    // --- Restaura, al cargar, la rama "extra" que tenías abierta antes de
+    // navegar aquí -----------------------------------------------------
+    // La rama de la página actual (`grupoActual`) siempre se abre sola,
+    // por el `open` que ya calculó el servidor (§ ThemeProvider.astro
+    // explica por qué esto ya no lo pisa el restaurador de Starlight). Esto
+    // es solo la rama extra que habías abierto tú a mano en la página
+    // anterior: se reabre sin animar —es la carga de la página, no un
+    // clic— y solo si no es ya la rama actual, para no duplicarla.
+    try {
+      const etiquetasGuardadas: string[] = JSON.parse(sessionStorage.getItem(EXTRA_KEY) ?? '[]');
+      const limiteInicial = grupoActual ? 1 : 2;
+      for (const etiqueta of etiquetasGuardadas.slice(-limiteInicial)) {
+        const grupo = nivelUno.find((d) => d !== grupoActual && etiquetaDe(d) === etiqueta);
+        if (grupo) {
+          grupo.open = true;
+          abiertosExtra.push(grupo);
+        }
+      }
+    } catch {}
+
+    for (const d of detalles) {
+      const summary = d.querySelector<HTMLElement>(':scope > summary');
+      if (!summary) continue;
+
+      summary.addEventListener('click', (e) => {
+        e.preventDefault();
+        if (animandoAcordeon) return; // una animación de acordeón a la vez
+
+        if (d.open) {
+          cerrarAnimado(d);
+          if (nivelUno.includes(d)) {
+            abiertosExtra = abiertosExtra.filter((x) => x !== d);
+            guardarExtra(abiertosExtra);
+          }
+          return;
+        }
+
+        // Fuera del límite (subgrupo anidado, o es la rama actual): abre sin más.
+        if (!nivelUno.includes(d) || d === grupoActual) {
+          abrirAnimado(d);
+          return;
+        }
+
+        abiertosExtra = abiertosExtra.filter((x) => x !== d);
+        abiertosExtra.push(d);
+        const limite = grupoActual ? 1 : 2;
+        const masAntiguo = abiertosExtra.length > limite ? abiertosExtra.shift() : undefined;
+        guardarExtra(abiertosExtra);
+
+        animandoAcordeon = true;
+        abrirAnimado(d)
+          .then(() => masAntiguo && cerrarAnimado(masAntiguo))
+          .finally(() => {
+            animandoAcordeon = false;
+          });
+      });
+    }
+  }
+
+  // --- Filtro por título ---------------------------------------------
+  const search = root?.querySelector<HTMLElement>('[data-nav-search]');
+  const input = search?.querySelector('input');
+  const empty = root?.querySelector<HTMLElement>('[data-nav-empty]');
+
+  // Acotado al temario clásico: el panel de vista explosionada vive en el
+  // mismo contenedor, y sus enlaces no deben filtrarse ni ocultarse aquí.
+  const clasico = root?.querySelector<HTMLElement>('.c-nav__clasico');
+  if (root && clasico && search && input && empty) {
+    search.hidden = false;
+
+    const enlaces = [...clasico.querySelectorAll<HTMLAnchorElement>('a[href]')];
+    // De más profundo a menos —los que no anidan nada van primero—, para
+    // que un grupo ya sepa si le queda algún hijo visible cuando le toca.
+    const grupos = [...clasico.querySelectorAll<HTMLDetailsElement>('details')].sort(
+      (a, b) => a.querySelectorAll('details').length - b.querySelectorAll('details').length
+    );
+    const abiertoOriginal = new Map(grupos.map((g) => [g, g.open]));
+
+    const filtrar = () => {
+      const q = input.value.trim().toLowerCase();
+
+      if (!q) {
+        for (const el of clasico.querySelectorAll<HTMLElement>('li')) el.hidden = false;
+        for (const g of grupos) g.open = abiertoOriginal.get(g) ?? false;
+        empty.hidden = true;
+        root.dataset.filtrando = '';
+        return;
+      }
+
+      root.dataset.filtrando = 'si';
+      for (const a of enlaces) {
+        const li = a.closest('li');
+        if (li) li.hidden = !(a.textContent ?? '').toLowerCase().includes(q);
+      }
+
+      let visibles = 0;
+      for (const g of grupos) {
+        const etiqueta = (g.querySelector('summary')?.textContent ?? '').toLowerCase();
+        const coincideGrupo = etiqueta.includes(q);
+        if (coincideGrupo) {
+          for (const li of g.querySelectorAll<HTMLElement>('li')) li.hidden = false;
+        }
+        const conHijos = [...g.querySelectorAll('li')].some((li) => !(li as HTMLElement).hidden);
+        const li = g.closest('li');
+        if (li) li.hidden = !(coincideGrupo || conHijos);
+        g.open = true;
+      }
+
+      visibles = enlaces.filter((a) => !a.closest('li')?.hidden).length;
+      empty.hidden = visibles > 0;
+    };
+
+    input.addEventListener('input', filtrar);
+    input.addEventListener('keydown', (e) => {
+      if (e.key === 'Escape') {
+        input.value = '';
+        filtrar();
+      }
+    });
+  }
+  });
+</script>

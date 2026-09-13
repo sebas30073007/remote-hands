@@ -1,0 +1,30 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+
+/**
+ * Cabecera de un experimento (distinto de un test).
+ *
+ * Un test es expected → actual → pass/fail. Un experimento es
+ * hypothesis → method → dataset → analysis → conclusion — el cuerpo de
+ * la página sigue ese orden en secciones normales de Markdown; esta
+ * cabecera solo fija el ID y la hipótesis, que es lo que hay que leer
+ * antes de que el método tenga sentido.
+ */
+const { entry } = Astro.locals.starlightRoute;
+const { title, experimentId, hypothesis } = entry.data;
+---
+
+<header class="c-experimenthead">
+  <p class="c-experimenthead__kicker">
+    Experimento{experimentId && <span class="c-experimenthead__id"> · {experimentId}</span>}
+  </p>
+  <h1 id="_top" transition:name="titulo-pagina">{title}</h1>
+
+  {
+    hypothesis && (
+      <MetaItem label="Hipótesis" mono={false}>
+        {hypothesis}
+      </MetaItem>
+    )
+  }
+</header>

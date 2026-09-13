@@ -1,0 +1,26 @@
+---
+import OsIcon from './OsIcon.astro';
+
+/**
+ * Una columna de la rejilla de descargas: icono, nombre del sistema y sus
+ * botones. Un sistema con una sola variante lleva un `DownloadButton`
+ * dentro; uno con varias arquitecturas lleva varios y se reparten en fila,
+ * sin que la columna cambie de ancho respecto a sus vecinas.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief).
+ */
+interface Props {
+  os: 'windows' | 'macos' | 'linux';
+  name: string;
+}
+
+const { os, name } = Astro.props;
+---
+
+<div class="c-download-group">
+  <OsIcon os={os} />
+  <p class="c-download-group__name">{name}</p>
+  <div class="c-download-group__buttons">
+    <slot />
+  </div>
+</div>

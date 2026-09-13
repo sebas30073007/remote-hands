@@ -1,0 +1,61 @@
+---
+title: Restricciones
+description: Restricciones técnicas reales que condicionaron el diseño de cada subsistema.
+---
+
+Las restricciones de abajo están documentadas explícitamente en el proyecto
+original; ninguna es una inferencia hecha para este sitio. Todas
+condicionaron decisiones de diseño reales, y cada una enlaza a la página
+donde se ve su efecto.
+
+<figure>
+  <img
+    src="/remote-hands/images/build/material-drivers.webp"
+    alt="Drivers de motor y material electrónico disponible en el laboratorio"
+  />
+  <figcaption>Las restricciones del proyecto son en buena medida las del material disponible: lo que había en el laboratorio acotó el punto de partida.</figcaption>
+</figure>
+
+## Mecánica
+
+- **Materiales.** Solo había lámina de acero calibre 18 (1,2 mm) y calibre
+  24 (0,6 mm).
+- **Herramientas.** El laboratorio disponía de cortadora láser y dobladora
+  manual, sin acceso a doblado CNC. La dobladora manual impuso el límite
+  real: cuando una pieza requería ángulos de doblez muy ajustados, se
+  dividió en secciones unidas por tornillería en vez de fabricarse entera
+  (ver
+  [Manipulador](/remote-hands/sistema/subsistemas/robot-movil/manipulador/)).
+- **Actuadores.** Los motores disponibles eran NEMA17 de stock. Su par
+  nominal obligó a una reducción compuesta de 25:1 para alcanzar el torque
+  que el manipulador necesita.
+
+## Electrónica
+
+- **Componentes de catálogo.** El driver de tracción debía ser compacto y
+  replicable, sin depender de piezas de fuente única.
+- **Corriente de tracción.** El objetivo era 4–5 A continuos con picos de
+  hasta 8 A. Ese rango determinó la selección de MOSFETs del Puente H (ver
+  [Electrónica](/remote-hands/sistema/subsistemas/robot-movil/electronica/)).
+
+## Software
+
+- **Sin ROS.** El proyecto descartó ROS por una decisión explícita de
+  simplicidad y portabilidad, registrada en
+  [ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+- **Sin IP fija.** La red del laboratorio no asigna IP fija a la NUC. Esa
+  limitación es la que obliga a buscar la IP en cada arranque, y define el
+  paso 3 de la [puesta en
+  marcha](/remote-hands/operacion/puesta-en-marcha/).
+
+## Validación
+
+- **Entorno de laboratorio.** La validación se ejecuta en laboratorio
+  controlado, no en un almacén real en operación (ver
+  [Alcance](/remote-hands/proyecto/alcance/)).
+- **Latencia de referencia.** El umbral de 100 ms extremo a extremo procede
+  de la literatura de teleoperación citada en el [marco
+  teórico](/remote-hands/academico/marco-teorico/). El [experimento de
+  latencia](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/)
+  mide solo un subconjunto de ese lazo —el protocolo MR-edge—, no el
+  sistema físico completo.

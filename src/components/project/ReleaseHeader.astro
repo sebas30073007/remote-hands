@@ -1,0 +1,23 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+
+/**
+ * Cabecera de una entrada de release (no es solo
+ * "software v1.3", es un manifiesto de compatibilidad entre hardware y
+ * software que evolucionan a ritmos distintos). El cuerpo de la página
+ * lleva la tabla real de qué revisión de cada pieza compone este release
+ * — normalmente con `RevisionHistory` o una tabla simple.
+ */
+const { entry } = Astro.locals.starlightRoute;
+const { title, version, date } = entry.data;
+---
+
+<header class="c-releasehead">
+  <p class="c-releasehead__kicker">Release</p>
+  <h1 id="_top" transition:name="titulo-pagina">{title}</h1>
+
+  <div class="c-releasehead__meta">
+    {version && <MetaItem label="Versión" value={version} />}
+    {date && <MetaItem label="Fecha" value={date} mono={false} />}
+  </div>
+</header>

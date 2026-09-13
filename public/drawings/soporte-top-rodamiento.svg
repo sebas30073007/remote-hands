@@ -1,0 +1,28 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="-13.88 -24.68 292.4 201.65" role="img"
+     aria-label="Plano de Soporte superior de rodamiento: envolvente de 231,33 por 155 milímetros con 1 barrenos">
+  <title>Soporte superior de rodamiento — plano cotado</title>
+  <g fill="none" stroke="currentColor" stroke-width="1.51"
+     stroke-linejoin="round" stroke-linecap="round">
+    <path d="M 231.33 10 L 221.33 0 L 0 0 L 0 155 L 221.33 155 L 231.33 145 Z M 205.5 93.5 L 205.5 96.5 L 201.5 96.5 L 201.5 93.5 Z M 201.5 64.5 L 205.5 64.5 L 205.5 90.5 L 201.5 90.5 L 188.57 78.89 L 188 79 L 184 79 L 184 76 L 188 76 L 188.57 76.11 Z M 205.5 58.5 L 205.5 61.5 L 201.5 61.5 L 201.5 58.5 Z M 223 76 L 227 76 L 227 79 L 223 79 Z M 23.72 136.09 L 14.38 145.42 L 9.58 140.62 L 18.91 131.28 Z M 131.28 136.09 L 136.09 131.28 L 145.42 140.62 L 140.62 145.42 Z M 140.62 9.58 L 145.42 14.38 L 136.09 23.72 L 131.28 18.91 Z M 23.72 18.91 L 18.91 23.72 L 9.58 14.38 L 14.38 9.58 Z" />
+    <circle cx="77.5" cy="77.5" r="5" />
+  </g>
+  <g stroke="currentColor" stroke-width="0.62" opacity="0.4" fill="none">
+    <path d="M 69.5 77.5 H 85.5 M 77.5 69.5 V 85.5" />
+  </g>
+  <g stroke="currentColor" stroke-width="0.89" opacity="0.7" fill="none">
+    <path d="M 0 -11.57 H 231.33" />
+    <path d="M 0 -15.13 v 7.12" />
+    <path d="M 231.33 -15.13 v 7.12" />
+    <path d="M 242.9 0 V 155" />
+    <path d="M 239.34 0 h 7.12" />
+    <path d="M 239.34 155 h 7.12" />
+  </g>
+  <g fill="currentColor" font-family="IBM Plex Mono, ui-monospace, monospace" font-size="7.71">
+    <text x="115.66" y="-15.81" text-anchor="middle">231,33 mm</text>
+    <text x="247.52" y="77.5" dominant-baseline="middle">155 mm</text>
+  </g>
+  <g fill="currentColor" font-family="IBM Plex Mono, ui-monospace, monospace"
+     font-size="6.94" opacity="0.85">
+    <text x="0" y="169.65">1 × ⌀10 mm</text>
+  </g>
+</svg>

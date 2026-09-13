@@ -1,0 +1,45 @@
+---
+/**
+ * Visor 3D interactivo para un archivo .glb, sobre el custom element
+ * `<model-viewer>` de Google (`@google/model-viewer`). Es el único
+ * componente del curso que carga WebGL, así que solo paga ese costo la
+ * página que lo usa —hoy, la portada.
+ *
+ * El patrón de carga replica el de un visor de referencia ya probado
+ * (rotación automática, iluminación neutra, `poster` mientras carga): sin
+ * controles propios, `<model-viewer>` ya trae los suyos.
+ */
+interface Props {
+  src: string;
+  alt: string;
+  poster?: string;
+  caption?: string;
+}
+
+const { src, alt, poster, caption } = Astro.props;
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const modelSrc = src.startsWith('http') ? src : `${base}${src}`;
+const posterSrc = poster?.startsWith('http') ? poster : poster ? `${base}${poster}` : undefined;
+---
+
+<figure class="c-model3d">
+  <model-viewer
+    src={modelSrc}
+    alt={alt}
+    poster={posterSrc}
+    camera-controls
+    auto-rotate
+    touch-action="pan-y"
+    shadow-intensity="1"
+    environment-image="neutral"
+    exposure="1.1"
+    class="c-model3d__viewer"
+  >
+  </model-viewer>
+  <span class="c-model3d__badge">Arrastra para rotar</span>
+  {caption && <figcaption>{caption}</figcaption>}
+</figure>
+
+<script>
+  import '@google/model-viewer';
+</script>

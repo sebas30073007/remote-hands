@@ -1,0 +1,347 @@
+---
+title: "Electrónica — Módulo Puente H"
+description: PCB de diseño propio con ESP32-C3 para el control de motores DC de tracción, con aislamiento óptico y arquitectura maestro-esclavo por I²C. Incluye archivos de fabricación, lista de materiales y procedimiento de ensamble.
+---
+
+import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
+
+El módulo Puente H es una tarjeta de control de motor DC de **diseño
+propio**. Usa una topología de puente H discreto, con aislamiento óptico
+entre la lógica y la potencia, y un ESP32-C3 embebido que gestiona los modos
+de comunicación. El robot lleva dos, uno por motor de tracción.
+
+<ReplicationLevel
+  level="buildable"
+  provides={[
+    'Gerbers verificados (13 archivos, incluye taladros PTH) listos para pedido',
+    'Proyecto KiCad 9 completo: esquemático, layout y librerías',
+    'Lista de materiales con designadores, cantidades y encapsulados',
+    'Archivo de posiciones y designadores para ensamble automatizado',
+    'Firmware MicroPython funcional y protocolo de comando documentado',
+    'Datasheet propio de la placa',
+  ]}
+  missing={[
+    'Valor exacto de los diodos Zener D4–D7: el diseño usa el símbolo genérico 1N47xxA y no fija la tensión (ver «Lista de materiales»)',
+    'Números de parte de proveedor: la columna LCSC del BOM está vacía, así que la compra hay que resolverla por encapsulado y valor',
+    'Plantilla de stencil para pasta de soldadura, si se quiere ensamblar por reflow en vez de a mano',
+  ]}
+/>
+
+## Requisitos de diseño
+
+El driver de motor debía:
+
+- Controlar motores DC de 12–24 V, corriente continua ~4 A.
+- Soportar modos de comunicación múltiples (I²C, WiFi, BLE, UART).
+- Encadenarse en arquitectura maestro-esclavo (daisy chain I²C).
+- Arrancar en estado seguro (`DISARMED`) para evitar movimientos no
+  deseados.
+- Ser compacto y replicable con componentes de catálogo.
+
+## Arquitectura del circuito
+
+<ParameterTable
+  caption="Características eléctricas"
+  rows={[
+    { parameter: 'Alimentación de potencia', value: '12–24', unit: 'V DC nominal' },
+    { parameter: 'Corriente continua deseada', value: '4–5', unit: 'A' },
+    { parameter: 'Corriente pico máxima', value: '8', unit: 'A' },
+    { parameter: 'Microcontrolador', value: 'ESP32-C3 SuperMini', unit: '—' },
+    { parameter: 'Aislamiento lógica/potencia', value: 'Optoacopladores 4N25', unit: '—' },
+    { parameter: 'MOSFETs alto lado', value: 'IRF9540N', unit: 'canal P, 117 mΩ' },
+    { parameter: 'MOSFETs bajo lado', value: 'IRF540N', unit: 'canal N, 44 mΩ' },
+  ]}
+/>
+
+<figure>
+  <img src="/remote-hands/images/puente-h-esquema.jpg" alt="Esquema de bloques funcionales del puente H" />
+  <figcaption>Etapa de potencia, aislamiento óptico, control embebido, expansión I²C y protección.</figcaption>
+</figure>
+
+1. **Etapa de potencia** — puente H con MOSFETs IRF540N (N) e IRF9540N (P).
+2. **Aislamiento de control** — optoacopladores 4N25 que separan la lógica
+   del circuito de conmutación.
+3. **Control embebido** — el ESP32-C3 administra modos de comunicación,
+   lógica de mando y estados.
+4. **Interfaz de expansión** — conectores I²C de entrada y salida para la
+   arquitectura maestro-esclavo.
+5. **Protección e indicación** — fusible de entrada, capacitor de filtrado,
+   LEDs de estado, botón local.
+
+### Tabla funcional del puente H
+
+`PWM_0 = 1` y `PWM_1 = 1` simultáneamente está **prohibido**: provoca
+cortocircuito entre rieles de potencia.
+
+| PWM_0 | PWM_1 | Estado | Descripción |
+| --- | --- | --- | --- |
+| 0 | 0 | Libre / deshabilitado | Ambos caminos apagados |
+| 1 | 0 | Giro A | Activa diagonal A; combinable con PWM |
+| 0 | 1 | Giro B | Activa diagonal B; combinable con PWM |
+| 1 | 1 | **Prohibido** | Riesgo de cortocircuito |
+
+## Fabricación de la PCB
+
+La placa se diseñó en KiCad 9 y se fabricó en JLCPCB. Los valores de abajo
+están leídos del archivo de layout, no transcritos: son los que hay que
+declarar al pedir la placa.
+
+<ParameterTable
+  caption="Especificación de fabricación"
+  rows={[
+    { parameter: 'Dimensiones', value: '80,6 × 73,4', unit: 'mm' },
+    { parameter: 'Capas de cobre', value: '2', unit: 'F.Cu / B.Cu' },
+    { parameter: 'Espesor de placa', value: '1,6', unit: 'mm' },
+    { parameter: 'Vías', value: '14', unit: '—' },
+    { parameter: 'Ancho de pista — potencia', value: '2,0', unit: 'mm', notes: 'Diagonales del puente y rieles de alimentación' },
+    { parameter: 'Ancho de pista — señal', value: '0,3 – 1,0', unit: 'mm' },
+  ]}
+/>
+
+<Artifact href="/pcb/puente-h/gerbers.zip" name="Gerbers de fabricación — Puente H" />
+<Artifact href="/pcb/puente-h/kicad-proyecto.zip" name="Proyecto KiCad completo — Puente H" />
+<Artifact href="/datasheets/datasheet_puente_h_esp32c3.pdf" name="Datasheet Puente H ESP32-C3" />
+
+Para pedir la placa basta subir `gerbers.zip` tal cual al fabricante y dejar
+los parámetros por defecto de dos capas: el espesor de 1,6 mm y el acabado
+estándar son los que se usaron. El ZIP incluye los taladros PTH, así que no
+hay que exportar nada aparte.
+
+<figure>
+  <img src="/remote-hands/images/esquematico-puente-h.png" alt="Esquemático del Puente H en KiCad" />
+  <figcaption>ESP32-C3, optoacopladores 4N25, MOSFETs IRF540N/IRF9540N, conectores de potencia e I²C.</figcaption>
+</figure>
+
+<figure>
+  <img src="/remote-hands/images/pcb-2-capas-puente-h.png" alt="Layout PCB de dos capas del Puente H" />
+  <figcaption>El ruteo separa los planos de potencia —pistas de 2,0 mm— de las señales lógicas del microcontrolador.</figcaption>
+</figure>
+
+### Lista de materiales
+
+54 componentes en 21 referencias distintas. La tabla está ordenada por
+función, no por designador, porque el orden que importa al replicar es el de
+la compra.
+
+<Artifact href="/pcb/puente-h/bom.csv" name="BOM — Puente H (CSV)" />
+<Artifact href="/pcb/puente-h/positions.csv" name="Posiciones para ensamble — Puente H (CSV)" />
+
+<InterfaceTable
+  caption="Lista de materiales — módulo Puente H"
+  columns={['Designadores', 'Cant.', 'Valor', 'Encapsulado']}
+  rows={[
+    ['U1', 1, 'ESP32-C3 SuperMini', 'Módulo SMD'],
+    ['Q1, Q2', 2, 'IRF9540N (canal P)', 'TO-220-3 vertical'],
+    ['Q3, Q4', 2, 'IRF540N (canal N)', 'TO-220-3 vertical'],
+    ['U2–U5', 4, '4N25', 'DIP-6, paso 7,62 mm'],
+    ['D4–D7', 4, '1N47xxA (Zener — ver nota)', 'DO-41 horizontal'],
+    ['D1', 1, 'LED indicador', '1206'],
+    ['D2', 1, 'LED de datos', '1206'],
+    ['D3', 1, 'LED de potencia', '1206'],
+    ['C1, C3, C4', 3, '100 nF', '1206'],
+    ['C2', 1, '2200 µF 50 V', 'Radial D16 mm, paso 7,5 mm'],
+    ['R1–R4, R14, R15', 6, '330 Ω', '1206'],
+    ['R7, R8, R10, R11, R16–R19', 8, '10 kΩ', '1206'],
+    ['R6, R9, R12, R13', 4, '2,2 kΩ', '1206'],
+    ['R20, R21', 2, '4,7 kΩ', '1206'],
+    ['R5', 1, '3,3 kΩ', '1206'],
+    ['F1', 1, 'Portafusible 5 × 20 mm', 'Clip inline horizontal'],
+    ['SW3', 1, 'DIP switch 4 posiciones', 'Slide, paso 2,54 mm'],
+    ['SW2', 1, 'Pulsador', 'RS-032G05A3-SMRT'],
+    ['M1', 1, 'Bornera salida a motor', 'MX126-5.0, 2 P'],
+    ['VP_IN1, VP_OUT1', 2, 'Bornera de potencia', 'MX126-5.0, 2 P'],
+    ['DATA_IN1, DATA_OUT1', 2, 'Conector I²C', 'JST EH 4 P vertical'],
+    ['CONN01X06', 1, 'Header HC-05', 'JST EH 6 P vertical'],
+    ['J1–J4', 4, 'Puente de alambre', '0,5 mm²'],
+  ]}
+/>
+
+Dos advertencias antes de comprar:
+
+- **Los Zener D4–D7 no tienen valor cerrado.** El esquemático usa el símbolo
+  genérico `1N47xxA` de la librería de KiCad, cuyo datasheet por defecto
+  apunta al **1N4728A** (3,3 V, 1 W). Ese enlace viene de la librería, no de
+  una elección registrada en el diseño, así que hay que confirmar la tensión
+  contra la placa física antes de pedir.
+- **La columna `LCSC Part #` del BOM está vacía.** No hay números de parte de
+  proveedor, así que la compra se resuelve por valor y encapsulado. Para el
+  ensamble automatizado de JLCPCB habría que rellenarla primero.
+
+## Ensamble
+
+La placa mezcla SMD 1206 con componentes de orificio pasante voluminosos
+—MOSFETs TO-220, capacitor radial de 16 mm, borneras—, así que el ensamble
+manual es viable y fue el que se usó.
+
+<figure>
+  <img
+    src="/remote-hands/images/manufactura-jlcpcb-puente-h.png"
+    alt="Vista de manufactura de JLCPCB del módulo Puente H"
+  />
+  <figcaption>Vista de manufactura que devuelve JLCPCB al subir los Gerbers: la última revisión antes de pagar el lote.</figcaption>
+</figure>
+
+<figure>
+  <img src="/remote-hands/images/build/pcb-puente-h-soldada.webp" alt="PCB del Puente H recién soldada" />
+  <figcaption>Placa recién soldada, antes de la instalación en el robot.</figcaption>
+</figure>
+
+<figure>
+  <img src="/remote-hands/images/build/pcb-puente-h-detalle.webp" alt="Detalle de la PCB del Puente H con ESP32-C3, DIP switch y conectores I²C" />
+  <figcaption>ESP32-C3 SuperMini, conector I²C etiquetado (5 V, SDA, SCL, GND), borneras y DIP switch de selección de modo.</figcaption>
+</figure>
+
+El orden de montaje va de menor a mayor altura, que es la práctica estándar
+para soldadura manual y la que evita que un componente alto estorbe el acceso
+a uno bajo:
+
+1. Resistencias y capacitores 1206, y los LED. Son los más planos.
+2. Optoacopladores 4N25 en sus zócalos DIP-6. Respeta la marca de pin 1.
+3. Zener D4–D7 y los puentes J1–J4.
+4. Módulo ESP32-C3 SuperMini.
+5. DIP switch y pulsador.
+6. MOSFETs TO-220 — los cuatro van verticales.
+7. Portafusible, borneras, conectores JST y el capacitor de 2200 µF.
+
+Antes de aplicar potencia por primera vez conviene verificar continuidad
+entre los rieles de alimentación y masa: un corto ahí es el fallo que la
+topología de puente H castiga más rápido.
+
+<figure>
+  <img src="/remote-hands/images/build/caja-elevacion-interior-electronica.webp" alt="Interior de la caja de elevación con los módulos Puente H montados" />
+  <figcaption>Los dos módulos Puente H alojados dentro de la estructura metálica que eleva el manipulador, sobre soportes impresos y sin cajas externas.</figcaption>
+</figure>
+
+## Configuración
+
+### Modos de operación (DIP switch)
+
+<figure>
+  <img
+    src="/remote-hands/images/puente-h-instalacion.png"
+    alt="Módulo Puente H instalado en la estructura del robot"
+  />
+  <figcaption>El módulo ya instalado en la estructura, con el cableado de potencia y el bus I²C conectados.</figcaption>
+</figure>
+
+El estado del DIP switch se lee **únicamente al encender** y fija el modo de
+operación.
+
+| SW3 | SW2 | SW1 | Modo | Descripción |
+| --- | --- | --- | --- | --- |
+| 0 | 0 | 0 | Prueba local | Validación interna; rutina activable por botón |
+| 0 | 0 | 1 | WiFi | Recibe comandos por red inalámbrica |
+| 0 | 1 | 0 | BLE | Bluetooth Low Energy |
+| 0 | 1 | 1 | HC-05 | Bluetooth clásico por UART externo |
+| 1 | 0 | 0 | I²C Maestro | Nodo maestro en arquitectura distribuida |
+| 1 | 0 | 1 | I²C Slave 1 | Esclavo 1 (dirección reservada) |
+| 1 | 1 | 0 | I²C Slave 2 | Esclavo 2 (dirección reservada) |
+| 1 | 1 | 1 | I²C Slave 3 | Esclavo 3 (dirección reservada) |
+
+### Asignación de pines ESP32-C3
+
+| Señal | GPIO | Función |
+| --- | --- | --- |
+| `PWM_0` | GPIO6 | Salida de mando — diagonal A del puente H |
+| `PWM_1` | GPIO7 | Salida de mando — diagonal B del puente H |
+| `SDA` | GPIO8 | Datos del bus I²C |
+| `SCL` | GPIO9 | Reloj del bus I²C |
+| `LED` | GPIO10 | LED de usuario / depuración |
+| `RX` / `TX` | GPIO20 / GPIO21 | UART para módulo HC-05 |
+| `S0`, `S1`, `S2` | GPIO1, GPIO3, GPIO4 | Lectura del DIP switch |
+| `BTN` | GPIO5 | Botón local (pull-up interno) |
+
+### Conectores externos
+
+<InterfaceTable
+  caption="Conectores físicos del módulo Puente H"
+  columns={['Conector', 'Pines', 'Descripción']}
+  rows={[
+    ['Entrada de potencia', '2', 'Entrada principal de 12–24 V DC'],
+    ['Salida al motor', '2', 'Terminales del puente H hacia la carga'],
+    ['Data_in I²C', '4', '+5V, SDA, SCL, GND — recibe el bus desde el maestro'],
+    ['Data_out I²C', '4', 'Réplica del bus para encadenar el siguiente módulo'],
+    ['Header HC-05', '6', '+5V, GND, RX, TX — Bluetooth clásico o debug UART'],
+    ['USB-C (ESP32-C3)', '—', 'Programación, alimentación digital y debug prioritario'],
+  ]}
+/>
+
+## Firmware
+
+MicroPython sobre el ESP32-C3. Acepta comandos por USB-C (canal prioritario
+siempre activo) o por el medio seleccionado con el DIP switch.
+
+<Artifact href="/firmware/main_movil_final.py" name="main_movil_final.py" />
+
+Para cargarlo: instala el intérprete de MicroPython para ESP32-C3 en el
+módulo, copia el archivo como `main.py` en su sistema de archivos y
+reinicia. El firmware arranca leyendo el DIP switch, así que hay que fijar el
+modo **antes** de alimentar la placa.
+
+### Máquina de estados
+
+```text
+  BOOT
+   │  lee DIP switch (solo una vez)
+   ▼
+DISARMED ──── ARM explícito o botón largo ────► ARMED
+   ▲                                              │
+   └─── timeout 2 500 ms sin comando ────────────┘
+   │
+FAULT ◄─── cortocircuito / error de checksum
+```
+
+La salida al motor permanece deshabilitada en `DISARMED`. Pasar a `ARMED`
+exige un comando explícito, así que el robot no puede moverse por accidente
+al encenderse ni al reconectarse.
+
+### Protocolo I²C binario — tramas de 7 bytes
+
+En los modos maestro/esclavo, todos los comandos al Puente H viajan como
+paquetes binarios de longitud fija. El maestro construye la trama; los
+esclavos la validan antes de ejecutar.
+
+| Byte | Campo | Descripción |
+| --- | --- | --- |
+| 0 | `PREAMBLE` | Siempre `0xA5` — marca de sincronía |
+| 1 | `SEQ` | Número de secuencia 0–255 para detección de duplicados |
+| 2 | `CMD_MODE` | `0` STOP, `1` TARGET, `2` TEST |
+| 3–4 | `LO`, `HI` | Consigna con signo como `int16` little-endian |
+| 5 | `FLAGS` | Bitmask: `ARMED (0x01)`, `FAULT (0x02)`, `TEST (0x04)` |
+| 6 | `CHECKSUM` | XOR de los bytes 0–5 |
+
+Si el checksum no coincide, el paquete se descarta silenciosamente y el
+motor permanece en su último estado: nunca se ejecuta un movimiento con
+datos corruptos.
+
+### Deadtime y rampas
+
+Conmutar ambas diagonales del puente H a la vez provoca cortocircuito. Para
+evitarlo, `apply_bridge_local_safe()` impone **300 µs** de tiempo muerto
+entre cambios de diagonal.
+
+Ningún cambio de velocidad es instantáneo. El duty cycle sube o baja 1 %
+cada 20 ms hasta alcanzar la consigna, con un techo de 70 %. Pasar de 0 % a
+velocidad máxima toma por tanto 1,4 s como mínimo, y esa rampa es la que
+limita las corrientes de arranque y el estrés mecánico sobre los motores DC.
+
+## Verificación
+
+El módulo pasó por dos etapas físicas antes de la versión final: prototipo en
+protoboard y placa fabricada.
+
+<figure>
+  <img src="/remote-hands/images/build/puente-h-prototipo-protoboard.webp" alt="Prototipo del puente H armado en protoboard" />
+  <figcaption>Prototipo en protoboard, donde se validó la topología antes de rutear la placa.</figcaption>
+</figure>
+
+<figure>
+  <img src="/remote-hands/images/build/puente-h-prototipo-temperatura.webp" alt="Medición de temperatura sobre el prototipo del puente H" />
+  <figcaption>Medición térmica sobre el prototipo: máximo registrado de 61 °C en los MOSFETs bajo carga.</figcaption>
+</figure>
+
+El módulo acumula cinco resultados de prueba: temperatura de los MOSFETs en
+protoboard y bajo carga continua, movimiento diferencial en superficie
+plana, respuesta a los comandos de dirección y control remoto extremo a
+extremo. El detalle de cada uno está en [Verificación del robot
+móvil](/remote-hands/sistema/subsistemas/robot-movil/verificacion/).

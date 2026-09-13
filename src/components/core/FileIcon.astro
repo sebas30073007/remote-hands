@@ -1,0 +1,80 @@
+---
+/**
+ * Icono de archivo generado a partir de la extensión.
+ *
+ * El set de iconos de referencia dibuja cada extensión como trazos, así
+ * que solo cubre las que alguien dibujó: no sirve para `.kicad_pro`,
+ * `.gbr` o `.step`. Aquí se conserva su lenguaje —hoja de contorno con
+ * la esquina doblada— y la extensión se compone en IBM Plex Mono, que es
+ * la tipografía que el sistema reserva para los datos técnicos. Así
+ * cualquier formato tiene icono sin tener que dibujarlo.
+ *
+ * Candidata a @sebs/docs-core (§29 del brief).
+ */
+interface Props {
+  /** Extensión sin punto. Vacía o `dir` para una carpeta. */
+  ext?: string;
+  class?: string;
+}
+
+const { ext = '', class: className } = Astro.props;
+
+const esCarpeta = ext === '' || ext === 'dir';
+
+/**
+ * Qué se escribe dentro de la hoja.
+ *
+ * Las extensiones compuestas se quedan con su último segmento: de
+ * `kicad_pro`, `kicad_sch` y `kicad_pcb` salen PRO, SCH y PCB, que es lo
+ * que las distingue entre sí. `KICAD` las haría idénticas.
+ */
+const partes = ext.split('_');
+const util = partes.length > 1 ? partes[partes.length - 1]! : ext;
+const etiqueta = util.slice(0, 5).toUpperCase();
+---
+
+<svg
+  class:list={['c-fileicon', className]}
+  viewBox="0 0 40 48"
+  role="img"
+  aria-label={esCarpeta ? 'Carpeta' : `Archivo ${etiqueta}`}
+>
+  {
+    esCarpeta ? (
+      <path
+        d="M2.5 12.5V5.5a1 1 0 0 1 1-1h10l3 4h20a1 1 0 0 1 1 1v33a1 1 0 0 1-1 1h-33a1 1 0 0 1-1-1z"
+        fill="none"
+        stroke="currentColor"
+        stroke-width="2"
+        stroke-linejoin="round"
+      />
+    ) : (
+      <>
+        <path
+          d="M3.5 2.5a1 1 0 0 1 1-1h18l14 14v31a1 1 0 0 1-1 1h-31a1 1 0 0 1-1-1z"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+        <path
+          d="M22.5 1.5v13a1 1 0 0 0 1 1h13"
+          fill="none"
+          stroke="currentColor"
+          stroke-width="2"
+          stroke-linejoin="round"
+        />
+        <text
+          class="c-fileicon__ext"
+          x="20"
+          y="36"
+          text-anchor="middle"
+          textLength={etiqueta.length > 3 ? 28 : undefined}
+          lengthAdjust="spacingAndGlyphs"
+        >
+          {etiqueta}
+        </text>
+      </>
+    )
+  }
+</svg>

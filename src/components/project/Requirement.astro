@@ -1,0 +1,55 @@
+---
+import MetaItem from '../core/MetaItem.astro';
+import StatusBadge from './StatusBadge.astro';
+import { verificationStatusTone } from '../../lib/status-tone';
+
+/**
+ * Requisito de ingeniería como ciudadano de primera clase (respuesta
+ * chat.md §3/§16): no una card bonita suelta, sino un objeto trazable —
+ * de dónde sale, a qué subsistema pertenece, con qué se verifica y en
+ * qué estado quedó esa verificación.
+ *
+ * El enunciado ("The system shall…") va en el slot, no en una prop: es
+ * prosa normativa, no un dato de tabla, y así se puede formatear si hace
+ * falta (unidades en `<code>`, por ejemplo).
+ *
+ * Uso:
+ * <Requirement id="REQ-COM-004" subsystem="Comunicación" priority="must"
+ *   verification="EXP-LAT-001" status="pass">
+ *   El sistema debe mantener una latencia de comando extremo a extremo
+ *   por debajo de 100&nbsp;ms.
+ * </Requirement>
+ */
+interface Props {
+  id: string;
+  subsystem?: string;
+  source?: string;
+  priority?: 'must' | 'should' | 'could';
+  /** ID del VerificationResult que lo verifica, si existe. */
+  verification?: string;
+  status?: 'pass' | 'fail' | 'pending';
+}
+
+const PRIORITY_LABEL = { must: 'Obligatorio', should: 'Deseable', could: 'Opcional' } as const;
+
+const { id, subsystem, source, priority, verification, status } = Astro.props;
+const { label: statusLabel, tone: statusTone } = verificationStatusTone(status);
+---
+
+<figure class="c-requirement">
+  <figcaption class="c-requirement__head">
+    <span class="c-requirement__id">{id}</span>
+    <StatusBadge label={statusLabel} tone={statusTone} />
+  </figcaption>
+
+  <div class="c-requirement__body">
+    <slot />
+  </div>
+
+  <div class="c-requirement__meta">
+    {subsystem && <MetaItem label="Subsistema" value={subsystem} mono={false} />}
+    {priority && <MetaItem label="Prioridad" value={PRIORITY_LABEL[priority]} mono={false} />}
+    {source && <MetaItem label="Origen" value={source} mono={false} />}
+    {verification && <MetaItem label="Verificación" value={verification} />}
+  </div>
+</figure>

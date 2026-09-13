@@ -1,0 +1,68 @@
+---
+/**
+ * Conmutador UI/UX: temario clásico ↔ navegación por vista explosionada.
+ *
+ * Existe para comparar las dos formas de navegar el mismo contenido sin
+ * tener que elegir una todavía. El modo vive en `data-ui` sobre `<html>`:
+ * lo aplica `ThemeProvider.astro` antes del primer pintado (así no hay
+ * salto al cargar) y lo reaplica en cada navegación, porque `<ClientRouter
+ * />` sobrescribe los atributos de `<html>` con los del documento nuevo.
+ *
+ * Por defecto, el temario clásico: es el que funciona sin JavaScript, y el
+ * que ya conoce quien vuelve al sitio.
+ *
+ * `aria-pressed` y no un par de radios: son dos estados de una misma cosa,
+ * y el botón anuncia cuál está activo.
+ *
+ * Sin `transition:persist`, a propósito: Starlight monta este hueco DOS
+ * veces —cabecera y pie del menú móvil—, y dos elementos persistidos con el
+ * mismo id rompen el intercambio del router (empareja ambos con el mismo
+ * destino y el segundo queda sin padre). El botón tampoco tiene estado que
+ * conservar: lo lee de `data-ui` en cada página.
+ */
+---
+
+<button
+  type="button"
+  class="c-uimode"
+  data-uimode
+  aria-pressed="false"
+  title="Alternar entre el temario de lista y la vista explosionada"
+>
+  <span class="c-uimode__label">UI/UX</span>
+  <span class="c-uimode__estado" data-uimode-estado>Lista</span>
+</button>
+
+<script>
+  const CLAVE = 'remote-hands-ui';
+
+  const sincronizar = () => {
+    const nuevo = document.documentElement.dataset.ui === 'explosion';
+    document.querySelectorAll<HTMLButtonElement>('[data-uimode]').forEach((boton) => {
+      boton.setAttribute('aria-pressed', String(nuevo));
+      const estado = boton.querySelector('[data-uimode-estado]');
+      if (estado) estado.textContent = nuevo ? 'Explosión' : 'Lista';
+    });
+  };
+
+  const alternar = () => {
+    const nuevo = document.documentElement.dataset.ui !== 'explosion';
+    if (nuevo) document.documentElement.dataset.ui = 'explosion';
+    else delete document.documentElement.dataset.ui;
+    try {
+      localStorage.setItem(CLAVE, nuevo ? 'explosion' : 'lista');
+    } catch {}
+    sincronizar();
+  };
+
+  // Las dos instancias (cabecera y menú móvil) se reemplazan en cada
+  // navegación, así que se enlazan de nuevo en cada `astro:page-load`.
+  document.addEventListener('astro:page-load', () => {
+    document.querySelectorAll<HTMLButtonElement>('[data-uimode]').forEach((boton) => {
+      if (boton.dataset.listo) return;
+      boton.dataset.listo = '1';
+      boton.addEventListener('click', alternar);
+    });
+    sincronizar();
+  });
+</script>

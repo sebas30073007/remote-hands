@@ -1,0 +1,117 @@
+---
+title: Comunicaciones del sistema
+description: El contrato de comunicación completo — canales ZMQ, puertos, modos de sensor y el bus embebido entre la NUC y la electrónica.
+---
+
+import { InterfaceTable } from '@project';
+
+Remote Hands usa dos protocolos distintos, en dos capas separadas: **ZMQ
+sobre WiFi** entre el operador y la NUC, y **USB/I²C** entre la NUC y la
+electrónica embebida. Esta página es el contrato completo de las dos capas:
+qué canal lleva qué, en qué dirección y por qué puerto.
+
+<figure>
+  <img
+    src="/remote-hands/images/arquitectura-del-sistema.png"
+    alt="Diagrama de la arquitectura del sistema con los enlaces entre operador, NUC y robot"
+  />
+  <figcaption>Los dos dominios de comunicación del sistema: ZMQ sobre WiFi del operador a la NUC, y USB/I²C de la NUC a la electrónica embebida.</figcaption>
+</figure>
+
+## Meta Quest ↔ NUC
+
+En la capa inalámbrica, el sistema reparte la información en tres canales,
+uno por responsabilidad, en lugar de multiplexarla sobre un socket único. La
+razón es el aislamiento de fallos: video, sensores/estado y comandos pueden
+degradarse o apagarse por separado sin arrastrar a los otros dos. Si el
+video se reduce o se apaga, los comandos de control y la telemetría siguen
+llegando.
+
+<InterfaceTable
+  caption="Canales ZMQ entre la Meta Quest y la NUC"
+  columns={['Canal', 'Dirección', 'Contenido']}
+  rows={[
+    ['Video', 'NUC → Meta Quest', 'Frames de cámara comprimidos para visualización en XR'],
+    ['Sensores / estado', 'NUC → Meta Quest', 'LiDAR, estado del sistema, confirmaciones de modo, telemetría'],
+    ['Comandos', 'Meta Quest → NUC', 'Órdenes de movimiento, manipulador, video y modos de sensores'],
+  ]}
+/>
+
+### Puertos ZMQ verificados
+
+Los números de puerto están verificados contra el simulador de latencia
+WF-IoT, que reproduce los canales, las frecuencias y los tamaños de payload
+del sistema real. El montaje completo está en el [protocolo del
+experimento](/remote-hands/verificacion/experimentos/latencia-wifi/protocolo/).
+
+<InterfaceTable
+  caption="Puertos ZMQ — verificados contra el simulador de latencia"
+  columns={['Puerto', 'Socket', 'Dirección', 'Contenido']}
+  rows={[
+    ['5002', 'SUB bind', 'Quest → PC/NUC', 'Comandos JSON (tópico `cmd`)'],
+    ['5001', 'PUB bind', 'PC/NUC → Quest', '`latency_ack`, `stat`, `mode_ack`, `lidar_grid`'],
+    ['5555', 'PUB bind', 'PC/NUC → Quest', '`video_rgb` (bytes JPEG)'],
+    ['5007', 'PUB bind', 'PC/NUC → Quest', 'Reservado — datos binarios'],
+  ]}
+/>
+
+### Modos de LiDAR
+
+La Meta Quest tampoco recibe todos los datos todo el tiempo. El operador
+elige un modo de transmisión y el robot envía solo la resolución que esa
+tarea necesita.
+
+<InterfaceTable
+  caption="Payload por modo de LiDAR, medido durante el experimento de latencia"
+  columns={['Modo', 'Frecuencia', 'Payload (JSON)']}
+  rows={[
+    ['detail', '12 Hz', '120 122 bytes'],
+    ['medium', '8 Hz', '480 122 bytes'],
+    ['panorama', '4 Hz', '1 080 124 bytes'],
+  ]}
+/>
+
+En las pruebas de latencia, el video se sustituye por JPEG sintético de
+640×480 con calidad 85. Cada frame pesa 9 756 bytes de media, a 30 fps.
+Viaja por el mismo canal que el video real (`5555`) y tiene su mismo orden
+de magnitud, así que la carga que impone sobre la red es representativa.
+
+## NUC ↔ electrónica embebida
+
+```text
+NUC
+ └── COM4 (USB) ──► Puente H maestro
+                        ├── I²C 0x08 ──► Puente H esclavo (motor base)
+                        └── I²C 0x0B ──► Controlador CL57T (3 ejes)
+ └── COM5 (USB) ──► Controlador gripper (directo, fuera del bus I²C)
+ └── COM3 (USB) ──► RPLiDAR C1 (460 800 baud)
+ └── USB3       ──► Intel RealSense D435i
+```
+
+El Puente H maestro concentra el bus I²C, así que la NUC controla tres nodos
+de movimiento —tracción propia, tracción esclava y manipulador— con un solo
+canal USB.
+
+El gripper queda fuera de ese bus a propósito. Es el único controlador sin
+PCB dedicada, y aislarlo en su propio canal serie simplifica el diagnóstico
+cuando falla.
+
+## Por qué dos protocolos y no uno
+
+Cada capa tiene exigencias distintas, y ningún protocolo las cubre bien a la
+vez.
+
+WiFi con ZMQ tolera pérdida de paquetes y variación de latencia. Eso es
+aceptable para telemetría y video, donde un frame perdido no compromete
+nada. USB e I²C son deterministas y de baja latencia, que es justo lo que el
+control de motores en tiempo real necesita.
+
+Unificar ambas capas en un solo canal habría costado en cualquiera de las
+dos direcciones. Poner el control de motores sobre WiFi le habría heredado
+la incertidumbre de la red; poner la telemetría sobre USB habría cargado el
+canal determinista con tráfico que no lo necesita.
+
+El reparto de responsabilidades que se deriva de esto está registrado en
+[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+Para una consulta rápida de puertos y tópicos sin la justificación, está
+[Referencia · Comunicación](/remote-hands/referencia/comunicacion/).

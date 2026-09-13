@@ -1,0 +1,679 @@
+---
+/**
+ * Navegación por vista explosionada.
+ *
+ * Sustituye al temario de lista cuando el modo UI/UX está activo
+ * (`data-ui="explosion"` en `<html>`, ver `UiModeToggle.astro`). La pestaña
+ * «Sistema» dibuja el robot; al elegir una pieza, la página cambia y el
+ * dibujo se separa en las piezas de esa parte. Las otras cinco pestañas son
+ * listas: Reporte, Operar, Construir, Evidencia y Referencia no son cosas
+ * que se puedan desmontar.
+ *
+ * Cómo está hecho, y por qué:
+ *
+ *  - Las imágenes son capas PNG renderizadas desde el CAD con cámara
+ *    ortográfica (`scripts/render-explode.mjs`). Explotar es trasladarlas
+ *    con CSS: exacto, a 60 fps, y sin WebGL en un panel que está en todas
+ *    las páginas.
+ *  - TODO el estado se renderiza en el servidor: las seis escenas, el
+ *    listado de cada nodo y las cinco pestañas, con la página actual ya
+ *    marcada. La primera pintura es correcta sin JavaScript. El script solo
+ *    cambia atributos y anima entre estados.
+ *  - El panel lleva `transition:persist`: con `<ClientRouter />` sobrevive a
+ *    la navegación, y por eso puede animar del estado anterior al nuevo en
+ *    vez de reaparecer desde cero en cada clic.
+ *  - La escena es un realce para puntero (`aria-hidden`). El camino
+ *    accesible son los listados de debajo: los mismos destinos, como
+ *    enlaces reales.
+ */
+import manifiesto from '../../generated/explode-manifest.json';
+import {
+  NODOS,
+  PESTANAS,
+  nodoPorId,
+  escenaDeNodo,
+  duenoDeEscena,
+  cadena,
+  type NodoExplode,
+} from '../../lib/explode-nav';
+
+type Entrada =
+  | { type: 'link'; label: string; href: string; isCurrent: boolean }
+  | { type: 'group'; label: string; entries: Entrada[] };
+
+interface Props {
+  sidebar: Entrada[];
+  pathname: string;
+}
+
+const { sidebar, pathname } = Astro.props;
+const base = import.meta.env.BASE_URL.endsWith('/') ? import.meta.env.BASE_URL : `${import.meta.env.BASE_URL}/`;
+const href = (slug: string) => `${base}${slug}/`;
+const normal = (p: string) => {
+  let s = decodeURI(p.split('#')[0].split('?')[0]);
+  if (!s.endsWith('/')) s += '/';
+  return s;
+};
+const actual = normal(pathname);
+
+/* --- Temario clásico: etiquetas y listas de las pestañas ------------- */
+const etiquetas = new Map<string, string>();
+const aplanar = (es: Entrada[]) =>
+  es.forEach((e) => (e.type === 'link' ? etiquetas.set(normal(e.href), e.label) : aplanar(e.entries)));
+aplanar(sidebar);
+
+const raizSidebar = sidebar.length === 1 && sidebar[0].type === 'group' ? sidebar[0].entries : sidebar;
+const grupoPorEtiqueta = (label: string) =>
+  raizSidebar.find((e): e is Extract<Entrada, { type: 'group' }> => e.type === 'group' && e.label === label);
+
+/* --- Mapa página -> estado ------------------------------------------- */
+type Estado = { tab: string; nodo: string | null; explotada: boolean };
+const estados: Record<string, Estado> = {};
+estados[normal(base)] = { tab: 'sistema', nodo: 'sistema', explotada: false };
+for (const n of NODOS) {
+  estados[normal(href(n.pagina))] = { tab: 'sistema', nodo: n.id, explotada: true };
+  for (const f of n.facetas ?? []) estados[normal(href(f))] = { tab: 'sistema', nodo: n.id, explotada: true };
+}
+for (const p of PESTANAS) {
+  const recorrer = (es: Entrada[]) =>
+    es.forEach((e) => {
+      if (e.type === 'link') estados[normal(e.href)] ??= { tab: p.id, nodo: null, explotada: false };
+      else recorrer(e.entries);
+    });
+  const g = grupoPorEtiqueta(p.grupo);
+  if (g) recorrer(g.entries);
+}
+const inicial: Estado = estados[actual] ?? { tab: 'sistema', nodo: 'sistema', explotada: false };
+const nodoInicial = inicial.nodo ?? 'sistema';
+const { escena: escenaInicial, resaltadas: resaltadasIniciales } = escenaDeNodo(nodoInicial);
+
+/* --- Piezas de cada escena ------------------------------------------- */
+const destinoDe = (dueno: NodoExplode, capaId: string) => {
+  const d = dueno.piezas?.[capaId];
+  if (!d) return null;
+  const nodo = d.nodo ? nodoPorId.get(d.nodo) : undefined;
+  return {
+    capa: capaId,
+    etiqueta: d.etiqueta ?? nodo?.etiqueta ?? capaId,
+    href: nodo ? href(nodo.pagina) : `${href(dueno.pagina)}#${d.ancla ?? ''}`,
+    baja: Boolean(nodo),
+  };
+};
+const piezasDe = (escena: string) => {
+  const dueno = duenoDeEscena(escena);
+  return Object.keys(dueno.piezas ?? {})
+    .map((id) => destinoDe(dueno, id))
+    .filter((p): p is NonNullable<typeof p> => Boolean(p))
+    .map((p, i) => ({ ...p, n: i + 1 }));
+};
+
+const { w: LW, h: LH } = manifiesto.lienzo;
+const escenas = Object.entries(manifiesto.escenas).map(([id, esc]) => {
+  const dueno = duenoDeEscena(id);
+  const piezas = piezasDe(id);
+  return {
+    id,
+    dueno,
+    ensamble: esc.ensamble,
+    capas: esc.capas.map((c) => ({
+      ...c,
+      pieza: piezas.find((p) => p.capa === c.id) ?? null,
+    })),
+  };
+});
+
+const puntos = (anillo: number[][]) => anillo.map(([x, y]) => `${x},${y}`).join(' ');
+const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/* --- Datos para el script ------------------------------------------- */
+const datos = {
+  estados,
+  nodos: Object.fromEntries(
+    NODOS.map((n) => [n.id, { padre: n.padre ?? null, escena: n.escena ?? null, capa: n.capa ?? null }])
+  ),
+  geometria: Object.fromEntries(
+    escenas.map((e) => [
+      e.id,
+      {
+        ensamble: e.ensamble.box,
+        capas: Object.fromEntries(e.capas.map((c) => [c.id, { box: c.box, dx: c.dx, dy: c.dy, oculto: c.oculto }])),
+      },
+    ])
+  ),
+};
+---
+
+<div
+  class="c-xnav"
+  data-xnav
+  data-estado={JSON.stringify(inicial)}
+  data-pestana={inicial.tab}
+  data-explotada={String(inicial.explotada)}
+  transition:persist="xnav"
+  transition:animate="none"
+>
+  <div class="c-xnav__tabs" role="tablist" aria-label="Secciones">
+    {
+      [{ id: 'sistema', etiqueta: 'Sistema' }, ...PESTANAS].map((t) => (
+        <button
+          type="button"
+          role="tab"
+          class="c-xnav__tab"
+          id={`xnav-tab-${t.id}`}
+          aria-controls={`xnav-panel-${t.id}`}
+          aria-selected={String(t.id === inicial.tab)}
+          tabindex={t.id === inicial.tab ? 0 : -1}
+          data-tab={t.id}
+        >
+          {t.etiqueta}
+        </button>
+      ))
+    }
+  </div>
+
+  {/* ------------------------------------------------ Pestaña Sistema */}
+  <div
+    class="c-xnav__panel"
+    role="tabpanel"
+    id="xnav-panel-sistema"
+    aria-labelledby="xnav-tab-sistema"
+    data-panel="sistema"
+    hidden={inicial.tab !== 'sistema'}
+  >
+    <div class="c-xnav__migas-set">
+      {
+        NODOS.map((n) => (
+          <nav class="c-xnav__migas" aria-label="Ubicación en el sistema" data-info={n.id} hidden={n.id !== nodoInicial}>
+            {cadena(n.id).map((m, i, arr) =>
+              i < arr.length - 1 ? (
+                <>
+                  <a href={href(m.pagina)}>{m.etiqueta}</a>
+                  <span class="c-xnav__sep" aria-hidden="true">›</span>
+                </>
+              ) : (
+                <span class="c-xnav__aqui">{m.etiqueta}</span>
+              )
+            )}
+          </nav>
+        ))
+      }
+    </div>
+
+    <div class="c-xnav__stage" aria-hidden="true" style={`aspect-ratio:${LW}/${LH}`}>
+      {
+        escenas.map((e) => {
+          const visible = e.id === escenaInicial;
+          return (
+            <div
+              class="c-xnav__escena"
+              data-escena={e.id}
+              data-visible={String(visible)}
+              data-explotada={String(visible && inicial.explotada)}
+            >
+              <div
+                class="c-xnav__ens"
+                style={`--x:${e.ensamble.box[0]}%;--y:${e.ensamble.box[1]}%;--w:${e.ensamble.box[2]}%;--h:${e.ensamble.box[3]}%`}
+              >
+                <img
+                  src={`${base}${e.ensamble.src}`}
+                  alt=""
+                  loading="lazy"
+                  decoding="async"
+                  width={Math.round((e.ensamble.box[2] / 100) * LW)}
+                  height={Math.round((e.ensamble.box[3] / 100) * LH)}
+                />
+                <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none">
+                  <a href={href(e.dueno.pagina)} tabindex="-1">
+                    {e.ensamble.poly.map((anillo) => <polygon points={puntos(anillo)} />)}
+                  </a>
+                </svg>
+              </div>
+
+              {e.capas.map((c) => (
+                <div
+                  class="c-xnav__capa"
+                  data-capa={c.id}
+                  data-activa={visible && resaltadasIniciales.includes(c.id) ? 'true' : undefined}
+                  style={
+                    `--x:${c.box[0]}%;--y:${c.box[1]}%;--w:${c.box[2]}%;--h:${c.box[3]}%;` +
+                    `--tx:${r2((c.dx / c.box[2]) * 100)}%;--ty:${r2((c.dy / c.box[3]) * 100)}%;z-index:${c.z + 1}`
+                  }
+                >
+                  <img
+                    src={`${base}${c.src}`}
+                    alt=""
+                    loading="lazy"
+                    decoding="async"
+                    width={Math.round((c.box[2] / 100) * LW)}
+                    height={Math.round((c.box[3] / 100) * LH)}
+                  />
+                  {c.pieza && (
+                    <>
+                      <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none">
+                        <a href={c.pieza.href} tabindex="-1" data-capa-ref={c.id}>
+                          {c.poly.map((anillo) => <polygon points={puntos(anillo)} />)}
+                        </a>
+                      </svg>
+                      <a
+                        class="c-xnav__globo"
+                        href={c.pieza.href}
+                        tabindex="-1"
+                        data-capa-ref={c.id}
+                        style={`left:${c.globo[0]}%;top:${c.globo[1]}%`}
+                      >
+                        {c.pieza.n}
+                      </a>
+                    </>
+                  )}
+                </div>
+              ))}
+            </div>
+          );
+        })
+      }
+    </div>
+
+    <p class="c-xnav__pista">Toca el robot para desmontarlo.</p>
+
+    <div class="c-xnav__listas">
+      {
+        NODOS.map((n) => {
+          const { escena } = escenaDeNodo(n.id);
+          const dueno = duenoDeEscena(escena);
+          const piezas = piezasDe(escena);
+          const capasNodo = Array.isArray(n.capa) ? n.capa : n.capa ? [n.capa] : [];
+          const docs = [n.pagina, ...(n.facetas ?? [])];
+          return (
+            <div class="c-xnav__info" data-info={n.id} hidden={n.id !== nodoInicial}>
+              {piezas.length > 0 && (
+                <>
+                  <p class="c-xnav__titulo">Piezas · {dueno.etiqueta}</p>
+                  <ol class="c-xnav__piezas">
+                    {piezas.map((p) => (
+                      <li data-activa={!n.escena && capasNodo.includes(p.capa) ? 'true' : undefined}>
+                        <a
+                          href={p.href}
+                          data-capa-ref={p.capa}
+                          aria-current={normal(p.href) === actual && !p.href.includes('#') ? 'page' : undefined}
+                        >
+                          <span class="c-xnav__num" aria-hidden="true">
+                            {p.n}
+                          </span>
+                          <span class="c-xnav__nombre">{p.etiqueta}</span>
+                          {p.baja && (
+                            <span class="c-xnav__baja" aria-hidden="true">
+                              ›
+                            </span>
+                          )}
+                        </a>
+                      </li>
+                    ))}
+                  </ol>
+                </>
+              )}
+              <p class="c-xnav__titulo">Documentos · {n.etiqueta}</p>
+              <ul class="c-xnav__docs">
+                {docs.map((slug, i) => (
+                  <li>
+                    <a href={href(slug)} aria-current={normal(href(slug)) === actual ? 'page' : undefined}>
+                      {i === 0 ? 'Vista general' : (etiquetas.get(normal(href(slug))) ?? slug)}
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </div>
+          );
+        })
+      }
+    </div>
+  </div>
+
+  {/* ------------------------------------------ Pestañas de lista */}
+  {
+    PESTANAS.map((p) => {
+      const g = grupoPorEtiqueta(p.grupo);
+      return (
+        <div
+          class="c-xnav__panel"
+          role="tabpanel"
+          id={`xnav-panel-${p.id}`}
+          aria-labelledby={`xnav-tab-${p.id}`}
+          data-panel={p.id}
+          hidden={inicial.tab !== p.id}
+        >
+          <ul class="c-xnav__lista">
+            {(g?.entries ?? []).map((e) =>
+              e.type === 'link' ? (
+                <li>
+                  <a href={e.href} aria-current={normal(e.href) === actual ? 'page' : undefined}>
+                    {e.label}
+                  </a>
+                </li>
+              ) : (
+                <li class="c-xnav__subgrupo">
+                  <p class="c-xnav__titulo">{e.label}</p>
+                  <ul class="c-xnav__lista">
+                    {e.entries.flatMap((s) =>
+                      s.type === 'link'
+                        ? [
+                            <li>
+                              <a href={s.href} aria-current={normal(s.href) === actual ? 'page' : undefined}>
+                                {s.label}
+                              </a>
+                            </li>,
+                          ]
+                        : s.entries
+                            .filter((x): x is Extract<Entrada, { type: 'link' }> => x.type === 'link')
+                            .map((x) => (
+                              <li>
+                                <a href={x.href} aria-current={normal(x.href) === actual ? 'page' : undefined}>
+                                  {x.label}
+                                </a>
+                              </li>
+                            ))
+                    )}
+                  </ul>
+                </li>
+              )
+            )}
+          </ul>
+        </div>
+      );
+    })
+  }
+
+  <script type="application/json" data-xnav-datos set:html={JSON.stringify(datos)} />
+</div>
+
+<script>
+  import { navigate } from 'astro:transitions/client';
+
+  type Estado = { tab: string; nodo: string | null; explotada: boolean };
+  type Caja = [number, number, number, number];
+  type Datos = {
+    estados: Record<string, Estado>;
+    nodos: Record<string, { padre: string | null; escena: string | null; capa: string | string[] | null }>;
+    geometria: Record<
+      string,
+      { ensamble: Caja; capas: Record<string, { box: Caja; dx: number; dy: number; oculto: boolean }> }
+    >;
+  };
+
+  const EASE = 'cubic-bezier(0.4, 0, 0.2, 1)';
+
+  const normal = (p: string) => {
+    let s = decodeURI(p.split('#')[0].split('?')[0]);
+    if (!s.endsWith('/')) s += '/';
+    return s;
+  };
+
+  function iniciar() {
+    const raiz = document.querySelector<HTMLElement>('[data-xnav]');
+    // Persistido entre páginas: los listeners de la primera carga siguen
+    // vivos, y enlazarlos otra vez duplicaría cada evento.
+    if (!raiz || raiz.dataset.listo) return;
+    raiz.dataset.listo = '1';
+
+    const datos: Datos = JSON.parse(raiz.querySelector('[data-xnav-datos]')!.textContent!);
+    const stage = raiz.querySelector<HTMLElement>('.c-xnav__stage')!;
+    const escenaEl = (id: string) => raiz.querySelector<HTMLElement>(`.c-xnav__escena[data-escena="${id}"]`)!;
+    const sinMovimiento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
+    const visible = () => raiz.getClientRects().length > 0;
+
+    const arr = (c: string | string[] | null) => (Array.isArray(c) ? c : c ? [c] : []);
+    const escenaDe = (nodo: string) => {
+      const n = datos.nodos[nodo];
+      if (!n) return { escena: 'sistema', resaltadas: [] as string[] };
+      if (n.escena) return { escena: n.escena, resaltadas: [] as string[] };
+      const padre = n.padre ? datos.nodos[n.padre] : null;
+      return { escena: padre?.escena ?? 'sistema', resaltadas: arr(n.capa) };
+    };
+    const duenoDe = (escena: string) =>
+      Object.entries(datos.nodos).find(([, n]) => n.escena === escena)?.[0] ?? 'sistema';
+
+    /* --- Geometría para el zoom entre escenas ------------------------ */
+    type Rect = { x: number; y: number; w: number; h: number };
+    const rectCapa = (escena: string, capa: string, explotada: boolean): Rect | null => {
+      const c = datos.geometria[escena]?.capas[capa];
+      if (!c) return null;
+      return { x: c.box[0] + (explotada ? c.dx : 0), y: c.box[1] + (explotada ? c.dy : 0), w: c.box[2], h: c.box[3] };
+    };
+    const rectEns = (escena: string): Rect => {
+      const b = datos.geometria[escena].ensamble;
+      return { x: b[0], y: b[1], w: b[2], h: b[3] };
+    };
+    /** Transformación (origen 0 0) que lleva el rect `a` sobre el rect `b`. */
+    const mapear = (a: Rect, b: Rect) => {
+      const W = stage.clientWidth;
+      const H = stage.clientHeight;
+      const k = (b.w / a.w + b.h / a.h) / 2;
+      const acx = ((a.x + a.w / 2) / 100) * W;
+      const acy = ((a.y + a.h / 2) / 100) * H;
+      const bcx = ((b.x + b.w / 2) / 100) * W;
+      const bcy = ((b.y + b.h / 2) / 100) * H;
+      return `translate(${bcx - k * acx}px, ${bcy - k * acy}px) scale(${k})`;
+    };
+
+    /* --- Utilidades de estado ---------------------------------------- */
+    const instantaneo = (el: HTMLElement, fn: () => void) => {
+      el.classList.add('is-instantanea');
+      fn();
+      void el.offsetWidth;
+      el.classList.remove('is-instantanea');
+    };
+    const cancelar = () =>
+      raiz.querySelectorAll<HTMLElement>('.c-xnav__escena').forEach((el) => {
+        el.getAnimations().forEach((a) => a.cancel());
+      });
+    const mostrarSolo = (id: string, explotada: boolean) => {
+      raiz.querySelectorAll<HTMLElement>('.c-xnav__escena').forEach((el) => {
+        const es = el.dataset.escena === id;
+        instantaneo(el, () => {
+          el.dataset.visible = String(es);
+          el.dataset.explotada = String(es && explotada);
+        });
+      });
+    };
+    const resaltar = (escena: string, capas: string[]) =>
+      escenaEl(escena)
+        .querySelectorAll<HTMLElement>('.c-xnav__capa')
+        .forEach((c) => (capas.includes(c.dataset.capa!) ? (c.dataset.activa = 'true') : delete c.dataset.activa));
+
+    const ponerPestana = (tab: string, enfocar = false) => {
+      raiz.dataset.pestana = tab;
+      raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach((b) => {
+        const si = b.dataset.tab === tab;
+        b.setAttribute('aria-selected', String(si));
+        b.tabIndex = si ? 0 : -1;
+        if (si && enfocar) b.focus();
+      });
+      raiz.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== tab));
+    };
+
+    /* --- Transiciones entre escenas ---------------------------------- */
+    const zoom = (desde: string, desdeExpl: boolean, hacia: string, capa: string, sentido: 'baja' | 'sube') => {
+      const elA = escenaEl(desde);
+      const elB = escenaEl(hacia);
+      if (sentido === 'baja') {
+        // La pieza elegida en la escena de arriba crece hasta ocupar el
+        // lugar del conjunto de abajo, que aparece encima de ella y se
+        // explota cuando ya casi llegó.
+        const L = rectCapa(desde, capa, desdeExpl)!;
+        const E = rectEns(hacia);
+        instantaneo(elB, () => {
+          elB.dataset.explotada = 'false';
+          elB.dataset.visible = 'true';
+        });
+        elA.style.zIndex = '1';
+        elB.style.zIndex = '2';
+        elA.animate([{ transform: 'none', opacity: 1 }, { transform: mapear(L, E), opacity: 0 }], {
+          duration: 280,
+          easing: EASE,
+        }).onfinish = () => {
+          elA.dataset.visible = 'false';
+          elA.dataset.explotada = 'false';
+          elA.style.zIndex = elB.style.zIndex = '';
+        };
+        elB.animate(
+          [{ transform: mapear(E, L), opacity: 0 }, { opacity: 1, offset: 0.35 }, { transform: 'none', opacity: 1 }],
+          { duration: 280, easing: EASE }
+        );
+        setTimeout(() => (elB.dataset.explotada = 'true'), 150);
+      } else {
+        // Al revés: el conjunto actual se pliega y encoge hasta su sitio
+        // en la escena de arriba, que llega explotada desde un zoom.
+        const L = rectCapa(hacia, capa, true)!;
+        const E = rectEns(desde);
+        instantaneo(elB, () => {
+          elB.dataset.visible = 'true';
+          elB.dataset.explotada = 'true';
+        });
+        elA.style.zIndex = '2';
+        elB.style.zIndex = '1';
+        elA.dataset.explotada = 'false';
+        elA.animate([{ transform: 'none', opacity: 1 }, { transform: mapear(E, L), opacity: 0 }], {
+          duration: 360,
+          delay: 60,
+          easing: EASE,
+          fill: 'backwards',
+        }).onfinish = () => {
+          elA.dataset.visible = 'false';
+          elA.style.zIndex = elB.style.zIndex = '';
+        };
+        elB.animate(
+          [{ transform: mapear(L, E), opacity: 0 }, { opacity: 1, offset: 0.4 }, { transform: 'none', opacity: 1 }],
+          { duration: 360, delay: 60, easing: EASE, fill: 'backwards' }
+        );
+      }
+    };
+
+    const fundido = (desde: string, hacia: string) => {
+      const elA = escenaEl(desde);
+      const elB = escenaEl(hacia);
+      instantaneo(elB, () => {
+        elB.dataset.explotada = 'false';
+        elB.dataset.visible = 'true';
+      });
+      elA.animate([{ opacity: 1 }, { opacity: 0 }], { duration: 180, easing: EASE }).onfinish = () => {
+        elA.dataset.visible = 'false';
+        elA.dataset.explotada = 'false';
+      };
+      elB.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 180, easing: EASE });
+      setTimeout(() => (elB.dataset.explotada = 'true'), 110);
+    };
+
+    const aplicar = (prev: Estado, next: Estado, animar: boolean) => {
+      ponerPestana(next.tab);
+      raiz.dataset.explotada = String(next.explotada);
+
+      const aqui = normal(location.pathname);
+      raiz.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
+        const h = a.getAttribute('href')!;
+        if (a.closest('svg') || a.classList.contains('c-xnav__globo')) return;
+        if (!h.includes('#') && normal(h) === aqui) a.setAttribute('aria-current', 'page');
+        else a.removeAttribute('aria-current');
+      });
+
+      // Una página de lista no mueve la escena: al volver a la pestaña
+      // Sistema se ve donde se quedó.
+      if (!next.nodo) return;
+      raiz.querySelectorAll<HTMLElement>('[data-info]').forEach((el) => (el.hidden = el.dataset.info !== next.nodo));
+
+      const n = escenaDe(next.nodo);
+      resaltar(n.escena, n.resaltadas);
+      raiz.querySelectorAll<HTMLElement>('.c-xnav__listas [data-info] li').forEach((li) => {
+        const info = li.closest<HTMLElement>('[data-info]')!;
+        if (info.dataset.info !== next.nodo) return;
+        const ref = li.querySelector<HTMLElement>('[data-capa-ref]')?.dataset.capaRef;
+        if (ref && n.resaltadas.includes(ref)) li.dataset.activa = 'true';
+        else delete li.dataset.activa;
+      });
+
+      const p = prev.nodo ? escenaDe(prev.nodo) : null;
+      cancelar();
+      if (!animar || !p) return mostrarSolo(n.escena, next.explotada);
+      if (p.escena === n.escena) {
+        const el = escenaEl(n.escena);
+        el.dataset.visible = 'true';
+        el.dataset.explotada = String(next.explotada);
+        return;
+      }
+
+      const duenoN = datos.nodos[duenoDe(n.escena)];
+      const duenoP = datos.nodos[duenoDe(p.escena)];
+      const capaN = arr(duenoN.capa)[0];
+      const capaP = arr(duenoP.capa)[0];
+      if (duenoN.padre && escenaDe(duenoN.padre).escena === p.escena && capaN) {
+        const oculto = datos.geometria[p.escena].capas[capaN]?.oculto;
+        if (oculto && !prev.explotada) return fundido(p.escena, n.escena);
+        return zoom(p.escena, prev.explotada, n.escena, capaN, 'baja');
+      }
+      if (duenoP.padre && escenaDe(duenoP.padre).escena === n.escena && capaP) {
+        return zoom(p.escena, true, n.escena, capaP, 'sube');
+      }
+      fundido(p.escena, n.escena);
+    };
+
+    // El puntero se queda donde hizo clic, y lo que quede debajo en la
+    // página nueva no debe arrastrar el resalte de la anterior.
+    const limpiarHover = () =>
+      raiz.querySelectorAll<HTMLElement>('[data-hover]').forEach((el) => delete el.dataset.hover);
+
+    const sincronizar = (animar: boolean) => {
+      limpiarHover();
+      const next: Estado = datos.estados[normal(location.pathname)] ?? { tab: 'sistema', nodo: 'sistema', explotada: false };
+      const prev: Estado = JSON.parse(raiz.dataset.estado ?? 'null') ?? next;
+      aplicar(prev, next, animar && visible() && !sinMovimiento());
+      raiz.dataset.estado = JSON.stringify(next);
+    };
+
+    /* --- Eventos ------------------------------------------------------ */
+    document.addEventListener('astro:after-swap', () => sincronizar(true));
+
+    raiz.querySelector('[role="tablist"]')!.addEventListener('click', (e) => {
+      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
+      if (b) ponerPestana(b.dataset.tab!);
+    });
+    raiz.querySelector('[role="tablist"]')!.addEventListener('keydown', (e) => {
+      const ev = e as KeyboardEvent;
+      if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
+      const tabs = [...raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
+      const i = tabs.findIndex((t) => t.dataset.tab === raiz.dataset.pestana);
+      const j = (i + (ev.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
+      ponerPestana(tabs[j].dataset.tab!, true);
+      ev.preventDefault();
+    });
+
+    // Los `<a>` dentro de SVG no siempre los intercepta el router: se
+    // navega a mano para conservar la transición.
+    stage.addEventListener('click', (e) => {
+      const a = (e.target as Element).closest('svg a');
+      if (!a) return;
+      e.preventDefault();
+      navigate(a.getAttribute('href')!);
+    });
+
+    // Apuntar una pieza en el dibujo marca su fila en el listado, y al revés.
+    const marcar = (ref: string | undefined, si: boolean) => {
+      if (!ref) return;
+      const escena = raiz.querySelector<HTMLElement>('.c-xnav__escena[data-visible="true"]');
+      escena?.querySelectorAll<HTMLElement>(`.c-xnav__capa[data-capa="${ref}"]`).forEach((c) => {
+        if (si) c.dataset.hover = 'true';
+        else delete c.dataset.hover;
+      });
+      raiz
+        .querySelectorAll<HTMLElement>(`.c-xnav__info:not([hidden]) a[data-capa-ref="${ref}"]`)
+        .forEach((a) => (si ? (a.dataset.hover = 'true') : delete a.dataset.hover));
+    };
+    raiz.addEventListener('pointerover', (e) => {
+      marcar((e.target as Element).closest<HTMLElement>('[data-capa-ref]')?.dataset.capaRef, true);
+    });
+    raiz.addEventListener('pointerout', (e) => {
+      marcar((e.target as Element).closest<HTMLElement>('[data-capa-ref]')?.dataset.capaRef, false);
+    });
+
+    sincronizar(false);
+  }
+
+  document.addEventListener('astro:page-load', iniciar);
+</script>

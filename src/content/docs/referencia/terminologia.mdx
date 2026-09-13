@@ -1,0 +1,22 @@
+---
+title: "Referencia — Terminología"
+description: Términos usados en toda la documentación de Remote Hands, con su significado exacto en este proyecto.
+---
+
+Cada término se define por lo que significa **en este proyecto**, que no
+siempre coincide con su uso general en la industria.
+
+| Término | Significado en este proyecto |
+| --- | --- |
+| **RTT** | Round-trip time: tiempo entre que Unity envía un `latency_probe` y recibe su `latency_ack`. No incluye latencia física del robot. |
+| **ARMED / DISARMED** | Estados del firmware de tracción y CL57T. `DISARMED` deshabilita la salida al motor; `ARMED` la habilita. Arranca siempre en `DISARMED`. |
+| **Homing** | Rutina de búsqueda de cero de una articulación usando su final de carrera — necesaria en cada encendido para el codo y la muñeca del manipulador. |
+| **Stall** | Condición detectada cuando el encoder de un motor no cambia mientras el motor está activo — indica un obstáculo o límite mecánico. |
+| **Deadtime** | Tiempo muerto forzado (300 µs en el Puente H) entre apagar una diagonal del puente H y activar la otra, para evitar cortocircuito. |
+| **Daisy chain I²C** | Arquitectura maestro-esclavo del bus I²C: el Puente H maestro concentra la comunicación y reenvía a los nodos esclavos. |
+| **NUC** | Computadora Intel i7 embarcada en el robot; coordinador único entre el operador y la electrónica de bajo nivel (ver [ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/)). |
+| **Warm-up** | Las primeras 10 muestras de cada corrida de latencia, descartadas del análisis estadístico por no representar condición estable de red. |
+| **P95 / P99** | Percentil 95 / 99 de una distribución de latencia: el valor bajo el cual cae el 95 % / 99 % de las muestras. |
+| **Jitter** | Desviación estándar de la latencia — variabilidad, no promedio. |
+| **AGV** | Automated Guided Vehicle: la categoría industrial a la que pertenece esta plataforma. En estas páginas el término se reserva para hablar de esa categoría; al robot del proyecto se le llama siempre «robot móvil». |
+| **GDL / DOF** | Grados de libertad (*degrees of freedom*). El manipulador tiene 3. En este sitio se escribe siempre **GDL**, no DOF. |
