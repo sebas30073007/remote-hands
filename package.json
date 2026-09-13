@@ -35,7 +35,7 @@
     "@gltf-transform/functions": "^4.5.0",
     "d3-contour": "^4.0.2",
     "meshoptimizer": "^1.2.0",
-    "three": "^0.186.0",
+    "three": "^0.183.2",
     "typescript": "^6.0.3"
   }
 }
