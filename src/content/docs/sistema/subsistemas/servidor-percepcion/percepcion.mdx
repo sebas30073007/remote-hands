@@ -1,33 +1,28 @@
 ---
 title: Percepción
-description: Pipeline de RPLiDAR y RealSense de la NUC.
+description: Cómo la NUC procesa el LiDAR y la cámara RGB-D — qué es, cómo funciona, con qué se conecta y el detalle de cada pipeline.
+# Bloques grandes en el índice de la página: Sinopsis, RPLiDAR C1 y RealSense D435i.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, Artifact } from '@project';
-
-La NUC procesa dos sensores conectados por USB. Cada uno alimenta un
-pipeline independiente, y ambos publican su salida por ZeroMQ.
+import { ParameterTable, Artifact, SignalHub } from '@project';
 
 <figure>
-  <img
-    src="/images/build/realsense-montaje-frontal.webp"
-    alt="Cámara Intel RealSense D435i montada en posición frontal sobre la base del manipulador"
-  />
-  <figcaption>La RealSense D435i en su posición frontal, sobre la base del manipulador.</figcaption>
+  <img src="/images/3d/portada-percepcion.webp" alt="La cámara Intel RealSense D435i y el RPLiDAR C1" />
 </figure>
 
-<ReplicationLevel
-  level="reproducible"
-  provides={[
-    'Pipeline completo de ambos sensores en el código del coordinador',
-    'Todos los parámetros: modos de grid, umbrales de visión y etapas del pipeline de paredes',
-    'Modelos de YOLO usados, con su umbral y dispositivo de inferencia',
-  ]}
-  missing={[
-    'Los pesos de YOLO no se publican aquí: ultralytics los descarga en el primer arranque',
-    'La curva de calibración de profundidad está incrustada en el código, sin el procedimiento con el que se obtuvo',
-  ]}
-/>
+La percepción es lo que la NUC hace con sus dos sensores: un mapa 2D del
+entorno con el LiDAR, y video y visión por computadora con la cámara RGB-D.
+El resultado viaja al visor por ZeroMQ.
+
+## Sinopsis
+
+### Qué es
+
+Dos pipelines independientes dentro del coordinador de la NUC, uno por
+sensor.
 
 <ParameterTable
   caption="Sensores"
@@ -37,7 +32,50 @@ pipeline independiente, y ambos publican su salida por ZeroMQ.
   ]}
 />
 
-## RPLiDAR C1 — grid de ocupación
+Dónde van montados los sensores en el robot está en
+[Sensores](/sistema/subsistemas/robot-movil/sensores/).
+
+<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
+
+### Cómo funciona
+
+Cada pipeline trabaja solo cuando el operador tiene abierto el modo que lo
+usa. El grid del LiDAR alimenta los paneles 2D del visor; las paredes y los
+puntos alimentan la escena 3D; el video y la visión, el panel central.
+
+La profundidad nunca sale en crudo: antes se corrige con una curva de
+calibración, y la de cada detección se promedia en un disco de píxeles en
+lugar de leerse de uno solo.
+
+### Conexiones
+
+<SignalHub
+  centro={{ nombre: 'NUC', detalle: 'pipelines de percepción', imagen: '/images/3d/nuc.webp' }}
+  ramas={[
+    {
+      nombre: 'RPLiDAR C1',
+      detalle: 'LiDAR 2D',
+      imagen: '/images/3d/rplidar-c1.webp',
+      enlace: { medio: 'COM3 · 460 800 baud', vuelta: 'barridos 2D' },
+    },
+    {
+      nombre: 'RealSense D435i',
+      detalle: 'cámara RGB-D',
+      imagen: '/images/3d/realsense-d435.webp',
+      enlace: { medio: 'USB 3', vuelta: 'RGB 640 × 480 · profundidad' },
+    },
+    {
+      nombre: 'Meta Quest 3',
+      detalle: 'paneles y escena 3D',
+      imagen: '/images/3d/meta-quest-3.webp',
+      enlace: { medio: 'ZMQ por WiFi', ida: '5555 video · 5001 grid y visión · 5007 paredes y puntos' },
+    },
+  ]}
+/>
+
+## RPLiDAR C1
+
+### Grid de ocupación
 
 El grid tiene tres modos, con celda fija de 1 cm en todos ellos. Lo que
 cambia entre modos es el radio cubierto:
@@ -51,16 +89,11 @@ cambia entre modos es el radio cubierto:
 El grid se publica como JSON en el tópico `lidar_grid`. Los puntos con más
 de 0,35 s de antigüedad se descartan antes de construirlo.
 
-## RPLiDAR C1 — paredes y puntos
+### Modo paredes
 
-Los dos modos de esta sección son inmersivos y opcionales: alimentan la
-escena 3D del headset, no los paneles 2D.
-
-### Modo paredes (`walls_enabled`)
-
-El sistema acumula hasta 150 000 puntos en una ventana de 4 s y procesa el
-lote a ~1 Hz. El pipeline tiene cinco etapas, y cada una tiene sus
-parámetros fijados en el código:
+Inmersivo y opcional (`walls_enabled`): alimenta la escena 3D del headset,
+no los paneles 2D. El sistema acumula hasta 150 000 puntos en una ventana de
+4 s y procesa el lote a ~1 Hz, en cinco etapas:
 
 1. **Proyectar** los puntos a un grid 2D de 10 cm, con 0,5 m de margen.
 2. **Morfología** para cerrar huecos y quitar ruido: dilatación (kernel 3,
@@ -76,23 +109,25 @@ El orden importa. Cerrar antes de abrir une los tramos de una misma pared
 que el LiDAR ve con huecos, y solo después se elimina el ruido suelto; al
 revés, la apertura borraría puntos que el cierre necesitaba.
 
-La salida son segmentos de pared compactos, listos para la escena XR. Viajan
-en binario por el puerto 5007, con los identificadores `WSNP` para el
-snapshot completo y `WDEL` para los deltas.
+La salida son segmentos de pared compactos. Viajan en binario por el puerto
+5007, con los identificadores `WSNP` para el snapshot completo y `WDEL` para
+los deltas.
 
-### Modo puntos (`points_enabled`)
+### Modo puntos
 
-Publica hasta 12 000 puntos crudos por paquete a ~8 Hz, también por el
-puerto 5007, con los identificadores `LPSN` y `LPFR`.
+También inmersivo (`points_enabled`). Publica hasta 12 000 puntos crudos por
+paquete a ~8 Hz, por el puerto 5007, con los identificadores `LPSN` y `LPFR`.
 
-## RealSense D435i — video y visión
+## RealSense D435i
+
+### Video
 
 La cámara entrega un stream RGB de 640×480 a un máximo de 30 fps,
 comprimido en JPEG con calidad 85. Se publica en el tópico `video_rgb`, por
 el puerto 5555.
 
-La profundidad no se publica en crudo: antes se corrige con una curva de
-calibración interpolada entre 160 mm y 1000 mm.
+La profundidad se corrige con una curva de calibración interpolada entre
+160 mm y 1000 mm.
 
 ### Visión por computadora
 
@@ -121,16 +156,3 @@ son de la misma familia, cosa fácil de pasar por alto al montar el entorno:
 La profundidad de una detección no se lee del píxel central sino de un disco
 de 10 px alrededor: un solo píxel de la RealSense puede venir sin dato o con
 ruido, y una lectura errónea ahí desplaza el objeto entero en la escena.
-
-<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
-
-## Estado
-
-| Función | Estado |
-| --- | --- |
-| Grid LiDAR (3 modos) | Verificado |
-| Stream RGB 640×480 @ ~30 fps | Verificado |
-| Calibración de profundidad | Implementada |
-| Pipeline de paredes y de puntos | Implementado |
-| Transmisión RGB-D completa al headset | Pendiente |
-| Mapeo global del entorno (SLAM) | Fase futura |

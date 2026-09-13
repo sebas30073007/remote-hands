@@ -1,49 +1,35 @@
 ---
-title: "Manipulador 3 GDL"
-description: Diseño mecánico, cinemática, transmisión por bandas HTD3M, manufactura por corte láser y ensamble del brazo de tres grados de libertad.
+title: Manipulador
+description: El brazo de tres grados de libertad del robot — qué es, cómo funciona, cómo se conecta, su mecánica y su manufactura.
+# Bloques grandes en el índice de la página: Sinopsis, Mecánica y Manufactura.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
-
-El manipulador es un brazo de tres grados de libertad con un gripper lineal
-en el extremo, construido desde cero en lámina de acero cortada a láser y
-doblada a mano. Va montado sobre una caja metálica que lo eleva respecto a
-la plataforma móvil.
+import { ParameterTable, InterfaceTable, Artifact, SignalChain } from '@project';
 
 <figure>
-  <img
-    src="/images/build/manipulador-render.webp"
-    alt="Render CAD del manipulador completo, vista lateral"
-  />
-  <figcaption>El manipulador en CAD, antes de existir en acero. Tres grados de libertad y un gripper lineal en el extremo.</figcaption>
+  <img src="/images/3d/manipulador.webp" alt="Manipulador de tres grados de libertad con su gripper, sobre la caja de elevación" />
 </figure>
 
-<ReplicationLevel
-  level="described"
-  provides={[
-    'Planos cotados de cuatro piezas de lámina, generados desde los DXF originales de corte',
-    'Cadena cinemática y relaciones de transmisión de cada articulación',
-    'Materiales, calibres y procesos de manufactura empleados',
-    'Registro de lo que falló en la manufactura y de cómo se resolvió',
-    'Fotografías de detalle del ensamble, la transmisión y los finales de carrera',
-  ]}
-  missing={[
-    'DXF del resto de piezas de lámina: torre, segundo eslabón, pestañas en L de unión, placas base y base giratoria',
-    'STEP del ensamble completo, que fijaría las distancias entre ejes y la posición relativa de los eslabones',
-    'STL de las piezas impresas en 3D (gripper, cremallera, piñón y poleas) con sus parámetros de impresión',
-    'Lista de materiales mecánica: tornillería, rodamientos, chumaceras, bandas y poleas con sus referencias',
-    'Secuencia de ensamble ordenada y tensión de banda de referencia',
-  ]}
-/>
+El manipulador es el brazo del robot. Gira sobre su base, mueve dos
+eslabones y lleva el gripper en el extremo, para tomar objetos y dejarlos
+en otro lugar.
 
-## Requisitos y restricciones
+## Sinopsis
 
-El manipulador debía ejecutar tareas de pick-and-place en entornos de
-logística de e-commerce: ligero, compacto, montable sobre la plataforma
-móvil y capaz de sujetar objetos de tamaño mediano.
+### Qué es
 
-Las restricciones del laboratorio acotaron el punto de partida, y explican
-casi todas las decisiones de diseño que siguen:
+Un brazo de **tres grados de libertad** con un gripper lineal en el
+extremo, construido desde cero en lámina de acero cortada a láser y doblada
+a mano. Va montado sobre una caja metálica que lo eleva respecto a la
+plataforma móvil.
+
+Se diseñó para tareas de pick-and-place en logística de e-commerce: ligero,
+compacto y capaz de sujetar objetos de tamaño mediano. Las restricciones del
+laboratorio fijaron el punto de partida y explican casi todas las decisiones
+de diseño; el detalle está en [Restricciones](/proyecto/restricciones/).
 
 <ParameterTable
   caption="Restricciones de partida"
@@ -55,12 +41,9 @@ casi todas las decisiones de diseño que siguen:
   ]}
 />
 
-El detalle de cada restricción está en
-[Restricciones](/proyecto/restricciones/).
+### Cómo funciona
 
-## Arquitectura mecánica
-
-Tres articulaciones rotacionales más un gripper lineal:
+Tres articulaciones rotacionales más el gripper:
 
 <InterfaceTable
   caption="Cadena cinemática y transmisión"
@@ -75,45 +58,49 @@ Tres articulaciones rotacionales más un gripper lineal:
 
 Cada eslabón lo mueve un NEMA 17 con reductor planetario 10:1, y sobre él la
 polea añade otro 2,5:1. La **reducción compuesta es de 25:1**, y es lo que
-permite alcanzar el par necesario con motores que no se eligieron para esta
-aplicación, sino que ya estaban en el laboratorio.
+permite alcanzar el par necesario con motores que ya estaban en el
+laboratorio.
 
-Tres principios guiaron el diseño: rigidez estructural por acero cortado a
-láser, transmisión por bandas dentadas para aumentar la capacidad de carga, y
-esa reducción compuesta.
-
-### Cómo dos motores comparten la misma zona de eje
-
-Es el detalle que hace posible la cinemática, y el que hay que entender antes
-de intentar replicar el brazo.
-
-Los dos motores de los eslabones están colocados de forma paralela y
-simétrica cerca de la base, no sobre las articulaciones que mueven. Eso
-reparte el peso hacia abajo, en lugar de cargarlo en el extremo del brazo.
-
-El primer motor transmite el movimiento directamente al primer eslabón. El
-segundo parte de la misma zona de eje, pero **su polea no está unida
-rígidamente al primer eslabón**: gira libre sobre el mismo eje. Desde ahí,
-otra banda sube hasta la articulación superior. Gracias a ese desacople, cada
-grado de libertad conserva su propia transmisión aunque ambos compartan
-espacio físico en la base — mover el eslabón 1 no arrastra al eslabón 2.
+Los dos motores de los eslabones van en paralelo y simétricos cerca de la
+base, no sobre las articulaciones que mueven: el peso queda abajo en lugar
+de cargar el extremo del brazo. El primero mueve directamente el eslabón 1.
+El segundo parte de la misma zona de eje, pero **su polea gira libre sobre
+ese eje**, sin unirse al eslabón 1, y desde ahí otra banda sube hasta la
+articulación superior. Gracias a ese desacople, mover el eslabón 1 no
+arrastra al eslabón 2.
 
 <figure>
   <img src="/images/build/transmision-motores-nema17.webp" alt="Los dos motores NEMA 17 en disposición simétrica en la base del manipulador" />
   <figcaption>Los dos NEMA 17 en disposición simétrica, cada uno con su conjunto de poleas y bandas. La barra roscada inferior actúa de tensor común.</figcaption>
 </figure>
 
-<figure>
-  <img src="/images/build/transmision-segundo-eslabon.webp" alt="Banda vertical que transmite el movimiento hacia el segundo eslabón" />
-  <figcaption>La banda vertical que lleva el movimiento hasta la articulación superior. Las chumaceras sostienen el eje y evitan que roce contra la lámina.</figcaption>
-</figure>
+### Conexiones
+
+De la NUC a las articulaciones. El [Controlador
+CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/) convierte los
+ángulos en pulsos, y las bandas llevan el giro de cada motor a su eje.
+
+<SignalChain
+  pasos={[
+    { nombre: 'Puente H maestro', detalle: 'recibe POSE de la NUC', imagen: '/images/3d/puente-h.webp' },
+    { nombre: 'Controlador CL57T', detalle: 'ESP32-C3', imagen: '/images/3d/controlador-cl57t.webp' },
+    { nombre: 'Driver CL57T × 3', detalle: 'lazo cerrado', imagen: '/images/3d/driver-cl57t.webp' },
+    { nombre: 'NEMA17 + reductor × 3', detalle: 'planetario 10:1', imagen: '/images/3d/nema17-reductor.webp' },
+    { nombre: 'Manipulador', detalle: 'base, codo y muñeca', imagen: '/images/3d/manipulador.webp' },
+  ]}
+  enlaces={['I²C 0x0B · texto ASCII', 'PUL / DIR / ENABLE', 'Potencia al motor', 'Bandas HTD3M · 2,5:1']}
+/>
+
+El gripper tiene su propio controlador y su propio USB a la NUC; está en
+[Gripper](/sistema/subsistemas/robot-movil/controladores/gripper/).
+
+## Mecánica
 
 ### Base rotatoria
 
 El giro de todo el conjunto respecto a la plataforma lo genera un motor
-situado en la parte posterior, con reducción por polea y banda. A diferencia
-de los eslabones, la base usa una reducción menor: basta para orientar el
-conjunto, y separa el movimiento de orientación del de los eslabones.
+situado en la parte posterior, con reducción por polea y banda. La base usa
+una reducción menor que los eslabones: basta para orientar el conjunto.
 
 La estructura en «C» que eleva el brazo se fabricó en lámina doblada y se
 **reforzó con doble capa** después de que las pruebas mostraran que su
@@ -125,16 +112,83 @@ los drivers CL57T y su cableado.
   <figcaption>La lámina doblada en «C», con el refuerzo de doble capa que se añadió tras detectar que cedía bajo el peso del brazo.</figcaption>
 </figure>
 
-## Piezas y planos
+### Transmisión
 
-Los planos siguientes se generaron a partir de los DXF que se enviaron a
-cortar, así que la geometría es la real: el contorno que salió de la
-cortadora y los barrenos con su diámetro y su posición.
+Poleas, bandas y chumaceras llevan el movimiento de los motores hasta los
+eslabones. Las chumaceras sostienen cada eje y evitan que roce directamente
+contra la lámina, lo que reduce fricción, desgaste y juego.
 
-Los DXF traen más cosas que el perfil de la pieza. El primer eslabón, por
-ejemplo, lleva grabadas las letras de «IBERO» en el centro, y círculos de
-registro del nesting cuyo centro cae fuera del contorno. El generador de
-planos descarta esos círculos: no son barrenos de la pieza.
+La tensión de las bandas se resolvió con rodamientos montados sobre barra
+roscada, que funcionan como tensores. Sin ellos la banda deslizaba y
+aparecían holguras y vibración.
+
+<figure>
+  <img src="/images/build/transmision-segundo-eslabon.webp" alt="Banda vertical que transmite el movimiento hacia el segundo eslabón" />
+  <figcaption>La banda vertical que lleva el movimiento hasta la articulación superior.</figcaption>
+</figure>
+
+<figure>
+  <img src="/images/build/tensor-rodamiento-correa.webp" alt="Tensor de banda con rodamiento sobre barra roscada" />
+  <figcaption>Tensor con rodamiento sobre barra roscada: la solución que corrigió el deslizamiento sin rediseñar la estructura.</figcaption>
+</figure>
+
+### Finales de carrera
+
+Colocados cerca del límite físico de cada recorrido, sirven de referencia de
+cero para el homing y de límite mecánico. Su posición se eligió para que el
+eslabón los active sin provocar colisión y sin estorbar el movimiento normal
+ni la trayectoria de las bandas. Cómo se leen está en
+[Sensores](/sistema/subsistemas/robot-movil/sensores/#finales-de-carrera).
+
+<figure>
+  <img src="/images/build/final-carrera-eslabon.webp" alt="Final de carrera montado en el interior del brazo" />
+  <figcaption>Final de carrera con palanca metálica en el recorrido de un eslabón.</figcaption>
+</figure>
+
+### Integración con la plataforma
+
+La caja de elevación se fija a la plataforma aprovechando puntos
+estructurales del chasis, incluidas las zonas cercanas a los tornillos de las
+ruedas caster, para repartir mejor la carga del brazo. El detalle está en
+[Plataforma
+móvil](/sistema/subsistemas/robot-movil/plataforma-movil/#integración-con-el-manipulador).
+
+## Manufactura
+
+### Corte láser y doblado
+
+Las piezas estructurales se cortaron en láser a partir de lámina de acero y
+se doblaron a mano. Los ángulos de doblez quedaron al límite de lo viable con
+la dobladora manual disponible. Cuando una sección superaba ese límite, la
+pieza se dividió en dos o más partes unidas por tornillería, en lugar de
+forzar un doblez con riesgo de fractura.
+
+<figure>
+  <img src="/images/build/manufactura-corte-laser.webp" alt="Piezas del manipulador recién cortadas a láser" />
+  <figcaption>Piezas recién salidas de la cortadora, antes del doblado.</figcaption>
+</figure>
+
+### Qué salió mal
+
+Las **piezas en L** que conectan la base con el primer eslabón y con el motor
+fueron las que más iteraciones requirieron: la combinación de tolerancias de
+manufactura con ajustes de diseño obligó a varias versiones sucesivas. El
+resto de piezas iteraron menos, y casi siempre por barrenos faltantes, que
+bastaba taladrar sobre la pieza ya cortada.
+
+**La lámina doblada es rígida en el eje de carga y débil en el
+perpendicular.** Cualquier fuerza pequeña en esa dirección generaba
+oscilación visible. No hubo deformación permanente ni daño, pero el juego
+mecánico —por flexibilidad del material, no por holgura en las uniones— fue
+perceptible durante la operación. Es una característica del armado con
+lámina, no un defecto de estas piezas.
+
+### Planos
+
+Generados a partir de los DXF que se enviaron a cortar: el contorno que
+salió de la cortadora y los barrenos con su diámetro y su posición. Los
+círculos de registro del nesting, cuyo centro cae fuera del contorno, se
+descartan.
 
 <figure>
   <img src="/drawings/primer-eslabon.svg" alt="Plano cotado del primer eslabón: 300 por 210,83 mm con 10 barrenos" />
@@ -156,133 +210,13 @@ planos descarta esos círculos: no son barrenos de la pieza.
   <figcaption>Soporte superior de rodamiento — 231,33 × 155 mm.</figcaption>
 </figure>
 
-<Artifact href="/cad/dxf/primer-eslabon.dxf" name="DXF — Primer eslabón" />
-<Artifact href="/cad/dxf/soporte-nema17.dxf" name="DXF — Soporte NEMA 17" />
-<Artifact href="/cad/dxf/soporte-drivers.dxf" name="DXF — Soporte de drivers" />
-<Artifact href="/cad/dxf/soporte-top-rodamiento.dxf" name="DXF — Soporte superior de rodamiento" />
-<Artifact href="/cad/dxf/silueta_50t.dxf" name="DXF — Silueta de polea 50T" />
+Los planos se regeneran desde los DXF con `node scripts/dxf-to-drawing.mjs`:
+añadir un DXF a `public/cad/dxf/` basta para que aparezca su plano.
 
-Los planos se regeneran desde los DXF con `node scripts/dxf-to-drawing.mjs`.
-Añadir un DXF a `public/cad/dxf/` basta para que aparezca su plano.
+### Archivos CAD
 
-## Manufactura
-
-### Corte láser y doblado
-
-Las piezas estructurales se cortaron en láser a partir de lámina de acero y
-se doblaron a mano. Los ángulos de doblez quedaron al límite de lo viable con
-la dobladora manual disponible. Cuando una sección superaba ese límite, la
-pieza se dividió en dos o más partes unidas por tornillería, en lugar de
-forzar un doblez con riesgo de fractura.
-
-<figure>
-  <img src="/images/build/manufactura-corte-laser.webp" alt="Piezas del manipulador recién cortadas a láser" />
-  <figcaption>Piezas recién salidas de la cortadora, antes del doblado.</figcaption>
-</figure>
-
-<figure>
-  <img src="/images/build/manufactura-primeras-piezas.webp" alt="Primeras piezas del manipulador ensambladas" />
-  <figcaption>Primeras piezas ensambladas, la etapa donde se detectaron los ajustes que obligaron a recortar varias versiones.</figcaption>
-</figure>
-
-### Qué salió mal
-
-Las **piezas en L** que conectan la base con el primer eslabón y con el motor
-fueron las que más iteraciones requirieron: la combinación de tolerancias de
-manufactura con ajustes de diseño obligó a varias versiones sucesivas. El
-resto de piezas también iteraron, aunque menos, y casi siempre por barrenos
-faltantes — que no justificaban un corte nuevo, bastaba taladrarlos sobre la
-pieza ya cortada.
-
-El aprendizaje de fondo es sobre el método. **La lámina doblada es rígida en
-el eje de carga y débil en el perpendicular.** Cualquier fuerza pequeña en esa
-dirección generaba oscilación visible. No hubo deformación permanente ni daño
-en ningún momento, pero el juego mecánico —por flexibilidad del material, no
-por holgura en las uniones— fue perceptible durante la operación. Es una
-característica del armado con lámina, no un defecto de estas piezas
-concretas, y quien replique el brazo con el mismo método se lo va a
-encontrar.
-
-## Ensamble
-
-<figure>
-  <img src="/images/build/manipulador-vista-lateral.webp" alt="Vista lateral del manipulador montado" />
-  <figcaption>Vista lateral del brazo: base de rotación, primer eslabón, segundo eslabón y gripper, con los NEMA 17 cerca de la base.</figcaption>
-</figure>
-
-### Transmisión
-
-Poleas, bandas y chumaceras llevan el movimiento de los motores hasta los
-eslabones. Las chumaceras sostienen cada eje y evitan que roce directamente
-contra la lámina, lo que reduce fricción, desgaste y juego.
-
-La tensión de las bandas se resolvió con rodamientos montados sobre barra
-roscada, que funcionan como tensores. Sin ellos la banda deslizaba y
-aparecían holguras y vibración.
-
-<figure>
-  <img src="/images/build/articulacion-polea-chumacera.webp" alt="Detalle de una articulación con polea y chumacera" />
-  <figcaption>Articulación típica: polea sobre eje, chumaceras atornilladas a la lámina lateral.</figcaption>
-</figure>
-
-<figure>
-  <img src="/images/build/tensor-rodamiento-correa.webp" alt="Tensor de banda con rodamiento sobre barra roscada" />
-  <figcaption>Tensor con rodamiento sobre barra roscada — la solución que corrigió el deslizamiento sin rediseñar la estructura.</figcaption>
-</figure>
-
-### Gripper
-
-Dos pinzas impresas en 3D con mecanismo de piñón y cremallera, accionadas por
-un motor Pololu con reducción. El piñón central engrana con las cremalleras
-internas de ambas pinzas, que se desplazan en sentidos opuestos y abren o
-cierran de forma sincronizada. La geometría lleva refuerzos internos tipo
-costilla: rigidez sin peso.
-
-Lo controla un ESP32-C3 dedicado — ver [Controlador del
-gripper](/sistema/subsistemas/robot-movil/controladores/gripper/).
-
-<figure>
-  <img src="/images/build/gripper-pinon-cremallera.webp" alt="Vista superior del gripper mostrando el piñón central" />
-  <figcaption>El piñón central visible entre las dos pinzas, con las guías internas del mecanismo.</figcaption>
-</figure>
-
-<figure>
-  <img src="/images/build/gripper-vista-inclinada.webp" alt="Vista inclinada del gripper montado en el último eslabón" />
-  <figcaption>Nervaduras de refuerzo de las pinzas y unión atornillada al último eslabón.</figcaption>
-</figure>
-
-### Finales de carrera
-
-Colocados cerca del límite físico de cada recorrido, sirven de referencia de
-cero para el homing y de límite mecánico. Su posición se eligió para que el
-eslabón los active sin provocar colisión y sin estorbar el movimiento normal
-ni la trayectoria de las bandas.
-
-<figure>
-  <img src="/images/build/final-carrera-eslabon.webp" alt="Final de carrera montado en el interior del brazo" />
-  <figcaption>Final de carrera con palanca metálica en el recorrido de un eslabón.</figcaption>
-</figure>
-
-El procedimiento de homing que usa estos sensores está en [Controlador de
-drivers
-(CL57T)](/sistema/subsistemas/robot-movil/controladores/cl57t/).
-
-### Integración con la plataforma
-
-La caja de elevación se fija a la plataforma aprovechando puntos
-estructurales del chasis, incluidas las zonas cercanas a los tornillos de las
-ruedas caster, para repartir mejor la carga del brazo. Las ranuras alargadas
-permiten ajustar la posición.
-
-<figure>
-  <img src="/images/build/union-base-caja-elevacion.webp" alt="Unión entre la base móvil y la caja de elevación" />
-  <figcaption>Ranuras de ajuste y tornillería de fijación entre el chasis de la plataforma y la caja de elevación.</figcaption>
-</figure>
-
-## Archivos CAD
-
-El proyecto completo está en Autodesk Inventor 2026. De él se publican aquí
-los formatos que no dependen de Inventor para abrirse:
+El proyecto completo está en Autodesk Inventor 2026. Aquí se publican los
+formatos que no dependen de Inventor para abrirse:
 
 <InterfaceTable
   caption="Qué hay publicado y qué sigue solo en el CAD original"
@@ -295,15 +229,11 @@ los formatos que no dependen de Inventor para abrirse:
   ]}
 />
 
+<Artifact href="/cad/dxf/primer-eslabon.dxf" name="DXF — Primer eslabón" />
+<Artifact href="/cad/dxf/soporte-nema17.dxf" name="DXF — Soporte NEMA 17" />
+<Artifact href="/cad/dxf/soporte-drivers.dxf" name="DXF — Soporte de drivers" />
+<Artifact href="/cad/dxf/soporte-top-rodamiento.dxf" name="DXF — Soporte superior de rodamiento" />
+<Artifact href="/cad/dxf/silueta_50t.dxf" name="DXF — Silueta de polea 50T" />
 <Artifact href="/cad/mesh/htd3m_50T_Base.stl" name="STL — Polea HTD3M 50T" />
 <Artifact href="/cad/reference/nema17.step" name="STEP — Motor NEMA 17 (referencia)" />
 <Artifact href="/cad/reference/reductor_nema17.stp" name="STEP — Reductor planetario NEMA 17 (referencia)" />
-
-## Verificación
-
-El manipulador alcanza los rangos de movimiento de diseño, no presenta juego
-excesivo en las transmisiones HTD3M y ejecuta movimientos rápidos de forma
-funcional. El control remoto integrado —de la interfaz XR a la NUC y de ahí
-al manipulador— seguía pendiente en la última verificación registrada. El
-detalle está en [Verificación del robot
-móvil](/sistema/subsistemas/robot-movil/verificacion/).

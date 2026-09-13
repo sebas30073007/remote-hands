@@ -1,41 +1,33 @@
 ---
-title: "Controlador del gripper"
-description: Firmware MicroPython sobre ESP32-C3 que controla el gripper por posición en milímetros, con detección de stall.
+title: Gripper
+description: La pinza del manipulador — qué es, cómo funciona, cómo se conecta, su hardware y su firmware de control por posición.
+# Bloques grandes en el índice de la página: Sinopsis, Hardware y Firmware.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
-
-Un firmware MicroPython sobre ESP32-C3 SuperMini controla el motor del
-gripper por posición en milímetros. A diferencia de los otros dos
-controladores del robot, este **no tiene PCB dedicada**: el ESP32-C3 se
-conecta al driver TB6612FNG sobre protoboard.
-
-<ReplicationLevel
-  level="buildable"
-  provides={[
-    'Firmware completo y funcional',
-    'Conexionado pin a pin entre ESP32-C3 y driver TB6612FNG',
-    'Todos los parámetros de control: PWM, perfil de velocidad, tolerancia y umbral de stall',
-    'Valores de calibración reales del gripper construido',
-    'Procedimiento de calibración y juego de comandos completo',
-  ]}
-  missing={[
-    'Referencia exacta del motor Pololu: número de parte, tensión y cuentas por vuelta del encoder',
-    'STL de las pinzas, la cremallera y el piñón, con módulo de engrane y parámetros de impresión',
-  ]}
-/>
-
-<Artifact href="/firmware/main_gripper_final.py" name="main_gripper_final.py" />
+import { ParameterTable, InterfaceTable, Artifact, SignalChain } from '@project';
 
 <figure>
-  <img src="/images/build/gripper-pinon-cremallera.webp" alt="Vista superior del gripper con el piñón central del mecanismo" />
-  <figcaption>El mecanismo que este firmware acciona: piñón central engranando las cremalleras de ambas pinzas.</figcaption>
+  <img src="/images/3d/gripper.webp" alt="Gripper del manipulador: dos pinzas con cremallera, piñón central y motor" />
 </figure>
 
-## Hardware
+El gripper es la pinza en el extremo del manipulador. Abre y cierra sus dos
+dedos a la posición en milímetros que pide el operador, y se detiene solo si
+algo le impide seguir.
+
+## Sinopsis
+
+### Qué es
+
+Dos pinzas impresas en 3D con mecanismo de **piñón y cremallera**, movidas
+por un motor con encoder y reductor. Lo controla un **ESP32-C3 SuperMini**
+con un driver de motor **TB6612FNG**. A diferencia de las otras dos placas
+del robot, este controlador **no tiene PCB dedicada**: va cableado a mano.
 
 <ParameterTable
-  caption="Componentes del controlador"
+  caption="Componentes"
   rows={[
     { parameter: 'Microcontrolador', value: 'ESP32-C3 SuperMini', unit: '—' },
     { parameter: 'Driver de motor', value: 'TB6612FNG', unit: '—', notes: 'dual, solo canal A usado' },
@@ -46,34 +38,98 @@ conecta al driver TB6612FNG sobre protoboard.
   ]}
 />
 
+### Cómo funciona
+
+El piñón central engrana con las cremalleras internas de ambas pinzas, que
+se desplazan en sentidos opuestos: abren o cierran de forma sincronizada.
+
+El firmware convierte la posición pedida en cuentas del encoder y lleva el
+motor hasta ella con un perfil de velocidad suave. El encoder es la única
+retroalimentación de posición: si deja de cambiar durante 500 ms con el motor
+activo, el firmware asume un obstáculo y detiene el motor.
+
+### Conexiones
+
+<SignalChain
+  pasos={[
+    { nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' },
+    { nombre: 'Controlador del gripper', detalle: 'ESP32-C3 + TB6612FNG', imagen: '/images/3d/controlador-gripper.webp' },
+    { nombre: 'Gripper', detalle: 'motor con encoder', imagen: '/images/3d/gripper.webp' },
+  ]}
+  enlaces={[
+    { medio: 'USB-CDC · COM5', ida: 'm <mm>', vuelta: 'GRIPPER_STATE' },
+    { medio: 'PWM 20 kHz', vuelta: 'encoder A / B' },
+  ]}
+/>
+
+La NUC publica el estado que recibe como `gripper_state`, en el puerto 5001
+de ZeroMQ.
+
+## Hardware
+
+### Mecanismo
+
+La geometría de las pinzas lleva refuerzos internos tipo costilla: rigidez
+sin peso.
+
 <figure>
-  <img
-    src="/images/build/gripper-conjunto.webp"
-    alt="Conjunto del gripper con su piñón, cremallera y motor"
-  />
-  <figcaption>El conjunto completo: motor, piñón y cremallera que convierten el giro en apertura lineal.</figcaption>
+  <img src="/images/build/gripper-pinon-cremallera.webp" alt="Vista superior del gripper con el piñón central del mecanismo" />
+  <figcaption>El piñón central entre las dos pinzas, con las guías internas del mecanismo.</figcaption>
 </figure>
 
-### Conexionado
+<figure>
+  <img src="/images/build/gripper-vista-inclinada.webp" alt="Vista inclinada del gripper montado en el último eslabón" />
+  <figcaption>Nervaduras de refuerzo de las pinzas y unión atornillada al último eslabón.</figcaption>
+</figure>
 
-Sin PCB, el conexionado es lo único que fija el montaje. Estos son los pines
+### Asignación de pines
+
+Sin PCB, el cableado es lo único que fija el montaje. Estos son los pines
 que usa el firmware.
 
 <InterfaceTable
-  caption="Conexiones entre ESP32-C3 y TB6612FNG"
+  caption="Conexiones entre ESP32-C3, TB6612FNG y el encoder"
   columns={['Señal', 'GPIO', 'Destino', 'Función']}
   rows={[
     ['ENC_A', 'GPIO3', 'Encoder del motor', 'Canal A de cuadratura, por interrupción'],
     ['ENC_B', 'GPIO4', 'Encoder del motor', 'Canal B de cuadratura, por interrupción'],
     ['STBY', 'GPIO5', 'TB6612FNG', 'Standby: en bajo, el driver queda inhibido'],
+    ['AIN1', 'GPIO6', 'TB6612FNG', 'Dirección del canal A'],
+    ['AIN2', 'GPIO7', 'TB6612FNG', 'Dirección del canal A'],
     ['PWMA', 'GPIO10', 'TB6612FNG', 'PWM del canal A, 20 kHz'],
   ]}
 />
 
-### Parámetros de control
+## Firmware
+
+MicroPython sobre el ESP32-C3.
+
+<Artifact href="/firmware/main_gripper_final.py" name="Firmware — main_gripper_final.py" />
+
+### Encoder de cuadratura
+
+El firmware decodifica el encoder por interrupciones, con una tabla de
+transición *phase-correct* que da resolución de ±1 count. La lectura del
+contador es atómica: se envuelve en `disable_irq`/`enable_irq` para que la
+interrupción no la modifique a media lectura.
+
+### Control de posición
+
+```text
+1. mm_to_count(mm) — convierte mm a counts de encoder
+2. Si |target − current| ≤ 35 counts: ya está en posición, freno + stop
+3. Bucle de control cada 8 ms: perfil de velocidad con boost inicial
+   de 12 ms, 30 % de recorrido en aceleración, 55 % en desaceleración
+4. Detección de stall: si el encoder no cambió en 500 ms, detiene con
+   freno activo y guarda la posición del evento
+```
+
+El perfil de velocidad usa la función `smoothstep01(x) = x²(3 − 2x)` para
+suavizar las transiciones. Sin ella, los escalones de aceleración provocan
+saltos mecánicos en el mecanismo de piñón y cremallera.
 
 <ParameterTable
-  caption="Parámetros leídos del firmware"
+  caption="Parámetros de control, leídos del firmware"
   rows={[
     { parameter: 'Frecuencia PWM', value: '20', unit: 'kHz', notes: 'Por encima del rango audible' },
     { parameter: 'Periodo del lazo', value: '8', unit: 'ms' },
@@ -87,38 +143,10 @@ que usa el firmware.
   ]}
 />
 
-## Encoder de cuadratura
+### Comandos USB serie
 
-El encoder es la única fuente de retroalimentación de posición del gripper.
-El firmware lo decodifica por interrupciones, con una tabla de transición
-*phase-correct* que da resolución de ±1 count.
-
-La lectura del contador es atómica: se envuelve en
-`disable_irq`/`enable_irq` para que la interrupción del encoder no la
-modifique a media lectura.
-
-## Control de posición — `goto_mm_async`
-
-```text
-1. mm_to_count(mm) — convierte mm a counts de encoder
-2. Si |target − current| ≤ 35 counts: ya está en posición, freno + stop
-3. Bucle de control cada 8 ms: perfil de velocidad con boost inicial
-   de 12 ms, 30 % de recorrido en aceleración, 55 % en desaceleración
-4. Detección de stall: si el encoder no cambió en 500 ms, detiene y
-   guarda el estado
-```
-
-El perfil de velocidad usa la función `smoothstep01(x) = x²(3 − 2x)` para
-suavizar las transiciones. Sin ella, los escalones de aceleración provocan
-saltos mecánicos en el mecanismo de piñón-cremallera.
-
-## Detección de stall
-
-Si el encoder no cambia durante 500 ms con el motor activo, el firmware
-asume un obstáculo o límite mecánico y detiene el motor con freno activo,
-guardando la posición del evento para diagnóstico.
-
-## Comandos USB serial (no bloqueantes)
+Ninguno bloquea: el firmware sigue atendiendo el puerto mientras el motor se
+mueve.
 
 | Comando | Descripción |
 | --- | --- |
@@ -129,20 +157,26 @@ guardando la posición del evento para diagnóstico.
 | `sc` / `so` | Guardar posición actual como cerrado / abierto |
 | `save` / `load` | Guardar / cargar calibración desde JSON |
 
-## Calibración y persistencia
+Publica una línea de estado cada 250 ms y tras cada comando:
+
+```text
+GRIPPER_STATE mm=40.000 count=-14285 target_mm=40.000 target_count=-14285 busy=0 calibrated=1 open_count=-28570 closed_count=0
+```
+
+### Calibración
 
 1. Mover manualmente (o con pulsos `po`/`pc`) a la posición abierta máxima
    → `so` guarda `OPEN_COUNT`.
 2. Mover a la posición cerrada máxima → `sc` guarda `CLOSED_COUNT`.
 
 Los valores se guardan en `gripper_state.json` con escritura atómica
-(archivo temporal + rename) para evitar corrupción si se interrumpe el
-proceso. Si el archivo no existe o está corrupto, el gripper arranca no
-calibrado y bloquea los comandos de posición hasta recalibrar.
+(archivo temporal + rename), para que un corte a media escritura no
+corrompa el archivo. Si no existe o está corrupto, el gripper arranca sin
+calibrar y bloquea los comandos de posición hasta recalibrar.
 
-Esta es la calibración real del gripper construido. Sirve de referencia para
-saber si una réplica queda en el mismo orden de magnitud, pero **no se puede
-copiar**: los valores dependen del montaje concreto de cada mecanismo.
+La calibración del gripper construido sirve de referencia de orden de
+magnitud, pero **no se puede copiar**: depende del montaje de cada
+mecanismo.
 
 ```json
 { "closed_count": 0, "open_count": -28570 }
@@ -153,20 +187,3 @@ abajo desde el cero de cerrado. De ahí sale la resolución de 357,1 counts/mm.
 
 <Artifact href="/software/gripper_cal.json" name="Calibración de referencia — gripper_cal.json" />
 <Artifact href="/software/calibracion_gripper.py" name="Script de calibración del gripper" />
-
-## Estado publicado
-
-```text
-GRIPPER_STATE mm=40.000 count=-14285 target_mm=40.000 target_count=-14285 busy=0 calibrated=1 open_count=-28570 closed_count=0
-```
-
-La NUC parsea esta línea y la publica como `gripper_state` en el tópico ZMQ
-del puerto 5001.
-
-## Verificación
-
-El gripper recorre sus 80 mm completos sin perder posición, detiene un stall
-en 500 ms sin dañar el mecanismo, conserva la calibración tras reiniciarse y
-responde a la NUC con menos de 50 ms de latencia. El detalle de cada
-resultado está en [Verificación del robot
-móvil](/sistema/subsistemas/robot-movil/verificacion/).

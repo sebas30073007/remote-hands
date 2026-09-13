@@ -1,65 +1,99 @@
 ---
-title: Visor Meta Quest
-type: subsystem
-subsystemId: SUB-XR
-status: validated
-disciplines:
-  - Software
-  - XR / Unity
-  - UX
-responsibility: Operación remota del robot en realidad mixta desde Meta Quest 3.
-inputs:
-  - Video, telemetría, LiDAR (NUC, por ZMQ)
-outputs:
-  - Comandos de movimiento, manipulador y modos de percepción (ZMQ, puerto 5002)
+title: Meta Quest 3
+description: El visor desde el que se opera el robot — qué es, cómo funciona la interfaz, cómo se conecta con la NUC y qué hay de la aplicación.
+# Bloques grandes en el índice de la página: Sinopsis y Aplicación.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { StatusBadge, InterfaceTable } from '@project';
+import { SignalChain } from '@project';
 
-La interfaz de operación es una aplicación Unity para **Meta Quest 3**.
-Desde ella, el operador ve el entorno del robot en realidad mixta
-—passthrough—, conduce la base móvil, maneja el manipulador y cambia los
-modos de percepción.
+<figure>
+  <img src="/images/3d/meta-quest-3.webp" alt="Visor Meta Quest 3 con sus dos controladores" />
+</figure>
 
-Todos los controles viven en un canvas world-space que flota frente al
-operador.
+El Meta Quest 3 es la interfaz de usuario de Remote Hands. Desde el visor, el
+operador ve el entorno del robot, lo conduce, maneja el manipulador y elige
+qué datos de los sensores quiere recibir.
 
-## Qué se puede replicar
+## Sinopsis
 
-<InterfaceTable
-  caption="Nivel de replicación por parte"
-  columns={['Parte', 'Nivel', 'Qué lo limita']}
-  rows={[
-    ['Contrato ZMQ con la NUC', 'Reproducible', 'Nada: puertos, tópicos y esquema de comandos están completos'],
-    ['Lógica de la aplicación', 'Descrito', 'Los 25 scripts están, pero sin escenas ni prefabs'],
-    ['Interfaz y controles', 'Descrito', 'Sin las escenas de Unity ni capturas del headset'],
+### Qué es
+
+Una aplicación **Unity** para Meta Quest 3 en realidad mixta: el operador
+ve su entorno real por *passthrough*, con los controles superpuestos. Todos
+viven en un canvas world-space que flota frente a él, y se usan apuntando
+con los controladores del visor.
+
+<figure>
+  <img
+    src="/images/ui-realidad-mixta.png"
+    alt="Vista de la interfaz de teleoperación en realidad mixta sobre Meta Quest"
+  />
+  <figcaption>La interfaz tal como la ve el operador: paneles de estado y sensores superpuestos sobre el entorno real.</figcaption>
+</figure>
+
+### Cómo funciona
+
+El canvas agrupa tres paneles:
+
+| Panel | Función |
+| --- | --- |
+| Izquierdo | Estado de conexión, controles de cámara, parada de emergencia |
+| Central | Stream de video principal y grid LiDAR 2D |
+| Derecho | Sliders de manipulador y gripper, rotación de cámara |
+
+La interfaz pide a la NUC solo los datos que está mostrando: los streams que
+nadie tiene abierto **no se transmiten**.
+
+Para mover el robot hay tres modos exclusivos, y solo uno puede estar activo
+a la vez:
+
+| Modo | Qué habilita | Qué arma |
+| --- | --- | --- |
+| Mobile | Conducción con el joystick derecho | Tracción |
+| Manip | Sliders de manipulador y gripper | CL57T |
+| Base | Rotación del brazo | — |
+
+Al desactivar todos los modos, la interfaz envía `stop_all` y
+`master_disarm`.
+
+### Conexiones
+
+El visor habla solo con la NUC, por WiFi. Cada tipo de dato viaja por su
+propio puerto ZeroMQ.
+
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'Meta Quest 3', detalle: 'Unity · AsyncZMQ (NetMQ)', imagen: '/images/3d/meta-quest-3.webp' },
+    { nombre: 'NUC', detalle: 'coordinador · Python 3.12', imagen: '/images/3d/nuc.webp' },
+  ]}
+  enlaces={[
+    {
+      medio: 'ZMQ por WiFi',
+      vuelta: '5555 video · 5001 estado · 5007 paredes y puntos',
+      ida: '5002 comandos JSON',
+    },
   ]}
 />
 
-La asimetría es deliberada y conviene entenderla antes de empezar: **el
-protocolo está completo, la aplicación no**. Con lo publicado aquí se puede
-escribir un cliente propio —en Unity, en Unreal o en un escritorio— que hable
-con el robot exactamente igual que este. Lo que no se puede es recompilar
-esta app concreta.
+Los comandos que salen por el puerto `5002` se envían varias veces seguidas,
+con unos milisegundos de separación: un suscriptor de ZeroMQ que acaba de
+conectarse pierde los primeros mensajes, y repetir el comando asegura que al
+menos una copia llegue. El detalle de cada puerto está en [Middleware
+ZMQ](/sistema/subsistemas/servidor-percepcion/middleware/).
 
-## Componentes
+## Aplicación
 
-- **[Interfaz y controles](/sistema/subsistemas/interfaz-xr/interfaz/)**
-  — paneles, drive teleop, manipulador, gripper y LiDAR 3D.
-- **[Unity y comunicación ZMQ](/sistema/subsistemas/interfaz-xr/unity/)**
-  — stack tecnológico, endpoints y referencia de comandos.
-- **[Verificación](/sistema/subsistemas/interfaz-xr/verificacion/)**
-  — qué se probó de la aplicación y con qué resultado.
+Lo publicado del proyecto Unity son sus **25 scripts de C#**, completos, y el
+contrato con la NUC. No están las escenas ni los prefabs, así que los scripts
+explican la lógica y el protocolo pero no bastan para recompilar esta app.
+Con el contrato sí se puede escribir un cliente propio que hable con el
+robot igual que este.
 
-## Estado del subsistema
-
-| Funcionalidad | Estado |
-| --- | --- |
-| Proyecto Unity compilado en Meta Quest 3 | <StatusBadge label="Funcional" tone="ok" /> |
-| Stream de video RGB @ ~30 fps | <StatusBadge label="Verificado" tone="ok" /> |
-| Panel LiDAR 2D (3 modos) | <StatusBadge label="Verificado" tone="ok" /> |
-| StatusPanel con telemetría | <StatusBadge label="Verificado" tone="ok" /> |
-| Drive teleop desde joystick | <StatusBadge label="Funcional" tone="ok" /> |
-| Control de manipulador 3 GDL y gripper | <StatusBadge label="Funcional" tone="ok" /> |
-| LiDAR 3D — paredes y nube de puntos | <StatusBadge label="Funcional" tone="ok" /> |
-| Gemelo digital URDF | <StatusBadge label="Mediano plazo" tone="neutral" /> |
+- **[Interfaz y controles](/sistema/subsistemas/interfaz-xr/interfaz/)**:
+  cada panel, la conducción, el manipulador y el feedback háptico y de audio.
+- **[Unity y comunicación ZMQ](/sistema/subsistemas/interfaz-xr/unity/)**:
+  paquetes, endpoints, configuración por defecto y los scripts.

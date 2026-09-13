@@ -1,0 +1,97 @@
+---
+/**
+ * Diagrama de conexiones en estrella — la variante de `SignalChain` para una
+ * pieza que se conecta con varias a la vez: la NUC con sus sensores y sus
+ * placas, por ejemplo.
+ *
+ * Mismo lenguaje visual que la cadena: tarjetas con el render y el dato
+ * técnico, y tramos con el medio por el que viaja la información. La pieza
+ * central ocupa la columna izquierda en toda su altura; cada rama es una
+ * fila con su tramo y su tarjeta.
+ *
+ * Uso:
+ * <SignalHub
+ *   centro={{ nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' }}
+ *   ramas={[
+ *     { nombre: 'RPLiDAR C1', imagen: '/images/3d/rplidar-c1.webp', enlace: { medio: 'COM3', vuelta: 'barridos 2D' } },
+ *     …
+ *   ]}
+ * />
+ *
+ * `enlace` es como en `SignalChain`: un texto (flecha del centro hacia la
+ * rama) o `{ medio, ida, vuelta }`, donde `ida` va del centro a la rama y
+ * `vuelta` regresa. En pantalla estrecha no hay columnas: cada rama se
+ * apila con su tramo escrito debajo, con el sentido en palabras.
+ */
+type Enlace = string | { medio?: string; ida?: string; vuelta?: string };
+
+interface Paso {
+  nombre: string;
+  detalle?: string;
+  imagen: string;
+}
+
+interface Props {
+  centro: Paso;
+  ramas: (Paso & { enlace: Enlace })[];
+  caption?: string;
+}
+
+const { centro, ramas, caption } = Astro.props;
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const src = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
+const normalizar = (e: Enlace) => (typeof e === 'string' ? { ida: e } : e);
+---
+
+<figure class="c-chain c-hub not-content" style={`--hub-filas:${ramas.length}`}>
+  <ol class="c-hub__lista">
+    <li class="c-chain__paso c-hub__centro">
+      <img class="c-chain__img" src={src(centro.imagen)} alt="" loading="lazy" decoding="async" />
+      <span class="c-chain__nombre">{centro.nombre}</span>
+      {centro.detalle && <span class="c-chain__detalle">{centro.detalle}</span>}
+    </li>
+    {
+      ramas.map((rama, i) => {
+        const enlace = normalizar(rama.enlace);
+        return (
+          <>
+            <li class="c-chain__tramo c-hub__tramo" style={`--hub-fila:${i + 1}`}>
+              {enlace.vuelta && (
+                <span class="c-chain__flecha c-chain__flecha--vuelta">
+                  <span class="c-chain__senal">
+                    <span class="c-hub__sentido">
+                      {rama.nombre} → {centro.nombre}:{' '}
+                    </span>
+                    {enlace.vuelta}
+                  </span>
+                  <span class="c-chain__linea" aria-hidden="true" />
+                </span>
+              )}
+              {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
+              <span class="c-chain__flecha c-chain__flecha--ida">
+                {enlace.ida && (
+                  <span class="c-chain__senal">
+                    <span class="c-hub__sentido">
+                      {centro.nombre} → {rama.nombre}:{' '}
+                    </span>
+                    {enlace.ida}
+                  </span>
+                )}
+                <span class="c-chain__linea" aria-hidden="true" />
+              </span>
+            </li>
+            <li class="c-chain__paso c-hub__rama" style={`--hub-fila:${i + 1}`}>
+              <img class="c-chain__img" src={src(rama.imagen)} alt="" loading="lazy" decoding="async" />
+              <span class="c-hub__texto">
+                <span class="c-chain__nombre">{rama.nombre}</span>
+                {rama.detalle && <span class="c-chain__detalle">{rama.detalle}</span>}
+              </span>
+            </li>
+          </>
+        );
+      })
+    }
+  </ol>
+  {caption && <figcaption class="c-chain__caption">{caption}</figcaption>}
+</figure>

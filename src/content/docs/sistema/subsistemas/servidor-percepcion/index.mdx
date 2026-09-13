@@ -1,109 +1,130 @@
 ---
-title: Servidor / percepción
-type: subsystem
-subsystemId: SUB-SERVIDOR
-status: validated
-disciplines:
-  - Software
-  - Percepción
-  - Comunicaciones
-responsibility: Percepción, coordinación y puente ZMQ entre el operador y la electrónica embebida.
-inputs:
-  - Comandos JSON desde Meta Quest (puerto 5002)
-  - Datos de RPLiDAR C1 (COM3) y RealSense D435i (USB3)
-outputs:
-  - Video, telemetría y datos de LiDAR (puertos 5555 / 5001 / 5007)
-  - Comandos serie a los controladores embebidos (COM4 / COM5)
+title: NUC
+description: La computadora a bordo del robot — qué es, cómo coordina el sistema, con qué se conecta y el software que corre.
+# Bloques grandes en el índice de la página: Sinopsis y Software.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { StatusBadge, InterfaceTable } from '@project';
+import { InterfaceTable, Artifact, SignalHub } from '@project';
 
-Pese al nombre, este subsistema no corre en ningún servidor externo. La
-**NUC (Intel NUC i7)** viaja a bordo del robot y hace de nodo central de
-percepción, procesamiento y coordinación.
+<figure>
+  <img src="/images/3d/nuc.webp" alt="Intel NUC, la computadora a bordo del robot" />
+</figure>
 
-Sobre ella corre un backend en **Python 3.12 con ZeroMQ**, sin ROS. Esa
-ausencia de ROS fue una decisión deliberada, registrada en
+La NUC es la computadora del robot. Recibe las órdenes del operador, lee
+los sensores y reparte el trabajo entre las placas embebidas que mueven los
+motores.
+
+## Sinopsis
+
+### Qué es
+
+Una **Intel NUC i7** que viaja a bordo del robot: pese al nombre de la
+sección, no hay ningún servidor externo. Sobre ella corre un único proceso
+en **Python 3.12 con ZeroMQ**, sin ROS. Dejar fuera ROS fue una decisión
+deliberada, registrada en
 [ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).
 
-## Responsabilidades
+Ese proceso hace dos trabajos, cada uno documentado en su página:
 
-- Adquirir los datos de los sensores: RealSense D435i y RPLiDAR C1.
-- Procesar solo lo que el modo activo requiere —visión YOLOv8, grid de
-  LiDAR o pipeline de paredes—, de modo que los modos inactivos no consuman
-  CPU ni red.
-- Publicar video, sensores y datos binarios por ZeroMQ.
-- Recibir los comandos que envía Unity: modos, movimiento, manipulador y
-  gripper.
-- Hacer de puente serie hacia el Puente H maestro (COM4) y hacia el gripper
-  (COM5).
+- **[Middleware ZMQ](/sistema/subsistemas/servidor-percepcion/middleware/)**:
+  los cuatro canales con el visor y los dos puentes serie hacia las placas.
+- **[Percepción](/sistema/subsistemas/servidor-percepcion/percepcion/)**:
+  el grid y las paredes del LiDAR, y el video y la visión de la RealSense.
 
-## Flujo de datos
+### Cómo funciona
 
-Todo lo que entra y sale de la NUC. Los sensores y los controladores cuelgan
-de puertos físicos; el operador, de los cuatro canales ZeroMQ.
+La NUC procesa solo lo que el modo activo requiere —visión YOLO, grid de
+LiDAR o pipeline de paredes—, de modo que un modo inactivo no consume ni CPU
+ni red.
 
-```mermaid
-flowchart TB
-  LID["RPLiDAR C1 · COM3"]
-  CAM["RealSense D435i · USB 3"]
-  PERC["Percepción · grid, paredes, YOLO"]
-  COORD["Coordinación · modos y watchdogs"]
-  OP["Meta Quest 3 · operador"]
-  PHM["Puente H maestro · COM4"]
-  GRP["Controlador del gripper · COM5"]
-
-  LID --> PERC
-  CAM --> PERC
-  PERC -- "5555 · video JPEG" --> OP
-  PERC -- "5001 · JSON de estado" --> OP
-  PERC -- "5007 · paredes y puntos" --> OP
-  OP -- "5002 · comandos JSON" --> COORD
-  COORD -- "serie" --> PHM
-  COORD -- "serie" --> GRP
-  PHM -- "estado" --> COORD
-  GRP -- "estado" --> COORD
-```
-
-La NUC no reenvía comandos tal cual: los traduce. Un `drive_cmd` con
+Tampoco reenvía los comandos tal cual: los traduce. Un `drive_cmd` con
 velocidades `v`/`w` del modelo uniciclo se convierte en consignas por motor
 antes de salir por COM4, y un `manip_cmd` en grados se convierte en la trama
-ASCII `POSE` que entiende el controlador del manipulador.
+ASCII `POSE` que entiende el [Controlador
+CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/). El control en
+tiempo real —pasos, rampas, PWM— se queda en las placas.
 
-## Componentes
+### Conexiones
 
-- **[Middleware ZMQ](/sistema/subsistemas/servidor-percepcion/middleware/)**
-  — puertos, tópicos, comandos y puentes serie.
-- **[Percepción](/sistema/subsistemas/servidor-percepcion/percepcion/)**
-  — pipeline de la RealSense y del RPLiDAR.
-- **[Verificación](/sistema/subsistemas/servidor-percepcion/verificacion/)**
-  — frecuencias medidas por canal y pruebas pendientes.
+Todo lo que entra y sale de la NUC. El operador llega por WiFi; los
+sensores y las placas, por USB.
 
-## Qué se puede replicar
-
-Es el subsistema más replicable del proyecto: todo su comportamiento vive en
-un archivo de código que sí está publicado.
-
-<InterfaceTable
-  caption="Nivel de replicación por parte"
-  columns={['Parte', 'Nivel', 'Qué lo limita']}
-  rows={[
-    ['Middleware ZMQ', 'Reproducible', 'Faltan versiones fijadas de las dependencias'],
-    ['Percepción', 'Reproducible', 'Los pesos de YOLO se descargan aparte, en el primer arranque'],
+<SignalHub
+  centro={{ nombre: 'NUC', detalle: 'Intel i7 · Python 3.12', imagen: '/images/3d/nuc.webp' }}
+  ramas={[
+    {
+      nombre: 'Meta Quest 3',
+      detalle: 'interfaz de usuario',
+      imagen: '/images/3d/meta-quest-3.webp',
+      enlace: { medio: 'ZMQ por WiFi', ida: '5555 video · 5001 estado · 5007 paredes', vuelta: '5002 comandos' },
+    },
+    {
+      nombre: 'RealSense D435i',
+      detalle: 'cámara RGB-D',
+      imagen: '/images/3d/realsense-d435.webp',
+      enlace: { medio: 'USB 3', vuelta: 'RGB 640 × 480 · profundidad' },
+    },
+    {
+      nombre: 'RPLiDAR C1',
+      detalle: 'LiDAR 2D',
+      imagen: '/images/3d/rplidar-c1.webp',
+      enlace: { medio: 'COM3 · 460 800 baud', vuelta: 'barridos 2D' },
+    },
+    {
+      nombre: 'Conjunto I²C',
+      detalle: 'Puente H maestro',
+      imagen: '/images/3d/puente-h.webp',
+      enlace: { medio: 'USB-CDC · COM4', ida: 'tracción · POSE', vuelta: 'estado' },
+    },
+    {
+      nombre: 'Controlador del gripper',
+      detalle: 'ESP32-C3',
+      imagen: '/images/3d/controlador-gripper.webp',
+      enlace: { medio: 'USB-CDC · COM5', ida: 'm <mm>', vuelta: 'GRIPPER_STATE' },
+    },
   ]}
 />
 
-El hardware sí impone condiciones que el código no puede resolver: hacen
-falta una RealSense D435i con el SDK de Intel instalado y un RPLiDAR C1. Sin
-ellos el proceso arranca, porque los imports son tolerantes a fallo, pero se
-queda sin percepción.
+Por COM4 la NUC habla solo con el Puente H maestro, que reenvía por I²C al
+Puente H esclavo y al controlador CL57T: es el [Conjunto
+I²C](/sistema/subsistemas/robot-movil/conjunto-i2c/). El gripper queda fuera
+de ese bus, con su propio USB.
 
-## Estado del subsistema
+## Software
 
-| Funcionalidad | Estado |
-| --- | --- |
-| Streaming ZMQ (video + LiDAR + estado) | <StatusBadge label="Verificado" tone="ok" /> |
-| Control de base móvil y manipulador | <StatusBadge label="Implementado" tone="ok" /> |
-| Telemetría de manipulador y gripper | <StatusBadge label="Implementado" tone="ok" /> |
-| Modos inmersivos (paredes, puntos LiDAR) | <StatusBadge label="Implementado" tone="ok" /> |
-| Watchdog ZMQ con paro seguro completo | <StatusBadge label="Parcial" tone="warn" /> |
+<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
+
+### Cómo se ejecuta
+
+El coordinador es un único proceso de Python que abre los cuatro puertos
+ZeroMQ, conecta los sensores y mantiene los dos puentes serie. No hay
+orquestador ni servicio: se lanza a mano.
+
+<InterfaceTable
+  caption="Dependencias del coordinador"
+  columns={['Paquete', 'Para qué', 'Nota']}
+  rows={[
+    ['pyzmq', 'Los cuatro canales ZeroMQ', 'Núcleo del middleware'],
+    ['opencv-python', 'Compresión JPEG y morfología del pipeline de paredes', 'Se importa como cv2'],
+    ['numpy', 'Grids, máscaras y nubes de puntos', '—'],
+    ['pyrealsense2', 'RealSense D435i', 'Requiere el SDK de Intel instalado'],
+    ['ultralytics', 'YOLO en los modos pose y segmentación', 'Descarga los pesos la primera vez'],
+    ['pyserial', 'Puentes COM4 y COM5', 'Import opcional: sin él, el arranque no falla'],
+    ['rplidarc1', 'RPLiDAR C1', 'Con respaldo a un módulo scanner local'],
+  ]}
+/>
+
+El código tolera que falten `pyserial` y el módulo del LiDAR: los envuelve en
+`try`/`except` y arranca igual, sin ese periférico. Eso permite desarrollar
+la parte de percepción o de red sin el robot conectado. Sin la RealSense y
+el RPLiDAR, el proceso arranca, pero se queda sin percepción.
+
+### Puertos fijos
+
+Los puertos serie están **fijados en el código** (`COM4`, `COM5`, `COM3`),
+no son configurables por argumento ni por variable de entorno. En otra
+máquina hay que editarlos, igual que los puertos ZeroMQ: `5555`, `5001`,
+`5002` y `5007`.

@@ -6,7 +6,7 @@ tableOfContents:
   maxHeadingLevel: 2
 ---
 
-import { InterfaceTable } from '@project';
+import { InterfaceTable, SignalHub } from '@project';
 
 <figure>
   <img src="/images/3d/portada-conjunto-i2c.webp" alt="Los dos módulos Puente H encimados y el controlador CL57T con un final de carrera" />
@@ -50,3 +50,49 @@ propio USB (COM5).
 Cada placa está documentada en su página: [Puente
 H](/sistema/subsistemas/robot-movil/electronica/) y [Controlador
 CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/).
+
+### Conexiones
+
+El Puente H maestro es el centro del conjunto: recibe de la NUC y reparte
+por el bus.
+
+<SignalHub
+  centro={{ nombre: 'Puente H maestro', detalle: 'ESP32-C3 · DIP 100', imagen: '/images/3d/puente-h.webp' }}
+  ramas={[
+    {
+      nombre: 'NUC',
+      detalle: 'Python 3.12',
+      imagen: '/images/3d/nuc.webp',
+      enlace: { medio: 'USB-CDC · COM4', vuelta: 'tracción · POSE', ida: 'estado' },
+    },
+    {
+      nombre: 'Puente H esclavo',
+      detalle: 'motor izquierdo',
+      imagen: '/images/3d/puente-h.webp',
+      enlace: { medio: 'I²C 0x08', ida: 'tramas binarias de 7 bytes' },
+    },
+    {
+      nombre: 'Controlador CL57T',
+      detalle: 'tres ejes del brazo',
+      imagen: '/images/3d/controlador-cl57t.webp',
+      enlace: { medio: 'I²C 0x0B', ida: 'POSE · HOME_ALL', vuelta: 'OK …' },
+    },
+  ]}
+/>
+
+Estas son las direcciones del bus que fija el firmware del maestro, y las que
+hay que respetar al añadir un nodo.
+
+<InterfaceTable
+  caption="Direcciones I²C del bus, según el firmware de tracción"
+  columns={['Dirección', 'Nodo', 'Protocolo']}
+  rows={[
+    ['0x08', 'Puente H esclavo 1: motor izquierdo', 'Binario, tramas de 7 bytes'],
+    ['0x09', 'Puente H esclavo 2: reservado', 'Binario, tramas de 7 bytes'],
+    ['0x0A', 'Puente H esclavo 3: reservado', 'Binario, tramas de 7 bytes'],
+    ['0x0B', 'Controlador CL57T', 'Texto ASCII'],
+  ]}
+/>
+
+Las direcciones `0x09` y `0x0A` las reserva el DIP switch del Puente H, pero
+no se usan en esta configuración.

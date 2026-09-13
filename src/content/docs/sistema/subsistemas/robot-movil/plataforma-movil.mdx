@@ -1,118 +1,77 @@
 ---
-title: "Plataforma móvil"
-description: Base diferencial de tipo uniciclo rehabilitada, con tracción controlada por dos módulos Puente H en arquitectura maestro-esclavo sobre I²C.
+title: Plataforma móvil
+description: La base diferencial que desplaza al robot — qué es, cómo funciona su tracción, cómo se conecta y su mecánica.
+# Bloques grandes en el índice de la página: Sinopsis y Mecánica.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
+import { SignalChain } from '@project';
 
-La plataforma móvil es una base diferencial de tipo uniciclo **rehabilitada**:
-se conservó la estructura mecánica original y se sustituyó por completo la
-electrónica de control, los drivers de motor y el cableado.
+<figure>
+  <img src="/images/3d/base-diferencial.webp" alt="Base diferencial de la plataforma móvil, con sus dos motores DC" />
+</figure>
 
-<ReplicationLevel
-  level="described"
-  provides={[
-    'Arquitectura de control y mapa completo de direcciones del bus I²C',
-    'Configuración de DIP switch de cada módulo Puente H',
-    'Parámetros de tracción leídos del firmware: frecuencia PWM, rampa, techo de velocidad y tiempos de seguridad',
-    'Firmware de tracción completo',
-  ]}
-  missing={[
-    'Identificación de la base rehabilitada: fabricante, modelo y dimensiones del chasis, sin lo cual la parte mecánica no se puede reproducir ni sustituir',
-    'Especificación de los motores DC: tensión, par, relación de reducción y modelo de encoder',
-    'Diámetro de rueda y distancia entre ejes, necesarios para convertir consigna a velocidad real',
-    'Diagrama de cableado de potencia y señal entre batería, módulos y motores',
-  ]}
-/>
+La plataforma móvil es la base que desplaza al robot por el piso. Lleva
+encima el manipulador y la electrónica, y gira y avanza con dos motores DC,
+uno por lado.
 
-## Requisitos
+## Sinopsis
 
-La plataforma debía soportar el peso del manipulador y de la electrónica,
-moverse sobre las superficies planas de un almacén, y ser compatible con los
-módulos de control embebido diseñados para el proyecto.
+### Qué es
 
-## Diseño
+Una base diferencial de tipo uniciclo **rehabilitada**: se conservó la
+estructura mecánica original y se sustituyó por completo la electrónica de
+control, los drivers de motor y el cableado.
+
+- **2 motores DC** con encoders. Los encoders todavía no están integrados en
+  el lazo de control: hoy la tracción funciona en lazo abierto, y cerrarlo
+  es una de las líneas de trabajo futuro del proyecto.
+- **4 ruedas locas**, una en cada extremo, para soporte y estabilidad.
+- **Estructura de acero calibre 18 (1,2 mm)**, que sostiene el manipulador y
+  la electrónica.
 
 <figure>
   <img src="/images/build/plataforma-movil-base.webp" alt="Base de la plataforma móvil antes de la rehabilitación" />
   <figcaption>La base tal como se recibió, antes de sustituir drivers, cableado y electrónica.</figcaption>
 </figure>
 
-- **2 motores DC** con encoders para odometría. Los encoders todavía no están
-  integrados en el lazo de control; cerrarlo es una de las líneas de trabajo
-  futuro del proyecto, y hoy la tracción funciona en lazo abierto.
-- **4 ruedas locas**, una en cada extremo, para soporte y estabilidad.
-- **Estructura de acero calibre 18 (1,2 mm)**, que sostiene el manipulador y
-  la electrónica.
+### Cómo funciona
 
-## Tracción y bus I²C
+Cada motor lo mueve un módulo [Puente
+H](/sistema/subsistemas/robot-movil/electronica/). La NUC mezcla la
+velocidad de avance y de giro que pide el operador en una consigna por
+motor, y la manda al Puente H maestro, que mueve el motor derecho y reenvía
+la suya al esclavo, que mueve el izquierdo.
 
-La tracción usa dos módulos [Puente
-H](/sistema/subsistemas/robot-movil/electronica/) en
-arquitectura maestro-esclavo. El maestro recibe los comandos de la NUC por
-USB y refresca al esclavo por I²C en cadena (*daisy chain*).
+La velocidad tiene un techo del **70 % de duty**. No es un límite de la
+electrónica sino una decisión de seguridad: con el manipulador montado, el
+centro de masa sube y acelerar a fondo compromete la estabilidad. Ese techo,
+la rampa y el resto de parámetros de tracción están en el [firmware del
+Puente H](/sistema/subsistemas/robot-movil/electronica/#deadtime-y-rampas).
 
-<InterfaceTable
-  caption="Asignación de módulos a los motores de tracción"
-  columns={['Motor', 'Módulo', 'Modo (DIP switch)', 'Dirección I²C']}
-  rows={[
-    ['Derecho', 'Puente H #1 — Maestro', 'I²C Maestro (SW 100)', '— (es el maestro)'],
-    ['Izquierdo', 'Puente H #2 — Esclavo', 'I²C Slave 1 (SW 101)', '0x08'],
+### Conexiones
+
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'NUC', detalle: 'mezcla v / w', imagen: '/images/3d/nuc.webp' },
+    { nombre: 'Puente H maestro', detalle: 'motor derecho', imagen: '/images/3d/puente-h.webp' },
+    { nombre: 'Puente H esclavo', detalle: 'motor izquierdo · I²C 0x08', imagen: '/images/3d/puente-h.webp' },
+    { nombre: 'Base diferencial', detalle: 'dos motores DC', imagen: '/images/3d/base-diferencial.webp' },
   ]}
+  enlaces={['USB-CDC · COM4 · 15 Hz', 'I²C 0x08 · cada 80 ms', 'Salida al motor · uno por módulo']}
 />
-
-### Mapa del bus
-
-El maestro de tracción no habla solo con el otro puente H: también dirige el
-controlador del manipulador por el mismo bus. Estas direcciones están fijadas
-en el firmware y son las que hay que respetar al añadir un nodo.
-
-<InterfaceTable
-  caption="Direcciones I²C del bus, según el firmware de tracción"
-  columns={['Dirección', 'Nodo', 'Protocolo']}
-  rows={[
-    ['0x08', 'Puente H esclavo 1 — motor izquierdo', 'Binario, tramas de 7 bytes'],
-    ['0x09', 'Puente H esclavo 2 — reservado', 'Binario, tramas de 7 bytes'],
-    ['0x0A', 'Puente H esclavo 3 — reservado', 'Binario, tramas de 7 bytes'],
-    ['0x0B', 'Controlador del manipulador', 'Texto ASCII'],
-  ]}
-/>
-
-Las direcciones `0x09` y `0x0A` están reservadas por el DIP switch pero no se
-usan en esta configuración. La `0x0B` es la excepción del bus: el controlador
-del manipulador habla **ASCII**, no el protocolo binario de los puentes H.
 
 <figure>
   <img src="/images/build/caja-elevacion-interior-electronica.webp" alt="Módulos Puente H montados dentro de la caja de elevación" />
   <figcaption>Los dos módulos alojados en la caja de elevación, sobre soportes impresos.</figcaption>
 </figure>
 
-## Parámetros de tracción
+## Mecánica
 
-Leídos del firmware, no transcritos de la memoria del proyecto. Son los que
-determinan cómo se comporta el robot al moverse.
-
-<ParameterTable
-  caption="Parámetros de control de tracción"
-  rows={[
-    { parameter: 'Frecuencia PWM', value: '1000', unit: 'Hz' },
-    { parameter: 'Tiempo muerto entre diagonales', value: '300', unit: 'µs', notes: 'Evita el cortocircuito de puente' },
-    { parameter: 'Techo de velocidad', value: '70', unit: '% de duty' },
-    { parameter: 'Rampa', value: '1 % cada 20', unit: 'ms', notes: '1,4 s de 0 % al techo' },
-    { parameter: 'Timeout de comunicación', value: '2500', unit: 'ms', notes: 'Sin comando, vuelve a DISARMED' },
-    { parameter: 'Refresco maestro → esclavo', value: '80', unit: 'ms' },
-    { parameter: 'Baudios del enlace serie', value: '115200', unit: 'bps' },
-    { parameter: 'Prioridad de USB', value: '8000', unit: 'ms', notes: 'Ventana en que USB desplaza al medio del DIP switch' },
-  ]}
-/>
-
-El techo del 70 % no es una limitación de la electrónica sino una decisión de
-seguridad: con el manipulador montado, el centro de masa sube y la
-aceleración a fondo compromete la estabilidad.
-
-<Artifact href="/firmware/main_movil_final.py" name="Firmware de tracción — main_movil_final.py" />
-
-## Rehabilitación
+### Rehabilitación
 
 Se sustituyó el cableado completo y se montaron los módulos PCB de diseño
 propio sobre la estructura existente. El trabajo mecánico se limitó a los
@@ -123,25 +82,15 @@ soportes de la electrónica; la cinemática de la base no se modificó.
   <figcaption>Primera prueba de movilidad tras la rehabilitación, con los módulos Puente H ya en control de la tracción.</figcaption>
 </figure>
 
-## Integración estructural con el manipulador
+### Integración con el manipulador
 
 El manipulador se monta sobre una caja metálica de elevación fijada a la
 plataforma. La fijación aprovecha los puntos estructurales del chasis
 cercanos a los tornillos de las ruedas caster, para repartir la carga del
-brazo en vez de concentrarla en la chapa superior.
+brazo en vez de concentrarla en la chapa superior. Las ranuras alargadas
+permiten ajustar la posición.
 
 <figure>
   <img src="/images/build/union-base-caja-elevacion.webp" alt="Unión entre el chasis de la plataforma y la caja de elevación" />
   <figcaption>Ranuras alargadas de ajuste y tornillería de fijación entre chasis y caja de elevación.</figcaption>
 </figure>
-
-El detalle mecánico de esa caja está en [Manipulador 3
-GDL](/sistema/subsistemas/robot-movil/manipulador/).
-
-## Verificación
-
-La plataforma acumula cuatro resultados de prueba: movimiento diferencial en
-superficie plana, respuesta a los comandos de dirección, temperatura de los
-MOSFETs bajo carga continua y control remoto extremo a extremo. El detalle de
-cada uno está en [Verificación del robot
-móvil](/sistema/subsistemas/robot-movil/verificacion/).

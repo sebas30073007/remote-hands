@@ -372,6 +372,9 @@ export const ESCENAS = {
 const FRENTE = [-0.3, 0.3, 1];
 const MINI = { w: 960, h: 720 };
 
+/* El DRV8833 de frente, con la serigrafía al derecho. */
+const GIRO_DRV = [Math.PI / 2, Math.PI, 0];
+
 export const MINIATURAS = {
   // Eslabones de los diagramas de conexiones.
   'meta-quest-3': { lienzo: MINI, vista: [-0.45, 0.22, 1], capas: [{ id: 'm', modelo: 'meta-quest-3' }] },
@@ -402,6 +405,18 @@ export const MINIATURAS = {
     sinTornilleria: true,
     capas: [{ id: 'm', piezas: BASE_MOVIL }],
   },
+  manipulador: {
+    lienzo: { w: 900, h: 1100 },
+    base: 'robot-completo',
+    soloPiezas: BRAZO,
+    capas: [{ id: 'm', piezas: BRAZO }],
+  },
+  gripper: { lienzo: MINI, vista: FRENTE, base: 'robot-completo', soloPiezas: GRIPPER, capas: [{ id: 'm', piezas: GRIPPER }] },
+  // La cara frontal del modelo de la RealSense es lisa, sin lentes: se ve
+  // mejor por detrás, con el logotipo.
+  'realsense-d435': { lienzo: MINI, vista: [0.45, 0.35, -1], capas: [{ id: 'm', modelo: 'realsense-d435' }] },
+  'rplidar-c1': { lienzo: MINI, vista: [-0.45, 0.35, 1], capas: [{ id: 'm', modelo: 'rplidar-c1' }] },
+  'controlador-gripper': { lienzo: MINI, vista: FRENTE, capas: [{ id: 'm', modelo: 'drv8833', escala: 3, rotacion: GIRO_DRV }] },
 
   // Imágenes de cabecera de página: grandes y de frente.
   'portada-puente-h': { lienzo: { w: 1400, h: 1000 }, vista: FRENTE, capas: [{ id: 'm', modelo: 'puente-h' }] },
@@ -409,9 +424,27 @@ export const MINIATURAS = {
     lienzo: { w: 1400, h: 820 },
     vista: [-0.45, 0.35, 1],
     capas: [
-      { id: 'realsense', modelo: 'realsense-d435', posicion: [-0.07, 0.03, 0] },
+      { id: 'realsense', modelo: 'realsense-d435', rotacion: [0, Math.PI, 0], posicion: [-0.07, 0.03, 0] },
       { id: 'lidar', modelo: 'rplidar-c1', posicion: [0.075, 0.01, 0] },
       { id: 'final', componentes: [final([0.005, -0.04, 0.02], 1.2)] },
+    ],
+  },
+  'portada-embebidos': {
+    lienzo: { w: 1400, h: 1000 },
+    vista: FRENTE,
+    capas: [
+      {
+        id: 'm',
+        componentes: [...puentesH([0, 0, 0]), ...controladorCL57T([0, 0, 0]), { modelo: 'drv8833', escala: 3, rotacion: GIRO_DRV, posicion: [0.155, -0.01, 0] }],
+      },
+    ],
+  },
+  'portada-percepcion': {
+    lienzo: { w: 1400, h: 820 },
+    vista: [-0.45, 0.35, 1],
+    capas: [
+      { id: 'realsense', modelo: 'realsense-d435', rotacion: [0, Math.PI, 0], posicion: [-0.045, 0.02, 0] },
+      { id: 'lidar', modelo: 'rplidar-c1', posicion: [0.05, 0.0, 0] },
     ],
   },
   'portada-conjunto-i2c': {

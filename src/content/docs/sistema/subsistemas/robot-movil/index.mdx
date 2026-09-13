@@ -1,97 +1,108 @@
 ---
 title: Robot
-type: subsystem
-subsystemId: SUB-ROBOT
-status: validated
-revision: "—"
-disciplines:
-  - Mecánica
-  - Electrónica
-  - Firmware
-  - Control
-responsibility: Movimiento físico del robot y manipulación de objetos.
-owner: "—"
-inputs:
-  - Comandos de movimiento y manipulador (NUC, por USB/I²C)
-outputs:
-  - Estado de motores, ejes y gripper
-  - Telemetría de finales de carrera y calibración
+description: El robot de Remote Hands — qué es, cómo se reparte el control entre sus partes y cómo se conectan.
+# Bloques grandes en el índice de la página: Sinopsis y Partes.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { StatusBadge, InterfaceTable } from '@project';
+import { InterfaceTable, SignalHub } from '@project';
 
 <figure>
-  <img src="/images/robot-agv.png" alt="Robot completo con manipulador montado sobre la plataforma móvil" />
-  <figcaption>Robot completo: plataforma móvil diferencial con manipulador de 3 GDL.</figcaption>
+  <img src="/images/3d/robot.webp" alt="Robot completo: el manipulador sobre la plataforma móvil" />
 </figure>
 
-Este subsistema integra dos piezas construidas por caminos distintos: una
-**plataforma móvil diferencial rehabilitada** y un **manipulador de 3 GDL
-construido desde cero**.
+El robot es la parte de Remote Hands que se mueve: una plataforma móvil que
+lo desplaza por el piso y un manipulador que toma objetos. La NUC que lleva
+a bordo recibe las órdenes del operador y las reparte entre sus placas.
 
-Ambas resuelven su propio movimiento de bajo nivel con controladores
-embebidos dedicados. La NUC solo les envía consignas simples, según el
-reparto descrito en [Arquitectura del
-sistema](/sistema/arquitectura/resumen/).
+## Sinopsis
 
-## Componentes
+### Qué es
 
-**Mecánica**
-
-- [Plataforma móvil](/sistema/subsistemas/robot-movil/plataforma-movil/)
-  — base diferencial rehabilitada y su integración estructural.
-- [Manipulador 3 GDL](/sistema/subsistemas/robot-movil/manipulador/)
-  — diseño, manufactura por corte láser, ensamble y CAD.
-
-**Electrónica y firmware**
-
-- [Electrónica — Puente H](/sistema/subsistemas/robot-movil/electronica/)
-  — PCB propia con ESP32-C3 para la tracción.
-- [Controlador CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/)
-  — los tres ejes del manipulador.
-- [Controlador del gripper](/sistema/subsistemas/robot-movil/controladores/gripper/)
-  — control por posición en milímetros, sin PCB dedicada.
-- [Software embebido](/sistema/subsistemas/robot-movil/firmware/)
-  — los tres controladores como conjunto, y el reparto entre firmware
-  ESP32-C3 y stack de la NUC.
-
-**Validación**
-
-- [Verificación](/sistema/subsistemas/robot-movil/verificacion/)
-  — resultados de prueba por componente.
-
-## Qué se puede replicar
-
-Cada componente se documenta hasta donde su material real lo permite, y cada
-página declara su propio nivel con el detalle de qué falta. Esta tabla es el
-resumen, para decidir por dónde entrar sin abrirlas todas.
+Dos piezas construidas por caminos distintos: una **plataforma móvil
+diferencial rehabilitada** y un **manipulador de 3 GDL construido desde
+cero**. Sobre ellas van los sensores que ven el entorno y las placas
+embebidas que mueven los motores.
 
 <InterfaceTable
-  caption="Nivel de replicación por componente"
-  columns={['Componente', 'Nivel', 'Qué lo limita']}
+  caption="Partes del robot"
+  columns={['Parte', 'Qué hace']}
   rows={[
-    ['Módulo Puente H', 'Construible', 'Falta el valor del Zener y los números de parte de proveedor'],
-    ['Controlador de drivers', 'Construible', 'Falta la configuración de micropasos y corriente de los CL57T'],
-    ['Controlador del gripper', 'Construible', 'Falta la referencia del motor Pololu y los STL de las pinzas'],
-    ['Manipulador 3 GDL', 'Descrito', 'Solo 5 de ~80 piezas tienen DXF publicado; sin BOM mecánica'],
-    ['Plataforma móvil', 'Descrito', 'La base es rehabilitada y no está identificada por modelo'],
+    ['Plataforma móvil', 'Tracción diferencial con dos motores DC'],
+    ['Manipulador', 'Brazo de 3 GDL con gripper lineal'],
+    ['Embebidos', 'Tres controladores ESP32-C3: tracción, brazo y gripper'],
+    ['Sensores', 'LiDAR y cámara RGB-D para la percepción; finales de carrera para el brazo'],
   ]}
 />
 
-La electrónica y el firmware son la parte más replicable del robot: hay
-archivos de fabricación, listas de materiales y código completo. La mecánica
-va por detrás, y lo que la frena está identificado pieza por pieza en
-[Manipulador 3
-GDL](/sistema/subsistemas/robot-movil/manipulador/).
+### Cómo funciona
 
-## Estado del subsistema
+Cada parte resuelve su propio movimiento de bajo nivel con un controlador
+embebido dedicado. La NUC solo les envía consignas simples —una velocidad
+para la base, un ángulo por eje, una apertura en milímetros— y cada placa
+genera las señales que su hardware necesita: PWM, pulsos de paso, rampas y
+rutinas de homing.
 
-| Componente | Estado |
-| --- | --- |
-| Plataforma móvil diferencial | <StatusBadge label="Construida y probada" tone="ok" /> |
-| Manipulador 3 GDL | <StatusBadge label="Construido y probado" tone="ok" /> |
-| Módulos Puente H (PCB, ×2) | <StatusBadge label="Diseñados, ensamblados y probados" tone="ok" /> |
-| Firmware Puente H | <StatusBadge label="Funcional en todos los modos" tone="ok" /> |
-| Firmware CL57T | <StatusBadge label="Funcional — homing, compensación de muñeca" tone="ok" /> |
-| Firmware gripper | <StatusBadge label="Funcional — control mm, detección de stall" tone="ok" /> |
-| Control NUC ↔ ESP32-C3 ↔ XR | <StatusBadge label="Integración en proceso" tone="warn" /> |
+Ese reparto mantiene simples los comandos que salen del visor: toda la
+complejidad del movimiento se resuelve dentro del robot. Está descrito en
+[Sistema](/sistema/arquitectura/resumen/).
+
+### Conexiones
+
+La NUC es el centro del robot. Los sensores y las placas se conectan a ella
+por USB; los motores cuelgan de las placas.
+
+<SignalHub
+  centro={{ nombre: 'NUC', detalle: 'a bordo · Intel i7', imagen: '/images/3d/nuc.webp' }}
+  ramas={[
+    {
+      nombre: 'Sensores',
+      detalle: 'RealSense D435i y RPLiDAR C1',
+      imagen: '/images/3d/rplidar-c1.webp',
+      enlace: { medio: 'USB 3 · COM3', vuelta: 'video · barridos 2D' },
+    },
+    {
+      nombre: 'Plataforma móvil',
+      detalle: 'vía Puente H maestro',
+      imagen: '/images/3d/base-diferencial.webp',
+      enlace: { medio: 'USB-CDC · COM4', ida: 'consigna por motor' },
+    },
+    {
+      nombre: 'Manipulador',
+      detalle: 'vía Puente H maestro y CL57T',
+      imagen: '/images/3d/manipulador.webp',
+      enlace: { medio: 'COM4 → I²C 0x0B', ida: 'POSE base codo muñeca', vuelta: 'estado' },
+    },
+    {
+      nombre: 'Gripper',
+      detalle: 'controlador propio',
+      imagen: '/images/3d/gripper.webp',
+      enlace: { medio: 'USB-CDC · COM5', ida: 'apertura en mm', vuelta: 'GRIPPER_STATE' },
+    },
+  ]}
+/>
+
+La plataforma y el manipulador comparten un solo USB: el Puente H maestro
+recibe las dos órdenes y reenvía la del brazo por I²C. Es el [Conjunto
+I²C](/sistema/subsistemas/robot-movil/conjunto-i2c/).
+
+## Partes
+
+Cada parte tiene su página:
+
+- **[Plataforma móvil](/sistema/subsistemas/robot-movil/plataforma-movil/)**:
+  la base rehabilitada, su tracción y su unión con el manipulador.
+- **[Manipulador](/sistema/subsistemas/robot-movil/manipulador/)**: la
+  cinemática, la transmisión, la manufactura por corte láser y los planos.
+- **[Embebidos](/sistema/subsistemas/robot-movil/firmware/)**: los tres
+  controladores ESP32-C3 y su firmware, con una página por placa: [Puente
+  H](/sistema/subsistemas/robot-movil/electronica/), [Controlador
+  CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/) y
+  [Gripper](/sistema/subsistemas/robot-movil/controladores/gripper/).
+- **[Sensores](/sistema/subsistemas/robot-movil/sensores/)**: dónde van los
+  sensores de percepción y los finales de carrera.
+
+Los resultados de prueba de todo el robot están en
+[Verificación](/sistema/subsistemas/robot-movil/verificacion/).

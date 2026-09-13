@@ -306,3 +306,21 @@ Ningún cambio de velocidad es instantáneo. El duty cycle sube o baja 1 %
 cada 20 ms hasta alcanzar la consigna, con un techo de 70 %. Pasar de 0 % a
 velocidad máxima toma por tanto 1,4 s como mínimo, y esa rampa es la que
 limita las corrientes de arranque y el estrés mecánico sobre los motores DC.
+
+El techo del 70 % es una decisión de seguridad de la [plataforma
+móvil](/sistema/subsistemas/robot-movil/plataforma-movil/#cómo-funciona): con
+el manipulador montado, acelerar a fondo compromete la estabilidad.
+
+<ParameterTable
+  caption="Parámetros de tracción, leídos del firmware"
+  rows={[
+    { parameter: 'Frecuencia PWM', value: '1000', unit: 'Hz' },
+    { parameter: 'Tiempo muerto entre diagonales', value: '300', unit: 'µs', notes: 'Evita el cortocircuito de puente' },
+    { parameter: 'Techo de velocidad', value: '70', unit: '% de duty' },
+    { parameter: 'Rampa', value: '1 % cada 20', unit: 'ms', notes: '1,4 s de 0 % al techo' },
+    { parameter: 'Timeout de comunicación', value: '2500', unit: 'ms', notes: 'Sin comando, vuelve a DISARMED' },
+    { parameter: 'Refresco maestro → esclavo', value: '80', unit: 'ms' },
+    { parameter: 'Baudios del enlace serie', value: '115200', unit: 'bps' },
+    { parameter: 'Prioridad de USB', value: '8000', unit: 'ms', notes: 'Ventana en que USB desplaza al medio del DIP switch' },
+  ]}
+/>

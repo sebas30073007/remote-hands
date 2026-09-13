@@ -215,7 +215,7 @@ export default defineConfig({
                       label: 'Sistemas embebidos',
                       collapsed: true,
                       items: [
-                        { slug: 'sistema/subsistemas/robot-movil/firmware', label: 'Software embebido' },
+                        { slug: 'sistema/subsistemas/robot-movil/firmware', label: 'Embebidos' },
                         { slug: 'sistema/subsistemas/robot-movil/conjunto-i2c', label: 'Conjunto I²C' },
                         { slug: 'sistema/subsistemas/robot-movil/electronica', label: 'Puente H' },
                         { slug: 'sistema/subsistemas/robot-movil/controladores/cl57t', label: 'CL57T' },

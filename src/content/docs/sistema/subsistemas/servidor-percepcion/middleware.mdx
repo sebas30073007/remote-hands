@@ -1,74 +1,44 @@
 ---
-title: "Middleware ZMQ"
-description: Puertos, tópicos y puentes seriales del middleware de la NUC.
+title: Middleware ZMQ
+description: Los canales entre la NUC y el visor, y los puentes serie hacia las placas — qué es, cómo funciona, con qué se conecta y su protocolo.
+# Bloques grandes en el índice de la página: Sinopsis y Protocolo.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
+import { ParameterTable, InterfaceTable, Artifact, SignalHub } from '@project';
 
-El proceso coordinador de la NUC usa **ZeroMQ** con cuatro puertos, uno por
-tipo de dato. Esta página los describe desde dentro del sistema —cómo los
-abre y los atiende el coordinador—; el contrato entre subsistemas, con la
-tabla de puertos verificados, está en [Comunicaciones del
+El middleware es la parte del coordinador de la NUC que mueve mensajes: los
+cuatro canales ZeroMQ con el visor y los dos puentes serie hacia las placas
+embebidas.
+
+## Sinopsis
+
+### Qué es
+
+Código dentro del coordinador de la NUC, no un programa aparte. Abre
+**cuatro puertos ZeroMQ**, uno por tipo de dato, y mantiene dos puertos serie.
+Esta página lo describe desde dentro de la NUC; el contrato entre
+subsistemas, con la tabla de puertos verificados, está en [Comunicaciones del
 sistema](/sistema/arquitectura/comunicaciones/#puertos-zmq-verificados).
-
-<ReplicationLevel
-  level="reproducible"
-  provides={[
-    'Código fuente completo del coordinador, 2409 líneas',
-    'Puertos, tópicos y esquema de comandos con sus frecuencias',
-    'Dependencias de Python y hardware necesario',
-    'Todos los parámetros de red, watchdog y puentes serie',
-  ]}
-  missing={[
-    'Versiones exactas de las dependencias: el código no trae requirements.txt ni fija versión de ultralytics, pyrealsense2 u OpenCV',
-    'Script de arranque automático al encender la NUC',
-  ]}
-/>
-
-<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
-
-## Cómo se ejecuta
-
-El coordinador es un único proceso de Python que abre los cuatro puertos
-ZeroMQ, conecta los sensores y mantiene los dos puentes serie. No hay
-orquestador ni servicio: se lanza a mano.
-
-<InterfaceTable
-  caption="Dependencias del coordinador"
-  columns={['Paquete', 'Para qué', 'Nota']}
-  rows={[
-    ['pyzmq', 'Los cuatro canales ZeroMQ', 'Núcleo del middleware'],
-    ['opencv-python', 'Compresión JPEG y morfología del pipeline de paredes', 'Se importa como cv2'],
-    ['numpy', 'Grids, máscaras y nubes de puntos', '—'],
-    ['pyrealsense2', 'RealSense D435i', 'Requiere el SDK de Intel instalado'],
-    ['ultralytics', 'YOLO en los modos pose y segmentación', 'Descarga los pesos la primera vez'],
-    ['pyserial', 'Puentes COM4 y COM5', 'Import opcional: sin él, el arranque no falla'],
-    ['rplidarc1', 'RPLiDAR C1', 'Con respaldo a un módulo scanner local'],
-  ]}
-/>
-
-El código tolera que falten `pyserial` y el módulo del LiDAR: los envuelve en
-`try`/`except` y arranca igual, sin ese periférico. Eso permite desarrollar
-la parte de percepción o de red sin el robot conectado.
-
-Los puertos serie están **fijados en el código** (`COM4`, `COM5`, `COM3`), no
-son configurables por argumento ni por variable de entorno. En otra máquina
-hay que editarlos.
-
-## Puertos
 
 <InterfaceTable
   caption="Puertos ZMQ del middleware de la NUC"
   columns={['Puerto', 'Rol NUC', 'Rol Unity', 'Tipo']}
   rows={[
-    ['5555', 'PUB', 'SUB', 'Video — frames JPEG comprimidos'],
-    ['5001', 'PUB', 'SUB', 'Sensores y estado — JSON por tópico'],
+    ['5555', 'PUB', 'SUB', 'Video: frames JPEG comprimidos'],
+    ['5001', 'PUB', 'SUB', 'Sensores y estado: JSON por tópico'],
     ['5002', 'SUB', 'PUB', 'Comandos desde Unity hacia la NUC'],
-    ['5007', 'PUB', 'SUB', 'Paredes y puntos LiDAR — datos binarios'],
+    ['5007', 'PUB', 'SUB', 'Paredes y puntos LiDAR: datos binarios'],
   ]}
 />
 
-Tres decisiones de diseño gobiernan este reparto:
+<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
+
+### Cómo funciona
+
+Tres decisiones de diseño gobiernan el reparto:
 
 - **Puertos separados por tipo de dato.** El video y los datos binarios no
   pueden bloquear el canal JSON, que es el que lleva el estado y los
@@ -91,7 +61,38 @@ El límite de **2** en video es lo que mantiene la teleoperación utilizable.
 Con una cola profunda, el operador vería frames cada vez más viejos conforme
 la red se degrada, en lugar de perder algunos y seguir viendo el presente.
 
-## Tópicos JSON (puerto 5001)
+### Conexiones
+
+Los canales que el middleware atiende: ZeroMQ hacia el visor y serie hacia
+las dos placas que reciben órdenes directas de la NUC.
+
+<SignalHub
+  centro={{ nombre: 'NUC', detalle: 'coordinador · Python 3.12', imagen: '/images/3d/nuc.webp' }}
+  ramas={[
+    {
+      nombre: 'Meta Quest 3',
+      detalle: 'cliente Unity',
+      imagen: '/images/3d/meta-quest-3.webp',
+      enlace: { medio: 'ZMQ por WiFi', ida: '5555 · 5001 · 5007', vuelta: '5002 · cmd JSON' },
+    },
+    {
+      nombre: 'Puente H maestro',
+      detalle: 'tracción y manipulador',
+      imagen: '/images/3d/puente-h.webp',
+      enlace: { medio: 'COM4 · 115 200 baud', ida: 'POSE {base} {codo} {muneca}', vuelta: 'estado' },
+    },
+    {
+      nombre: 'Controlador del gripper',
+      detalle: 'pinza',
+      imagen: '/images/3d/controlador-gripper.webp',
+      enlace: { medio: 'COM5 · 115 200 baud', ida: 'm {mm}', vuelta: 'GRIPPER_STATE' },
+    },
+  ]}
+/>
+
+## Protocolo
+
+### Tópicos JSON (puerto 5001)
 
 | Tópico | Frecuencia | Contenido |
 | --- | --- | --- |
@@ -103,7 +104,7 @@ la red se degrada, en lugar de perder algunos y seguir viendo el presente.
 | `vision` | ~10 Hz | Resultados YOLOv8 (pose o segmentación) |
 | `cam_info` | Continuo | Intrínsecos de la RealSense y escala de profundidad |
 
-## Comandos (puerto 5002)
+### Comandos (puerto 5002)
 
 Todos los comandos viajan como JSON. Estos son los más relevantes, agrupados
 por función:
@@ -119,7 +120,7 @@ por función:
 `drive_cmd` usa modelo uniciclo: la NUC mezcla `v`/`w` y envía al Puente H
 maestro a 15 Hz.
 
-### Parámetros de mando y seguridad
+### Mando y seguridad
 
 <ParameterTable
   caption="Valores que gobiernan el mando y sus paros"
@@ -139,25 +140,3 @@ maestro a 15 Hz.
 Los dos timeouts cubren fallos distintos. El de `drive_cmd` (0,35 s) actúa
 cuando el operador deja de mandar pero la conexión sigue viva. El de
 heartbeat (2 s) actúa cuando se cae el enlace entero.
-
-## Puentes seriales
-
-<InterfaceTable
-  caption="Puentes serie de la NUC hacia la electrónica embebida"
-  columns={['Puerto', 'Baudrate', 'Destino', 'Ejemplo de comando de salida']}
-  rows={[
-    ['COM4', '115 200', 'Puente H maestro — base y manipulador', 'POSE {base} {codo} {muneca}'],
-    ['COM5', '115 200', 'Controlador del gripper', 'm {mm}'],
-  ]}
-/>
-
-## Estado
-
-| Funcionalidad | Estado |
-| --- | --- |
-| Streaming video, grid LiDAR, `stat` | Verificado |
-| Cambio de modos cámara/LiDAR desde Unity | Verificado vía `mode_ack` |
-| Control de base móvil y manipulador | Implementado |
-| Telemetría de manipulador y gripper | Implementada |
-| Watchdog de timeout de `drive_cmd` (0,35 s) | Implementado |
-| Watchdog de conexión ZMQ con paro seguro | Pendiente |

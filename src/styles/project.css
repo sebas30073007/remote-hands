@@ -1375,3 +1375,110 @@ a.c-sysmap__edge:focus-visible {
   font-size: 0.8125rem;
   color: var(--text-secondary);
 }
+
+/* ==========================================================================
+   SignalHub — conexiones en estrella (usa las tarjetas y tramos de c-chain)
+   ========================================================================== */
+.c-hub__lista {
+  display: grid;
+  grid-template-columns: minmax(0, 0.8fr) auto minmax(0, 1.2fr);
+  align-items: center;
+  gap: var(--space-sm) 0;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-hub__lista > li {
+  margin: 0;
+}
+
+.c-hub__centro {
+  grid-column: 1;
+  grid-row: 1 / span var(--hub-filas);
+  justify-content: center;
+}
+
+.c-hub__tramo {
+  grid-column: 2;
+  grid-row: var(--hub-fila);
+  max-width: 11rem;
+  padding: 0;
+}
+
+/* Sin relleno en el tramo, las flechas tocan las dos tarjetas; el texto
+   conserva su margen. */
+.c-hub__tramo .c-chain__senal,
+.c-hub__tramo .c-chain__medio {
+  padding-inline: var(--space-md);
+}
+
+.c-hub__rama {
+  grid-column: 3;
+  grid-row: var(--hub-fila);
+  flex-direction: row;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  text-align: left;
+}
+
+.sl-markdown-content .c-hub__rama .c-chain__img,
+.c-hub__rama .c-chain__img {
+  flex: none;
+  width: 5rem;
+  margin: 0;
+}
+
+.c-hub__texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  min-width: 0;
+}
+
+/* El sentido en palabras solo hace falta cuando no hay flechas. */
+.c-hub__sentido {
+  display: none;
+}
+
+@media (max-width: 40rem) {
+  .c-hub__lista {
+    grid-template-columns: minmax(0, 1fr);
+  }
+
+  .c-hub__centro,
+  .c-hub__tramo,
+  .c-hub__rama {
+    grid-column: 1;
+    grid-row: auto;
+  }
+
+  /* Cada rama primero y, debajo, lo que viaja por su tramo. */
+  .c-hub__centro {
+    margin-bottom: var(--space-md);
+  }
+
+  .c-hub__rama {
+    order: calc(var(--hub-fila) * 2);
+  }
+
+  .c-hub__tramo {
+    order: calc(var(--hub-fila) * 2 + 1);
+    max-width: none;
+    margin-bottom: var(--space-md);
+  }
+
+  .c-hub__tramo .c-chain__senal,
+  .c-hub__tramo .c-chain__medio {
+    padding-inline: var(--space-lg);
+  }
+
+  .c-hub .c-chain__linea {
+    display: none;
+  }
+
+  .c-hub__sentido {
+    display: inline;
+    color: var(--text);
+  }
+}

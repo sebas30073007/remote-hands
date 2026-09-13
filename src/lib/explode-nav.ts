@@ -57,7 +57,7 @@ export interface NodoExplode {
 
 const SUB = 'sistema/subsistemas';
 const ROBOT = `${SUB}/robot-movil`;
-const GRIPPER_CONEXIONES = { pagina: `${ROBOT}/controladores/gripper`, ancla: 'conexionado' };
+const GRIPPER_CONEXIONES = { pagina: `${ROBOT}/controladores/gripper`, ancla: 'conexiones' };
 
 export const NODOS: NodoExplode[] = [
   {
@@ -159,8 +159,8 @@ export const NODOS: NodoExplode[] = [
       caja: { nombre: 'Caja de elevación', descripcion: 'columna del brazo', ancla: 'integración-con-la-plataforma' },
       torreta: { nombre: 'Base rotatoria', descripcion: 'giro del brazo', ancla: 'base-rotatoria' },
       hombro: { nombre: 'Hombro', descripcion: 'motores y bandas', ancla: 'transmisión' },
-      eslabon1: { nombre: 'Eslabón 1', descripcion: 'brazo', ancla: 'arquitectura-mecánica' },
-      eslabon2: { nombre: 'Eslabón 2', descripcion: 'antebrazo', ancla: 'arquitectura-mecánica' },
+      eslabon1: { nombre: 'Eslabón 1', descripcion: 'brazo', ancla: 'cómo-funciona' },
+      eslabon2: { nombre: 'Eslabón 2', descripcion: 'antebrazo', ancla: 'cómo-funciona' },
       gripper: { nodo: 'gripper' },
       drivers: { nodo: 'cl57t', nombre: 'Drivers CL57T ×3', descripcion: 'potencia de los steppers' },
     },
@@ -173,9 +173,9 @@ export const NODOS: NodoExplode[] = [
     padre: 'manipulador',
     escena: 'gripper',
     piezas: {
-      dedos: { nombre: 'Dedos y cremalleras', descripcion: 'apertura lineal', ancla: 'hardware' },
-      pinon: { nombre: 'Piñón', descripcion: 'transmisión', ancla: 'hardware' },
-      base: { nombre: 'Base y soporte', descripcion: 'montaje', ancla: 'hardware' },
+      dedos: { nombre: 'Dedos y cremalleras', descripcion: 'apertura lineal', ancla: 'mecanismo' },
+      pinon: { nombre: 'Piñón', descripcion: 'transmisión', ancla: 'mecanismo' },
+      base: { nombre: 'Base y soporte', descripcion: 'montaje', ancla: 'mecanismo' },
       motor: { nombre: 'Motor con encoder', descripcion: 'accionamiento', ancla: 'encoder-de-cuadratura' },
     },
   },

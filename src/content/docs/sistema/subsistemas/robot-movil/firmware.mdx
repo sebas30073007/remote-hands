@@ -1,132 +1,93 @@
 ---
-title: "Software embebido"
-description: División entre firmware ESP32-C3 y el stack de coordinación Python 3.12 + ZMQ en la NUC.
+title: Embebidos
+description: Las tres placas ESP32-C3 que mueven los motores del robot — qué son, cómo se reparten el trabajo, cómo se conectan y su firmware.
+# Bloques grandes en el índice de la página: Sinopsis y Firmware.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { Artifact, ReplicationLevel } from '@project';
+import { Artifact, SignalHub } from '@project';
 
 <figure>
-  <img
-    src="/images/build/controlador-cl57t-placa.webp"
-    alt="Placa del controlador CL57T ensamblada, con el módulo ESP32-C3 montado"
-  />
-  <figcaption>
-    Un ESP32-C3 SuperMini sobre su placa. Los tres controladores del robot
-    son el mismo módulo con firmware distinto.
-  </figcaption>
+  <img src="/images/3d/portada-embebidos.webp" alt="Los dos módulos Puente H, el controlador CL57T y el controlador del gripper" />
 </figure>
 
-El software del robot se reparte en dos capas. La primera es el **firmware
-embebido** de los tres controladores ESP32-C3, que esta página documenta. La
-segunda es el **sistema de coordinación** que corre en la NUC, detallado en
-[Servidor / percepción](/sistema/subsistemas/servidor-percepcion/).
+Los embebidos son las placas que mueven los motores del robot. La NUC les
+manda consignas simples y cada una genera las señales que su hardware
+necesita, en tiempo real.
 
-## Los tres controladores
+## Sinopsis
 
-Los tres corren **MicroPython** sobre módulos **ESP32-C3 SuperMini**. Cada
-uno resuelve una función de actuación distinta y habla con la NUC por I²C o
-por USB-CDC. El detalle de cada uno vive en su propia página.
+### Qué es
 
-| Controlador | PCB | Comunicación con la NUC | Función |
+Tres controladores, todos con un **ESP32-C3 SuperMini** y firmware
+**MicroPython**. Cada uno resuelve una función de actuación distinta y tiene
+su propia página.
+
+| Controlador | Placa | Comunicación con la NUC | Función |
 | --- | --- | --- | --- |
-| [Puente H](/sistema/subsistemas/robot-movil/electronica/) | Diseño propio (KiCad) | USB-CDC COM4 (maestro) | Motores DC de tracción |
-| [CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/) | Diseño propio (KiCad) | I²C `0x0B` vía maestro | 3 ejes del manipulador |
-| [Gripper](/sistema/subsistemas/robot-movil/controladores/gripper/) | Protoboard (sin PCB) | USB-CDC COM5 | Pinza — posición en mm |
+| [Puente H](/sistema/subsistemas/robot-movil/electronica/) ×2 | Diseño propio (KiCad) | USB-CDC COM4 (maestro) | Motores DC de tracción |
+| [Controlador CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/) | Diseño propio (KiCad) | I²C `0x0B`, vía el maestro | 3 ejes del manipulador |
+| [Gripper](/sistema/subsistemas/robot-movil/controladores/gripper/) | Sin PCB, cableado a mano | USB-CDC COM5 | Pinza, por posición en mm |
 
-El Puente H configurado como maestro (`DIP = 100`) concentra el bus I²C, así
-que la NUC solo necesita un canal USB para mandar sobre los tres nodos de
-movimiento. Los modos del DIP switch están en
-[Electrónica](/sistema/subsistemas/robot-movil/electronica/#modos-de-operación-dip-switch);
-la topología completa, más abajo.
+### Cómo funciona
 
-<ReplicationLevel
-  level="buildable"
-  provides={[
-    'Los tres firmwares completos, con pinout y protocolo documentados',
-    'Mapa de direcciones del bus I²C y reparto de puertos USB',
-    'Archivos de fabricación y BOM de las dos PCB de diseño propio',
-  ]}
-  missing={[
-    'Números de parte de proveedor en ambos BOM',
-    'Diagrama de cableado entre las placas, los drivers y las fuentes de alimentación',
-    'Procedimiento de flasheo de MicroPython paso a paso, con la versión de intérprete usada',
+El Puente H configurado como maestro (`DIP = 100`) concentra el bus I²C: la
+NUC le manda por un solo USB las órdenes de tracción y del brazo, y él las
+reparte. Ese trío forma el [Conjunto
+I²C](/sistema/subsistemas/robot-movil/conjunto-i2c/). El gripper queda fuera
+del bus, con su propio USB.
+
+Las tres placas conservan el USB-C del ESP32-C3 como interfaz de depuración,
+siempre disponible.
+
+### Conexiones
+
+<SignalHub
+  centro={{ nombre: 'NUC', detalle: 'coordinador', imagen: '/images/3d/nuc.webp' }}
+  ramas={[
+    {
+      nombre: 'Puente H maestro',
+      detalle: 'motor derecho',
+      imagen: '/images/3d/puente-h.webp',
+      enlace: { medio: 'USB-CDC · COM4', ida: 'tracción · POSE', vuelta: 'estado' },
+    },
+    {
+      nombre: 'Puente H esclavo',
+      detalle: 'motor izquierdo',
+      imagen: '/images/3d/puente-h.webp',
+      enlace: { medio: 'COM4 → I²C 0x08', ida: 'tramas binarias' },
+    },
+    {
+      nombre: 'Controlador CL57T',
+      detalle: 'base, codo y muñeca',
+      imagen: '/images/3d/controlador-cl57t.webp',
+      enlace: { medio: 'COM4 → I²C 0x0B', ida: 'texto ASCII', vuelta: 'OK …' },
+    },
+    {
+      nombre: 'Controlador del gripper',
+      detalle: 'pinza',
+      imagen: '/images/3d/controlador-gripper.webp',
+      enlace: { medio: 'USB-CDC · COM5', ida: 'm <mm>', vuelta: 'GRIPPER_STATE' },
+    },
   ]}
 />
 
-## Requisitos
+## Firmware
 
-El software debía cumplir cuatro condiciones:
+Los tres firmwares, completos. El protocolo, los parámetros y el detalle de
+cada uno están en la página de su placa.
 
-- Un firmware ligero y estable para controlar motores en tiempo real.
-- Un sistema de coordinación que integre percepción, comunicación ZMQ y
-  control de actuadores.
-- Ninguna dependencia de ROS. Fue una decisión explícita de simplicidad y
-  portabilidad, registrada en
-  [ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).
-- Una interfaz de depuración siempre disponible, por USB-C.
-
-## Código fuente
-
-Las dos capas, completas. El coordinador de la NUC es el programa más grande
-del proyecto y el que une todo lo demás: percepción, comunicación con el
-operador y mando de los tres controladores embebidos.
-
-<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
 <Artifact href="/firmware/main_movil_final.py" name="Firmware de tracción — main_movil_final.py" />
 <Artifact href="/firmware/main_manipulador_final.py" name="Firmware del manipulador — main_manipulador_final.py" />
 <Artifact href="/firmware/main_gripper_final.py" name="Firmware del gripper — main_gripper_final.py" />
 
-| Firmware | Controlador | Líneas | Estado |
-| --- | --- | ---: | --- |
-| `main_movil_final.py` | Puente H | 1 175 | Funcional |
-| `main_manipulador_final.py` | CL57T | 933 | Funcional |
-| `main_gripper_final.py` | Gripper | 703 | Funcional |
+| Firmware | Controlador | Líneas |
+| --- | --- | ---: |
+| `main_movil_final.py` | Puente H | 1 175 |
+| `main_manipulador_final.py` | Controlador CL57T | 933 |
+| `main_gripper_final.py` | Gripper | 703 |
 
-## Topología de comunicación completa
-
-Del operador al motor. Cada arista lleva el medio físico y, donde aplica, la
-dirección o el puerto por el que viaja.
-
-```mermaid
-flowchart TB
-  Q["Meta Quest 3 · interfaz XR"]
-  NUC["NUC a bordo · Python 3.12"]
-  PHM["Puente H maestro · ESP32-C3"]
-  PHE["Puente H esclavo · ESP32-C3"]
-  CL["Controlador CL57T · ESP32-C3"]
-  GR["Controlador gripper · ESP32-C3"]
-  MD["Motor DC derecho"]
-  MI["Motor DC izquierdo"]
-  NEMA["3 × NEMA 17 · driver CL57T"]
-  TB["TB6612FNG · motor + encoder"]
-  LID["RPLiDAR C1"]
-  CAM["Intel RealSense D435i"]
-
-  Q -- "WiFi · ZMQ" --> NUC
-  NUC -- "COM4 · USB-CDC" --> PHM
-  NUC -- "COM5 · USB-CDC" --> GR
-  NUC -- "COM3 · 460 800 bps" --> LID
-  NUC -- "USB 3" --> CAM
-  PHM -- "I²C 0x08 · binario" --> PHE
-  PHM -- "I²C 0x0B · ASCII" --> CL
-  PHM --> MD
-  PHE --> MI
-  CL -- "PUL / DIR × 3" --> NEMA
-  GR --> TB
-```
-
-El detalle de los puertos y tópicos ZMQ está en
-[Middleware](/sistema/subsistemas/servidor-percepcion/middleware/).
-
-## Estado actual (última verificación conocida)
-
-| Funcionalidad | Estado |
-| --- | --- |
-| Firmware Puente H — todos los modos de comunicación | Funcional |
-| Firmware CL57T — homing, movimiento, compensación de muñeca | Funcional |
-| Firmware gripper — posición mm, stall, calibración JSON | Funcional |
-| Control de motores individual por USB-C | Verificado |
-| Control por WiFi y BLE | Verificado |
-| Integración de control de base desde interfaz XR | Funcional |
-| Control completo del manipulador 3 GDL | Funcional |
-| Control del gripper desde interfaz XR | Funcional |
+Del lado de la NUC, lo que manda sobre estas placas es el coordinador,
+documentado en [NUC](/sistema/subsistemas/servidor-percepcion/).

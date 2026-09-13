@@ -6,7 +6,7 @@ tableOfContents:
   maxHeadingLevel: 2
 ---
 
-import { ParameterTable } from '@project';
+import { ParameterTable, SignalHub, SignalChain } from '@project';
 
 <figure>
   <img src="/images/3d/portada-sensores.webp" alt="La cámara RealSense D435i, el RPLiDAR C1 y un final de carrera del manipulador" />
@@ -59,3 +59,37 @@ homing](/sistema/subsistemas/robot-movil/controladores/cl57t/#rutina-de-homing).
   <img src="/images/build/final-carrera-eslabon.webp" alt="Final de carrera montado en el interior del brazo" />
   <figcaption>Final de carrera con palanca metálica en el recorrido de un eslabón.</figcaption>
 </figure>
+
+### Conexiones
+
+Los sensores de percepción van a la NUC por USB.
+
+<SignalHub
+  centro={{ nombre: 'NUC', detalle: 'percepción', imagen: '/images/3d/nuc.webp' }}
+  ramas={[
+    {
+      nombre: 'RealSense D435i',
+      detalle: 'al frente del manipulador',
+      imagen: '/images/3d/realsense-d435.webp',
+      enlace: { medio: 'USB 3', vuelta: 'RGB 640 × 480 · profundidad' },
+    },
+    {
+      nombre: 'RPLiDAR C1',
+      detalle: 'sobre la plataforma',
+      imagen: '/images/3d/rplidar-c1.webp',
+      enlace: { medio: 'COM3 · 460 800 baud', vuelta: 'barridos 2D' },
+    },
+  ]}
+/>
+
+Los finales de carrera, en cambio, van directo a las entradas del
+controlador CL57T, que publica su estado hacia la NUC.
+
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'Finales de carrera × 3', detalle: 'base, codo y muñeca', imagen: '/images/3d/final-de-carrera.webp' },
+    { nombre: 'Controlador CL57T', detalle: 'ESP32-C3', imagen: '/images/3d/controlador-cl57t.webp' },
+  ]}
+  enlaces={['SW1 GPIO1 · SW2 GPIO3 · SW3 GPIO4']}
+/>

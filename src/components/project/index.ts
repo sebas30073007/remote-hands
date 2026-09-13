@@ -34,6 +34,7 @@ export { default as SystemMap } from './SystemMap.astro';
 // Cadena de señal con miniaturas 3D: del operador al motor, un eslabón por
 // componente, con el medio por el que viaja la orden en cada tramo.
 export { default as SignalChain } from './SignalChain.astro';
+export { default as SignalHub } from './SignalHub.astro';
 
 // Plantillas de página (colocadas automáticamente por PageTitle; se
 // exportan también por si una página necesita repetir una cabecera fuera
