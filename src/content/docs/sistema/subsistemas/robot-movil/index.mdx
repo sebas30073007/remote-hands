@@ -21,7 +21,7 @@ outputs:
 import { StatusBadge, InterfaceTable } from '@project';
 
 <figure>
-  <img src="/remote-hands/images/robot-agv.png" alt="Robot completo con manipulador montado sobre la plataforma móvil" />
+  <img src="/images/robot-agv.png" alt="Robot completo con manipulador montado sobre la plataforma móvil" />
   <figcaption>Robot completo: plataforma móvil diferencial con manipulador de 3 GDL.</figcaption>
 </figure>
 
@@ -32,32 +32,32 @@ construido desde cero**.
 Ambas resuelven su propio movimiento de bajo nivel con controladores
 embebidos dedicados. La NUC solo les envía consignas simples, según el
 reparto descrito en [Arquitectura del
-sistema](/remote-hands/sistema/arquitectura/resumen/).
+sistema](/sistema/arquitectura/resumen/).
 
 ## Componentes
 
 **Mecánica**
 
-- [Plataforma móvil](/remote-hands/sistema/subsistemas/robot-movil/plataforma-movil/)
+- [Plataforma móvil](/sistema/subsistemas/robot-movil/plataforma-movil/)
   — base diferencial rehabilitada y su integración estructural.
-- [Manipulador 3 GDL](/remote-hands/sistema/subsistemas/robot-movil/manipulador/)
+- [Manipulador 3 GDL](/sistema/subsistemas/robot-movil/manipulador/)
   — diseño, manufactura por corte láser, ensamble y CAD.
 
 **Electrónica y firmware**
 
-- [Electrónica — Puente H](/remote-hands/sistema/subsistemas/robot-movil/electronica/)
+- [Electrónica — Puente H](/sistema/subsistemas/robot-movil/electronica/)
   — PCB propia con ESP32-C3 para la tracción.
-- [Controlador CL57T](/remote-hands/sistema/subsistemas/robot-movil/controladores/cl57t/)
+- [Controlador CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/)
   — los tres ejes del manipulador.
-- [Controlador del gripper](/remote-hands/sistema/subsistemas/robot-movil/controladores/gripper/)
+- [Controlador del gripper](/sistema/subsistemas/robot-movil/controladores/gripper/)
   — control por posición en milímetros, sin PCB dedicada.
-- [Software embebido](/remote-hands/sistema/subsistemas/robot-movil/firmware/)
+- [Software embebido](/sistema/subsistemas/robot-movil/firmware/)
   — los tres controladores como conjunto, y el reparto entre firmware
   ESP32-C3 y stack de la NUC.
 
 **Validación**
 
-- [Verificación](/remote-hands/sistema/subsistemas/robot-movil/verificacion/)
+- [Verificación](/sistema/subsistemas/robot-movil/verificacion/)
   — resultados de prueba por componente.
 
 ## Qué se puede replicar
@@ -82,7 +82,7 @@ La electrónica y el firmware son la parte más replicable del robot: hay
 archivos de fabricación, listas de materiales y código completo. La mecánica
 va por detrás, y lo que la frena está identificado pieza por pieza en
 [Manipulador 3
-GDL](/remote-hands/sistema/subsistemas/robot-movil/manipulador/).
+GDL](/sistema/subsistemas/robot-movil/manipulador/).
 
 ## Estado del subsistema
 

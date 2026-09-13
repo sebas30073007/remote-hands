@@ -12,7 +12,7 @@ qué canal lleva qué, en qué dirección y por qué puerto.
 
 <figure>
   <img
-    src="/remote-hands/images/arquitectura-del-sistema.png"
+    src="/images/arquitectura-del-sistema.png"
     alt="Diagrama de la arquitectura del sistema con los enlaces entre operador, NUC y robot"
   />
   <figcaption>Los dos dominios de comunicación del sistema: ZMQ sobre WiFi del operador a la NUC, y USB/I²C de la NUC a la electrónica embebida.</figcaption>
@@ -42,7 +42,7 @@ llegando.
 Los números de puerto están verificados contra el simulador de latencia
 WF-IoT, que reproduce los canales, las frecuencias y los tamaños de payload
 del sistema real. El montaje completo está en el [protocolo del
-experimento](/remote-hands/verificacion/experimentos/latencia-wifi/protocolo/).
+experimento](/verificacion/experimentos/latencia-wifi/protocolo/).
 
 <InterfaceTable
   caption="Puertos ZMQ — verificados contra el simulador de latencia"
@@ -112,6 +112,6 @@ la incertidumbre de la red; poner la telemetría sobre USB habría cargado el
 canal determinista con tráfico que no lo necesita.
 
 El reparto de responsabilidades que se deriva de esto está registrado en
-[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+[ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).
 Para una consulta rápida de puertos y tópicos sin la justificación, está
-[Referencia · Comunicación](/remote-hands/referencia/comunicacion/).
+[Referencia · Comunicación](/referencia/comunicacion/).

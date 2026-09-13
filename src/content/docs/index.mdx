@@ -35,21 +35,21 @@ documentación.
       name: 'Visor Meta Quest',
       summary:
         'Interfaz de teleoperación en realidad mixta, hecha en Unity.',
-      href: '/remote-hands/sistema/subsistemas/interfaz-xr/',
+      href: '/sistema/subsistemas/interfaz-xr/',
     },
     {
       role: 'Coordinador',
       name: 'Servidor / NUC',
       summary:
         'A bordo. Resuelve percepción, comunicación y reparto de órdenes.',
-      href: '/remote-hands/sistema/subsistemas/servidor-percepcion/',
+      href: '/sistema/subsistemas/servidor-percepcion/',
     },
     {
       role: 'Actuación',
       name: 'Robot',
       summary:
         'Plataforma móvil diferencial y brazo de 3 GDL, con tres controladores ESP32-C3.',
-      href: '/remote-hands/sistema/subsistemas/robot-movil/',
+      href: '/sistema/subsistemas/robot-movil/',
     },
   ]}
   links={[
@@ -57,13 +57,13 @@ documentación.
       protocol: 'ZMQ · WiFi',
       forward: 'comandos',
       back: 'video, LiDAR y estado',
-      href: '/remote-hands/sistema/arquitectura/comunicaciones/',
+      href: '/sistema/arquitectura/comunicaciones/',
     },
     {
       protocol: 'USB · I²C',
       forward: 'consignas',
       back: 'telemetría',
-      href: '/remote-hands/sistema/arquitectura/comunicaciones/',
+      href: '/sistema/arquitectura/comunicaciones/',
     },
   ]}
 />
@@ -72,17 +72,17 @@ La NUC es el coordinador único: recibe comandos simples por ZMQ y los
 reparte entre tres controladores embebidos independientes —tracción,
 manipulador y gripper—, cada uno con su propio protocolo. El porqué de esa
 división está registrado en
-[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/), y
+[ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/), y
 el detalle completo en [Arquitectura del
-sistema](/remote-hands/sistema/arquitectura/resumen/).
+sistema](/sistema/arquitectura/resumen/).
 
 ### Estado de cada subsistema
 
 | Subsistema | Estado |
 | --- | --- |
-| [Robot](/remote-hands/sistema/subsistemas/robot-movil/) | Construido y probado |
-| [Servidor / NUC](/remote-hands/sistema/subsistemas/servidor-percepcion/) | Verificado — watchdog parcial |
-| [Visor Meta Quest](/remote-hands/sistema/subsistemas/interfaz-xr/) | Verificado |
+| [Robot](/sistema/subsistemas/robot-movil/) | Construido y probado |
+| [Servidor / NUC](/sistema/subsistemas/servidor-percepcion/) | Verificado — watchdog parcial |
+| [Visor Meta Quest](/sistema/subsistemas/interfaz-xr/) | Verificado |
 
 La integración de los tres en un lazo de control extremo a extremo sigue en
 proceso. Cada subsistema publica su propio estado detallado en su página de
@@ -98,7 +98,7 @@ verificación.
   corte láser en DXF.
 - **Dataset de latencia** WiFi, con 7 350 muestras sobre siete condiciones de
   carga: ver
-  [experimento de latencia](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/).
+  [experimento de latencia](/verificacion/experimentos/latencia-wifi/resultados/).
 
 ## Estado del proyecto
 

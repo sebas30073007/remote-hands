@@ -7,7 +7,7 @@ import { Artifact, ReplicationLevel } from '@project';
 
 <figure>
   <img
-    src="/remote-hands/images/build/controlador-cl57t-placa.webp"
+    src="/images/build/controlador-cl57t-placa.webp"
     alt="Placa del controlador CL57T ensamblada, con el módulo ESP32-C3 montado"
   />
   <figcaption>
@@ -19,7 +19,7 @@ import { Artifact, ReplicationLevel } from '@project';
 El software del robot se reparte en dos capas. La primera es el **firmware
 embebido** de los tres controladores ESP32-C3, que esta página documenta. La
 segunda es el **sistema de coordinación** que corre en la NUC, detallado en
-[Servidor / percepción](/remote-hands/sistema/subsistemas/servidor-percepcion/).
+[Servidor / percepción](/sistema/subsistemas/servidor-percepcion/).
 
 ## Los tres controladores
 
@@ -29,14 +29,14 @@ por USB-CDC. El detalle de cada uno vive en su propia página.
 
 | Controlador | PCB | Comunicación con la NUC | Función |
 | --- | --- | --- | --- |
-| [Puente H](/remote-hands/sistema/subsistemas/robot-movil/electronica/) | Diseño propio (KiCad) | USB-CDC COM4 (maestro) | Motores DC de tracción |
-| [CL57T](/remote-hands/sistema/subsistemas/robot-movil/controladores/cl57t/) | Diseño propio (KiCad) | I²C `0x0B` vía maestro | 3 ejes del manipulador |
-| [Gripper](/remote-hands/sistema/subsistemas/robot-movil/controladores/gripper/) | Protoboard (sin PCB) | USB-CDC COM5 | Pinza — posición en mm |
+| [Puente H](/sistema/subsistemas/robot-movil/electronica/) | Diseño propio (KiCad) | USB-CDC COM4 (maestro) | Motores DC de tracción |
+| [CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/) | Diseño propio (KiCad) | I²C `0x0B` vía maestro | 3 ejes del manipulador |
+| [Gripper](/sistema/subsistemas/robot-movil/controladores/gripper/) | Protoboard (sin PCB) | USB-CDC COM5 | Pinza — posición en mm |
 
 El Puente H configurado como maestro (`DIP = 100`) concentra el bus I²C, así
 que la NUC solo necesita un canal USB para mandar sobre los tres nodos de
 movimiento. Los modos del DIP switch están en
-[Electrónica](/remote-hands/sistema/subsistemas/robot-movil/electronica/#modos-de-operación-dip-switch);
+[Electrónica](/sistema/subsistemas/robot-movil/electronica/#modos-de-operación-dip-switch);
 la topología completa, más abajo.
 
 <ReplicationLevel
@@ -62,7 +62,7 @@ El software debía cumplir cuatro condiciones:
   control de actuadores.
 - Ninguna dependencia de ROS. Fue una decisión explícita de simplicidad y
   portabilidad, registrada en
-  [ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+  [ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).
 - Una interfaz de depuración siempre disponible, por USB-C.
 
 ## Código fuente
@@ -116,7 +116,7 @@ flowchart TB
 ```
 
 El detalle de los puertos y tópicos ZMQ está en
-[Middleware](/remote-hands/sistema/subsistemas/servidor-percepcion/middleware/).
+[Middleware](/sistema/subsistemas/servidor-percepcion/middleware/).
 
 ## Estado actual (última verificación conocida)
 

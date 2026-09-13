@@ -6,22 +6,33 @@ import { ROOT_GROUP_LABEL } from './src/lib/project.config';
 import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeMermaid from 'rehype-mermaid';
+import rehypeBase from './src/lib/rehype-base.mjs';
+
+/** Dominio y ruta base de despliegue. Ver el comentario de `defineConfig`. */
+const SITE = 'https://remote-hands.sebs.mx';
+const BASE = '/';
 
 /**
- * Configuración del sitio — @sebs/project-docs, primer proyecto de
- * validación: Remote Hands.
+ * Configuración del sitio — Remote Hands.
  *
- * DECISIÓN PENDIENTE (usuario, no resuelta por iniciativa propia):
- * `site`/`base` reales de despliegue. course-docs usa GitHub Pages en
- * `sebas30073007.github.io/course-docs`; se deja el mismo patrón como
- * placeholder (`/remote-hands`) porque es consistente con el resto del
- * ecosistema SEBS, pero el usuario puede querer un dominio propio
- * (sebs.mx/remote-hands, por ejemplo) — cambiar `site` y `base` juntos
- * cuando se decida, igual que documenta el README de course-docs.
+ * Despliegue: GitHub Pages con dominio propio, `remote-hands.sebs.mx`. El
+ * sitio vive en la raíz del subdominio, así que `base` es `/`. La URL
+ * `sebas30073007.github.io/remote-hands/` sigue existiendo y GitHub la
+ * redirige al dominio.
+ *
+ * Por qué subdominio y no la URL de github.io: el link termina en el
+ * portafolio, en el paper y en la postulación al Dyson, y tiene que
+ * sobrevivir a un cambio de nombre del repo o de proveedor. Por qué GitHub
+ * Pages y no Cloudflare: el build necesita Chromium (Mermaid se renderiza
+ * a SVG al compilar) y el workflow de course-docs ya lo resuelve.
+ *
+ * El contenido escribe rutas desde la raíz (`/sistema/…`) y
+ * `rehype-base.mjs` les antepone `BASE` al compilar: si algún día el sitio
+ * vuelve a una subruta, solo cambia `BASE`.
  */
 export default defineConfig({
-  site: 'https://sebas30073007.github.io',
-  base: '/remote-hands',
+  site: SITE,
+  base: BASE,
   trailingSlash: 'always',
 
   // KaTeX y Mermaid resueltos en build, igual que en course-docs — cero
@@ -31,6 +42,7 @@ export default defineConfig({
     processor: unified({
       remarkPlugins: [remarkMath],
       rehypePlugins: [
+        [rehypeBase, { base: BASE }],
         rehypeKatex,
         [
           rehypeMermaid,
@@ -62,6 +74,14 @@ export default defineConfig({
   integrations: [
     starlight({
       title: 'Remote Hands',
+      // Símbolo SEBS, copiado de portfolio/assets/img (la skill de marca
+      // pide copiar los assets, no enlazarlos). Sin esto Starlight pide un
+      // `/favicon.svg` que no existe y cada página daba un 404.
+      favicon: '/favicon-32.png',
+      head: [
+        { tag: 'link', attrs: { rel: 'icon', type: 'image/png', sizes: '48x48', href: `${BASE.replace(/\/$/, '')}/favicon-48.png` } },
+        { tag: 'link', attrs: { rel: 'apple-touch-icon', href: `${BASE.replace(/\/$/, '')}/apple-touch-icon.png` } },
+      ],
       description:
         'Plataforma de teleoperación para manipulación móvil: robot AGV con brazo manipulador, servidor de percepción e interfaz XR en Meta Quest.',
       defaultLocale: 'root',

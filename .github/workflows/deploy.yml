@@ -1,0 +1,51 @@
+# Compila el sitio y lo publica en GitHub Pages, servido en
+# https://remote-hands.sebs.mx (dominio configurado en Settings → Pages).
+#
+# Mismo flujo que course-docs. El paso de Playwright no es opcional: los
+# diagramas Mermaid se renderizan a SVG durante el build con un Chromium sin
+# ventana, y sin él `astro build` falla.
+#
+# La vista explosionada NO se renderiza aquí: sus capas y su manifiesto ya
+# están versionados (public/explode, src/generated). Regenerarlas necesita
+# los modelos originales, que no están en el repo.
+name: Desplegar en GitHub Pages
+
+on:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+  pages: write
+  id-token: write
+
+concurrency:
+  group: pages
+  cancel-in-progress: false
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm install --no-audit --no-fund
+      - run: npx playwright install --with-deps chromium
+      - run: npm run build
+      - uses: actions/upload-pages-artifact@v3
+        with:
+          path: ./dist
+
+  deploy:
+    needs: build
+    runs-on: ubuntu-latest
+    environment:
+      name: github-pages
+      url: ${{ steps.deployment.outputs.page_url }}
+    steps:
+      - id: deployment
+        uses: actions/deploy-pages@v4

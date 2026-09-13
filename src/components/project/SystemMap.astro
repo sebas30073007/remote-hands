@@ -56,6 +56,14 @@ interface Props {
 
 const { nodes, links = [], label = 'Mapa del sistema' } = Astro.props;
 
+// Las rutas llegan escritas desde la raíz del sitio (`/sistema/…`) y aquí se
+// les antepone el `base` de despliegue, igual que hace `Artifact`. Las props
+// de un componente no pasan por `rehype-base.mjs`: son expresiones, no
+// atributos literales del Markdown.
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const conBase = (href: string) =>
+  href.startsWith('/') && !href.startsWith('//') && !href.startsWith(`${base}/`) ? `${base}${href}` : href;
+
 if (links.length && links.length !== nodes.length - 1) {
   throw new Error(
     `SystemMap: ${nodes.length} nodos necesitan ${nodes.length - 1} enlaces, ` +
@@ -70,7 +78,7 @@ if (links.length && links.length !== nodes.length - 1) {
       nodes.map((node, i) => (
         <>
           <li class="c-sysmap__item">
-            <a class="c-sysmap__node" href={node.href}>
+            <a class="c-sysmap__node" href={conBase(node.href)}>
               {node.role && <span class="c-sysmap__role">{node.role}</span>}
               <span class="c-sysmap__name">{node.name}</span>
               <span class="c-sysmap__summary">{node.summary}</span>
@@ -85,7 +93,7 @@ if (links.length && links.length !== nodes.length - 1) {
               {/* El enlace es opcional: sin `href` el tramo es rótulo, no
                   navegación, y entonces no debe recibir foco de teclado. */}
               {links[i].href ? (
-                <a class="c-sysmap__edge" href={links[i].href}>
+                <a class="c-sysmap__edge" href={conBase(links[i].href)}>
                   <span class="c-sysmap__proto">{links[i].protocol}</span>
                   <span class="c-sysmap__payload">
                     <span class="c-sysmap__dir">

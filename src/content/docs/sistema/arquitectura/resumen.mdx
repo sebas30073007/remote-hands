@@ -10,7 +10,7 @@ recibir. Esa última capacidad importa: el robot solo transmite lo que el
 operador pidió, en lugar de saturar la red con todo lo que produce.
 
 <figure>
-  <img src="/remote-hands/images/diagrama-general.png" alt="Diagrama general de la arquitectura: Meta Quest, NUC, y red embebida del robot" />
+  <img src="/images/diagrama-general.png" alt="Diagrama general de la arquitectura: Meta Quest, NUC, y red embebida del robot" />
   <figcaption>Arquitectura general: Meta Quest, NUC coordinadora y red embebida del robot.</figcaption>
 </figure>
 
@@ -19,7 +19,7 @@ ejecutan las tareas de bajo nivel: control de motores, PWM, rampas, señales
 de drivers y rutinas de calibración. Esa división mantiene simples los
 comandos que salen de la interfaz XR, porque toda la complejidad del
 movimiento se resuelve dentro del robot. La decisión está registrada en
-[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+[ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).
 
 ## NUC embarcada
 
@@ -45,7 +45,7 @@ El robot lleva tres controladores diseñados para este proyecto: el módulo
 Puente H para tracción, en configuración maestro-esclavo; el controlador
 CL57T para los tres ejes del manipulador; y el controlador del gripper. Los
 tres están detallados en [Robot
-móvil](/remote-hands/sistema/subsistemas/robot-movil/).
+móvil](/sistema/subsistemas/robot-movil/).
 
 El Puente H maestro concentra el bus I²C hacia los otros dos módulos de
 movimiento. El gripper queda fuera de ese bus, con su propio canal USB
@@ -85,4 +85,4 @@ resuelven el control eléctrico y mecánico en local.
 
 El sistema no usa ROS. Fue una decisión explícita, tomada por simplicidad y
 portabilidad, y está registrada junto al resto de la arquitectura en
-[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+[ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).

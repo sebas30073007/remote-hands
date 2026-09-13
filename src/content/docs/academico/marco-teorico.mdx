@@ -7,7 +7,7 @@ El marco teórico del proyecto, en cinco frentes: la logística de e-commerce y 
 
 <figure>
   <img
-    src="/remote-hands/images/comercio-minorista.png"
+    src="/images/comercio-minorista.png"
     alt="Gráfica de la evolución del comercio minorista en línea"
   />
   <figcaption>El crecimiento del canal en línea es el fenómeno que sostiene la literatura de automatización de almacén revisada aquí.</figcaption>
@@ -88,7 +88,7 @@ Su control se reduce a modular de forma independiente la velocidad de cada
 rueda motriz. Esa simplicidad la hace directamente compatible con los
 joysticks analógicos de un controlador XR. La base de Remote Hands sigue
 exactamente este esquema (ver [Plataforma
-móvil](/remote-hands/sistema/subsistemas/robot-movil/plataforma-movil/)).
+móvil](/sistema/subsistemas/robot-movil/plataforma-movil/)).
 
 ### Manipulación robótica para pick-and-place
 
@@ -102,7 +102,7 @@ desde estantes o transportadores. Para ese rango, un brazo de dos
 articulaciones —hombro y codo— con garra de dos dedos cubre el espacio de
 trabajo relevante con la menor complejidad mecánica posible. El manipulador
 construido añade una tercera articulación, la muñeca, sobre esa base (ver
-[Manipulador 3 GDL](/remote-hands/sistema/subsistemas/robot-movil/manipulador/)).
+[Manipulador 3 GDL](/sistema/subsistemas/robot-movil/manipulador/)).
 
 Los motores paso a paso con drivers de lazo cerrado, como el CL57T, combinan
 la simplicidad de control de los *steppers* con retroalimentación de
@@ -129,9 +129,9 @@ error.
 
 Operar en red local permite apuntar a latencias menores a 100 ms extremo a
 extremo. Ese umbral es la referencia que informa a
-[REQ-COM-002](/remote-hands/sistema/requisitos/requisitos-de-sistema/), sin
+[REQ-COM-002](/sistema/requisitos/requisitos-de-sistema/), sin
 ser idéntico a él, y el contexto en el que se lee el [experimento de
-latencia WiFi](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/).
+latencia WiFi](/verificacion/experimentos/latencia-wifi/resultados/).
 
 ## 4. Realidad extendida (XR) para interfaces de teleoperación
 
@@ -149,7 +149,7 @@ grado industrial. El SDK de Meta XR para Unity integra renderizado
 estereoscópico, *tracking* de controladores y proyección de video externo
 dentro de la escena virtual. Con esas tres piezas, la imagen de la cámara
 del robot y los elementos de UI conviven en la misma vista (ver [Interfaz
-XR](/remote-hands/sistema/subsistemas/interfaz-xr/)).
+XR](/sistema/subsistemas/interfaz-xr/)).
 
 Para operadores con discapacidad motriz, la interfaz XR debe incorporar
 criterios de accesibilidad desde el diseño:

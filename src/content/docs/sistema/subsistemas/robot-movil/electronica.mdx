@@ -54,7 +54,7 @@ El driver de motor debía:
 />
 
 <figure>
-  <img src="/remote-hands/images/puente-h-esquema.jpg" alt="Esquema de bloques funcionales del puente H" />
+  <img src="/images/puente-h-esquema.jpg" alt="Esquema de bloques funcionales del puente H" />
   <figcaption>Etapa de potencia, aislamiento óptico, control embebido, expansión I²C y protección.</figcaption>
 </figure>
 
@@ -108,12 +108,12 @@ estándar son los que se usaron. El ZIP incluye los taladros PTH, así que no
 hay que exportar nada aparte.
 
 <figure>
-  <img src="/remote-hands/images/esquematico-puente-h.png" alt="Esquemático del Puente H en KiCad" />
+  <img src="/images/esquematico-puente-h.png" alt="Esquemático del Puente H en KiCad" />
   <figcaption>ESP32-C3, optoacopladores 4N25, MOSFETs IRF540N/IRF9540N, conectores de potencia e I²C.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/pcb-2-capas-puente-h.png" alt="Layout PCB de dos capas del Puente H" />
+  <img src="/images/pcb-2-capas-puente-h.png" alt="Layout PCB de dos capas del Puente H" />
   <figcaption>El ruteo separa los planos de potencia —pistas de 2,0 mm— de las señales lógicas del microcontrolador.</figcaption>
 </figure>
 
@@ -175,19 +175,19 @@ manual es viable y fue el que se usó.
 
 <figure>
   <img
-    src="/remote-hands/images/manufactura-jlcpcb-puente-h.png"
+    src="/images/manufactura-jlcpcb-puente-h.png"
     alt="Vista de manufactura de JLCPCB del módulo Puente H"
   />
   <figcaption>Vista de manufactura que devuelve JLCPCB al subir los Gerbers: la última revisión antes de pagar el lote.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/pcb-puente-h-soldada.webp" alt="PCB del Puente H recién soldada" />
+  <img src="/images/build/pcb-puente-h-soldada.webp" alt="PCB del Puente H recién soldada" />
   <figcaption>Placa recién soldada, antes de la instalación en el robot.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/pcb-puente-h-detalle.webp" alt="Detalle de la PCB del Puente H con ESP32-C3, DIP switch y conectores I²C" />
+  <img src="/images/build/pcb-puente-h-detalle.webp" alt="Detalle de la PCB del Puente H con ESP32-C3, DIP switch y conectores I²C" />
   <figcaption>ESP32-C3 SuperMini, conector I²C etiquetado (5 V, SDA, SCL, GND), borneras y DIP switch de selección de modo.</figcaption>
 </figure>
 
@@ -208,7 +208,7 @@ entre los rieles de alimentación y masa: un corto ahí es el fallo que la
 topología de puente H castiga más rápido.
 
 <figure>
-  <img src="/remote-hands/images/build/caja-elevacion-interior-electronica.webp" alt="Interior de la caja de elevación con los módulos Puente H montados" />
+  <img src="/images/build/caja-elevacion-interior-electronica.webp" alt="Interior de la caja de elevación con los módulos Puente H montados" />
   <figcaption>Los dos módulos Puente H alojados dentro de la estructura metálica que eleva el manipulador, sobre soportes impresos y sin cajas externas.</figcaption>
 </figure>
 
@@ -218,7 +218,7 @@ topología de puente H castiga más rápido.
 
 <figure>
   <img
-    src="/remote-hands/images/puente-h-instalacion.png"
+    src="/images/puente-h-instalacion.png"
     alt="Módulo Puente H instalado en la estructura del robot"
   />
   <figcaption>El módulo ya instalado en la estructura, con el cableado de potencia y el bus I²C conectados.</figcaption>
@@ -331,12 +331,12 @@ El módulo pasó por dos etapas físicas antes de la versión final: prototipo e
 protoboard y placa fabricada.
 
 <figure>
-  <img src="/remote-hands/images/build/puente-h-prototipo-protoboard.webp" alt="Prototipo del puente H armado en protoboard" />
+  <img src="/images/build/puente-h-prototipo-protoboard.webp" alt="Prototipo del puente H armado en protoboard" />
   <figcaption>Prototipo en protoboard, donde se validó la topología antes de rutear la placa.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/puente-h-prototipo-temperatura.webp" alt="Medición de temperatura sobre el prototipo del puente H" />
+  <img src="/images/build/puente-h-prototipo-temperatura.webp" alt="Medición de temperatura sobre el prototipo del puente H" />
   <figcaption>Medición térmica sobre el prototipo: máximo registrado de 61 °C en los MOSFETs bajo carga.</figcaption>
 </figure>
 
@@ -344,4 +344,4 @@ El módulo acumula cinco resultados de prueba: temperatura de los MOSFETs en
 protoboard y bajo carga continua, movimiento diferencial en superficie
 plana, respuesta a los comandos de dirección y control remoto extremo a
 extremo. El detalle de cada uno está en [Verificación del robot
-móvil](/remote-hands/sistema/subsistemas/robot-movil/verificacion/).
+móvil](/sistema/subsistemas/robot-movil/verificacion/).

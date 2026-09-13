@@ -9,6 +9,8 @@ percepción (RPLiDAR C1 y RealSense D435i), mantiene la comunicación con el
 operador por ZeroMQ sobre WiFi y reparte las órdenes entre tres
 controladores ESP32-C3 —tracción, manipulador y gripper—.
 
+**Sitio:** [remote-hands.sebs.mx](https://remote-hands.sebs.mx)
+
 Proyecto Terminal universitario. Del experimento de latencia salió un
 artículo para el IEEE World Forum on IoT, y el proyecto se postuló al James
 Dyson Award 2026.
@@ -42,7 +44,7 @@ con CSS.
 
 ```bash
 npm install
-npm run dev       # http://localhost:4321/remote-hands/
+npm run dev       # http://localhost:4321/
 npm run build     # genera dist/
 npm run check     # tipos y frontmatter
 ```
@@ -79,6 +81,17 @@ node scripts/render-explode.mjs    # public/models/    ->  public/explode/ + man
 Qué piezas forman cada capa y hacia dónde se separan está en
 `scripts/explode-scenes.mjs`; a qué página lleva cada pieza, en
 `src/lib/explode-nav.ts`.
+
+## Despliegue
+
+Cada push a `main` compila y publica en GitHub Pages
+(`.github/workflows/deploy.yml`). El sitio se sirve en el subdominio
+`remote-hands.sebs.mx`, configurado en *Settings → Pages* del repositorio y
+con un registro `CNAME` en el DNS de `sebs.mx`.
+
+`site` y `base` están en `astro.config.mjs`. Las rutas internas del
+contenido se escriben desde la raíz (`/sistema/…`) y se ajustan al `base` al
+compilar, así que mover el sitio a otra ruta solo cambia `BASE`.
 
 ## Escribir contenido
 

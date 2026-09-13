@@ -34,7 +34,7 @@ módulos de control embebido diseñados para el proyecto.
 ## Diseño
 
 <figure>
-  <img src="/remote-hands/images/build/plataforma-movil-base.webp" alt="Base de la plataforma móvil antes de la rehabilitación" />
+  <img src="/images/build/plataforma-movil-base.webp" alt="Base de la plataforma móvil antes de la rehabilitación" />
   <figcaption>La base tal como se recibió, antes de sustituir drivers, cableado y electrónica.</figcaption>
 </figure>
 
@@ -48,7 +48,7 @@ módulos de control embebido diseñados para el proyecto.
 ## Tracción y bus I²C
 
 La tracción usa dos módulos [Puente
-H](/remote-hands/sistema/subsistemas/robot-movil/electronica/) en
+H](/sistema/subsistemas/robot-movil/electronica/) en
 arquitectura maestro-esclavo. El maestro recibe los comandos de la NUC por
 USB y refresca al esclavo por I²C en cadena (*daisy chain*).
 
@@ -83,7 +83,7 @@ usan en esta configuración. La `0x0B` es la excepción del bus: el controlador
 del manipulador habla **ASCII**, no el protocolo binario de los puentes H.
 
 <figure>
-  <img src="/remote-hands/images/build/caja-elevacion-interior-electronica.webp" alt="Módulos Puente H montados dentro de la caja de elevación" />
+  <img src="/images/build/caja-elevacion-interior-electronica.webp" alt="Módulos Puente H montados dentro de la caja de elevación" />
   <figcaption>Los dos módulos alojados en la caja de elevación, sobre soportes impresos.</figcaption>
 </figure>
 
@@ -119,7 +119,7 @@ propio sobre la estructura existente. El trabajo mecánico se limitó a los
 soportes de la electrónica; la cinemática de la base no se modificó.
 
 <figure>
-  <img src="/remote-hands/images/build/prueba-piso-robot-movil.webp" alt="Primera prueba de movilidad del robot en piso" />
+  <img src="/images/build/prueba-piso-robot-movil.webp" alt="Primera prueba de movilidad del robot en piso" />
   <figcaption>Primera prueba de movilidad tras la rehabilitación, con los módulos Puente H ya en control de la tracción.</figcaption>
 </figure>
 
@@ -131,12 +131,12 @@ cercanos a los tornillos de las ruedas caster, para repartir la carga del
 brazo en vez de concentrarla en la chapa superior.
 
 <figure>
-  <img src="/remote-hands/images/build/union-base-caja-elevacion.webp" alt="Unión entre el chasis de la plataforma y la caja de elevación" />
+  <img src="/images/build/union-base-caja-elevacion.webp" alt="Unión entre el chasis de la plataforma y la caja de elevación" />
   <figcaption>Ranuras alargadas de ajuste y tornillería de fijación entre chasis y caja de elevación.</figcaption>
 </figure>
 
 El detalle mecánico de esa caja está en [Manipulador 3
-GDL](/remote-hands/sistema/subsistemas/robot-movil/manipulador/).
+GDL](/sistema/subsistemas/robot-movil/manipulador/).
 
 ## Verificación
 
@@ -144,4 +144,4 @@ La plataforma acumula cuatro resultados de prueba: movimiento diferencial en
 superficie plana, respuesta a los comandos de dirección, temperatura de los
 MOSFETs bajo carga continua y control remoto extremo a extremo. El detalle de
 cada uno está en [Verificación del robot
-móvil](/remote-hands/sistema/subsistemas/robot-movil/verificacion/).
+móvil](/sistema/subsistemas/robot-movil/verificacion/).

@@ -7,7 +7,7 @@ Reproducir el experimento requiere dos máquinas: una PC que ejecuta el
 simulador del nodo edge, y una Meta Quest con la aplicación de prueba
 instalada. Esta página cubre el montaje, la ejecución y la extracción de los
 datos. El diseño experimental está en el
-[protocolo](/remote-hands/verificacion/experimentos/latencia-wifi/protocolo/).
+[protocolo](/verificacion/experimentos/latencia-wifi/protocolo/).
 
 ## Requisitos
 
@@ -35,7 +35,7 @@ python wfiot_nuc_latency_simulator.py --lidar-hz 4 --compact-lidar
 Al arrancar, el simulador imprime su propia IP y los puertos que deja
 activos. Para averiguar la IP abre un socket UDP hacia 8.8.8.8, sin llegar a
 enviar datos. El significado de cada puerto está en [Comunicaciones del
-sistema](/remote-hands/sistema/arquitectura/comunicaciones/#puertos-zmq-verificados).
+sistema](/sistema/arquitectura/comunicaciones/#puertos-zmq-verificados).
 
 ## Ejecución en la Quest
 
@@ -84,4 +84,4 @@ produce seis análisis:
 - Modelo de carga ofrecida.
 
 Los números que arroja sobre los datos reales están en
-[Resultados](/remote-hands/verificacion/experimentos/latencia-wifi/resultados/).
+[Resultados](/verificacion/experimentos/latencia-wifi/resultados/).

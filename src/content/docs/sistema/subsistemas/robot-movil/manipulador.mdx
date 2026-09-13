@@ -12,7 +12,7 @@ la plataforma móvil.
 
 <figure>
   <img
-    src="/remote-hands/images/build/manipulador-render.webp"
+    src="/images/build/manipulador-render.webp"
     alt="Render CAD del manipulador completo, vista lateral"
   />
   <figcaption>El manipulador en CAD, antes de existir en acero. Tres grados de libertad y un gripper lineal en el extremo.</figcaption>
@@ -56,7 +56,7 @@ casi todas las decisiones de diseño que siguen:
 />
 
 El detalle de cada restricción está en
-[Restricciones](/remote-hands/proyecto/restricciones/).
+[Restricciones](/proyecto/restricciones/).
 
 ## Arquitectura mecánica
 
@@ -99,12 +99,12 @@ grado de libertad conserva su propia transmisión aunque ambos compartan
 espacio físico en la base — mover el eslabón 1 no arrastra al eslabón 2.
 
 <figure>
-  <img src="/remote-hands/images/build/transmision-motores-nema17.webp" alt="Los dos motores NEMA 17 en disposición simétrica en la base del manipulador" />
+  <img src="/images/build/transmision-motores-nema17.webp" alt="Los dos motores NEMA 17 en disposición simétrica en la base del manipulador" />
   <figcaption>Los dos NEMA 17 en disposición simétrica, cada uno con su conjunto de poleas y bandas. La barra roscada inferior actúa de tensor común.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/transmision-segundo-eslabon.webp" alt="Banda vertical que transmite el movimiento hacia el segundo eslabón" />
+  <img src="/images/build/transmision-segundo-eslabon.webp" alt="Banda vertical que transmite el movimiento hacia el segundo eslabón" />
   <figcaption>La banda vertical que lleva el movimiento hasta la articulación superior. Las chumaceras sostienen el eje y evitan que roce contra la lámina.</figcaption>
 </figure>
 
@@ -121,7 +121,7 @@ rigidez era crítica para soportar el peso del brazo. Su volumen interno aloja
 los drivers CL57T y su cableado.
 
 <figure>
-  <img src="/remote-hands/images/build/soporte-c-refuerzo-doble.webp" alt="Estructura en C con refuerzo de doble capa" />
+  <img src="/images/build/soporte-c-refuerzo-doble.webp" alt="Estructura en C con refuerzo de doble capa" />
   <figcaption>La lámina doblada en «C», con el refuerzo de doble capa que se añadió tras detectar que cedía bajo el peso del brazo.</figcaption>
 </figure>
 
@@ -137,22 +137,22 @@ registro del nesting cuyo centro cae fuera del contorno. El generador de
 planos descarta esos círculos: no son barrenos de la pieza.
 
 <figure>
-  <img src="/remote-hands/drawings/primer-eslabon.svg" alt="Plano cotado del primer eslabón: 300 por 210,83 mm con 10 barrenos" />
+  <img src="/drawings/primer-eslabon.svg" alt="Plano cotado del primer eslabón: 300 por 210,83 mm con 10 barrenos" />
   <figcaption>Primer eslabón — 300 × 210,83 mm, 6 barrenos de ⌀5 y 4 de ⌀10. La pieza se dobla después de cortar, así que la cota es del desarrollo plano.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/drawings/soporte-nema17.svg" alt="Plano cotado del soporte de motor NEMA 17" />
+  <img src="/drawings/soporte-nema17.svg" alt="Plano cotado del soporte de motor NEMA 17" />
   <figcaption>Soporte de motor NEMA 17 — 70 × 139,57 mm. El rombo central es el paso del eje y los cuatro ⌀4 son la brida del motor.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/drawings/soporte-drivers.svg" alt="Plano cotado del soporte de drivers" />
+  <img src="/drawings/soporte-drivers.svg" alt="Plano cotado del soporte de drivers" />
   <figcaption>Soporte de drivers — 481,66 × 155 mm, la pieza más larga del conjunto. Va dentro de la caja de elevación.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/drawings/soporte-top-rodamiento.svg" alt="Plano cotado del soporte superior de rodamiento" />
+  <img src="/drawings/soporte-top-rodamiento.svg" alt="Plano cotado del soporte superior de rodamiento" />
   <figcaption>Soporte superior de rodamiento — 231,33 × 155 mm.</figcaption>
 </figure>
 
@@ -176,12 +176,12 @@ pieza se dividió en dos o más partes unidas por tornillería, en lugar de
 forzar un doblez con riesgo de fractura.
 
 <figure>
-  <img src="/remote-hands/images/build/manufactura-corte-laser.webp" alt="Piezas del manipulador recién cortadas a láser" />
+  <img src="/images/build/manufactura-corte-laser.webp" alt="Piezas del manipulador recién cortadas a láser" />
   <figcaption>Piezas recién salidas de la cortadora, antes del doblado.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/manufactura-primeras-piezas.webp" alt="Primeras piezas del manipulador ensambladas" />
+  <img src="/images/build/manufactura-primeras-piezas.webp" alt="Primeras piezas del manipulador ensambladas" />
   <figcaption>Primeras piezas ensambladas, la etapa donde se detectaron los ajustes que obligaron a recortar varias versiones.</figcaption>
 </figure>
 
@@ -206,7 +206,7 @@ encontrar.
 ## Ensamble
 
 <figure>
-  <img src="/remote-hands/images/build/manipulador-vista-lateral.webp" alt="Vista lateral del manipulador montado" />
+  <img src="/images/build/manipulador-vista-lateral.webp" alt="Vista lateral del manipulador montado" />
   <figcaption>Vista lateral del brazo: base de rotación, primer eslabón, segundo eslabón y gripper, con los NEMA 17 cerca de la base.</figcaption>
 </figure>
 
@@ -221,12 +221,12 @@ roscada, que funcionan como tensores. Sin ellos la banda deslizaba y
 aparecían holguras y vibración.
 
 <figure>
-  <img src="/remote-hands/images/build/articulacion-polea-chumacera.webp" alt="Detalle de una articulación con polea y chumacera" />
+  <img src="/images/build/articulacion-polea-chumacera.webp" alt="Detalle de una articulación con polea y chumacera" />
   <figcaption>Articulación típica: polea sobre eje, chumaceras atornilladas a la lámina lateral.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/tensor-rodamiento-correa.webp" alt="Tensor de banda con rodamiento sobre barra roscada" />
+  <img src="/images/build/tensor-rodamiento-correa.webp" alt="Tensor de banda con rodamiento sobre barra roscada" />
   <figcaption>Tensor con rodamiento sobre barra roscada — la solución que corrigió el deslizamiento sin rediseñar la estructura.</figcaption>
 </figure>
 
@@ -239,15 +239,15 @@ cierran de forma sincronizada. La geometría lleva refuerzos internos tipo
 costilla: rigidez sin peso.
 
 Lo controla un ESP32-C3 dedicado — ver [Controlador del
-gripper](/remote-hands/sistema/subsistemas/robot-movil/controladores/gripper/).
+gripper](/sistema/subsistemas/robot-movil/controladores/gripper/).
 
 <figure>
-  <img src="/remote-hands/images/build/gripper-pinon-cremallera.webp" alt="Vista superior del gripper mostrando el piñón central" />
+  <img src="/images/build/gripper-pinon-cremallera.webp" alt="Vista superior del gripper mostrando el piñón central" />
   <figcaption>El piñón central visible entre las dos pinzas, con las guías internas del mecanismo.</figcaption>
 </figure>
 
 <figure>
-  <img src="/remote-hands/images/build/gripper-vista-inclinada.webp" alt="Vista inclinada del gripper montado en el último eslabón" />
+  <img src="/images/build/gripper-vista-inclinada.webp" alt="Vista inclinada del gripper montado en el último eslabón" />
   <figcaption>Nervaduras de refuerzo de las pinzas y unión atornillada al último eslabón.</figcaption>
 </figure>
 
@@ -259,13 +259,13 @@ eslabón los active sin provocar colisión y sin estorbar el movimiento normal
 ni la trayectoria de las bandas.
 
 <figure>
-  <img src="/remote-hands/images/build/final-carrera-eslabon.webp" alt="Final de carrera montado en el interior del brazo" />
+  <img src="/images/build/final-carrera-eslabon.webp" alt="Final de carrera montado en el interior del brazo" />
   <figcaption>Final de carrera con palanca metálica en el recorrido de un eslabón.</figcaption>
 </figure>
 
 El procedimiento de homing que usa estos sensores está en [Controlador de
 drivers
-(CL57T)](/remote-hands/sistema/subsistemas/robot-movil/controladores/cl57t/).
+(CL57T)](/sistema/subsistemas/robot-movil/controladores/cl57t/).
 
 ### Integración con la plataforma
 
@@ -275,7 +275,7 @@ ruedas caster, para repartir mejor la carga del brazo. Las ranuras alargadas
 permiten ajustar la posición.
 
 <figure>
-  <img src="/remote-hands/images/build/union-base-caja-elevacion.webp" alt="Unión entre la base móvil y la caja de elevación" />
+  <img src="/images/build/union-base-caja-elevacion.webp" alt="Unión entre la base móvil y la caja de elevación" />
   <figcaption>Ranuras de ajuste y tornillería de fijación entre el chasis de la plataforma y la caja de elevación.</figcaption>
 </figure>
 
@@ -306,4 +306,4 @@ excesivo en las transmisiones HTD3M y ejecuta movimientos rápidos de forma
 funcional. El control remoto integrado —de la interfaz XR a la NUC y de ahí
 al manipulador— seguía pendiente en la última verificación registrada. El
 detalle está en [Verificación del robot
-móvil](/remote-hands/sistema/subsistemas/robot-movil/verificacion/).
+móvil](/sistema/subsistemas/robot-movil/verificacion/).

@@ -24,7 +24,7 @@ percepción, procesamiento y coordinación.
 
 Sobre ella corre un backend en **Python 3.12 con ZeroMQ**, sin ROS. Esa
 ausencia de ROS fue una decisión deliberada, registrada en
-[ADR-0001](/remote-hands/registro/decisiones/0001-nuc-como-coordinador/).
+[ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/).
 
 ## Responsabilidades
 
@@ -72,11 +72,11 @@ ASCII `POSE` que entiende el controlador del manipulador.
 
 ## Componentes
 
-- **[Middleware ZMQ](/remote-hands/sistema/subsistemas/servidor-percepcion/middleware/)**
+- **[Middleware ZMQ](/sistema/subsistemas/servidor-percepcion/middleware/)**
   — puertos, tópicos, comandos y puentes serie.
-- **[Percepción](/remote-hands/sistema/subsistemas/servidor-percepcion/percepcion/)**
+- **[Percepción](/sistema/subsistemas/servidor-percepcion/percepcion/)**
   — pipeline de la RealSense y del RPLiDAR.
-- **[Verificación](/remote-hands/sistema/subsistemas/servidor-percepcion/verificacion/)**
+- **[Verificación](/sistema/subsistemas/servidor-percepcion/verificacion/)**
   — frecuencias medidas por canal y pruebas pendientes.
 
 ## Qué se puede replicar
