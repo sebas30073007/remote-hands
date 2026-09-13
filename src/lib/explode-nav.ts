@@ -16,18 +16,21 @@
  *  - `facetas`: los documentos del nodo que no son piezas —software,
  *    verificación, contratos—. No se dibujan: se listan bajo la escena.
  *
- * Este árbol es FÍSICO, no el del temario clásico. La diferencia principal:
- * «Sistemas embebidos» no existe como grupo. Cada controlador cuelga de lo
- * que mueve —el Puente H de la plataforma, el controlador CL57T del
- * manipulador, el del gripper del gripper—, porque en una vista
- * explosionada lo que se toca es la pieza, y la pieza está donde actúa. El
- * software embebido, que abarca los tres, queda como faceta del robot.
+ * Este árbol es FÍSICO, no el del temario clásico. El robot se abre en
+ * tres: plataforma móvil, manipulador (con su caja de elevación) y
+ * embebidos. Las placas cuelgan de «Embebidos», su hogar lógico, aunque
+ * también se dibujen donde actúan: los Puente H aparecen en la plataforma,
+ * y el conjunto I²C y el controlador del gripper junto a la NUC a la que se
+ * conectan. Una pieza puede dibujarse en varias escenas, pero su nodo tiene
+ * un solo padre.
  */
 
 export interface DestinoPieza {
   /** Nodo al que lleva la pieza. */
   nodo?: string;
-  /** O bien una sección de la página del nodo actual (id del encabezado). */
+  /** O bien una página que no es nodo (slug); por defecto, la del nodo actual. */
+  pagina?: string;
+  /** Sección de esa página (id del encabezado). */
   ancla?: string;
   /** Obligatoria si no hay `nodo`; si lo hay, se usa la etiqueta del nodo. */
   etiqueta?: string;
@@ -75,8 +78,9 @@ export const NODOS: NodoExplode[] = [
     piezas: {
       plataforma: { nodo: 'plataforma' },
       manipulador: { nodo: 'manipulador' },
+      embebidos: { nodo: 'embebidos' },
     },
-    facetas: [`${ROBOT}/firmware`, 'sistema/interfaces/electronica', `${ROBOT}/verificacion`],
+    facetas: ['sistema/interfaces/electronica', `${ROBOT}/verificacion`],
   },
   {
     id: 'plataforma',
@@ -87,16 +91,30 @@ export const NODOS: NodoExplode[] = [
     escena: 'plataforma',
     piezas: {
       base: { etiqueta: 'Base diferencial', ancla: 'rehabilitación' },
-      caja: { etiqueta: 'Caja de elevación', ancla: 'integración-estructural-con-el-manipulador' },
       puenteh: { nodo: 'puenteh' },
       lidar: { nodo: 'percepcion', etiqueta: 'RPLiDAR C1' },
+    },
+  },
+  {
+    // Las cuatro placas que mandan sobre los motores. Su página es la de
+    // software embebido, que las documenta como conjunto.
+    id: 'embebidos',
+    etiqueta: 'Embebidos',
+    pagina: `${ROBOT}/firmware`,
+    padre: 'robot',
+    capa: 'embebidos',
+    escena: 'embebidos',
+    piezas: {
+      puenteh: { nodo: 'puenteh', etiqueta: 'Puente H ×2' },
+      stepper: { nodo: 'cl57t', etiqueta: 'Controlador de steppers' },
+      drv8833: { etiqueta: 'Controlador del gripper', pagina: `${ROBOT}/controladores/gripper`, ancla: 'conexionado' },
     },
   },
   {
     id: 'puenteh',
     etiqueta: 'Puente H',
     pagina: `${ROBOT}/electronica`,
-    padre: 'plataforma',
+    padre: 'embebidos',
     capa: 'puenteh',
   },
   {
@@ -107,6 +125,7 @@ export const NODOS: NodoExplode[] = [
     capa: 'manipulador',
     escena: 'manipulador',
     piezas: {
+      caja: { etiqueta: 'Caja de elevación', ancla: 'integración-con-la-plataforma' },
       torreta: { etiqueta: 'Base rotatoria', ancla: 'base-rotatoria' },
       hombro: { etiqueta: 'Hombro y transmisión', ancla: 'transmisión' },
       eslabon1: { etiqueta: 'Eslabón 1', ancla: 'arquitectura-mecánica' },
@@ -116,11 +135,13 @@ export const NODOS: NodoExplode[] = [
     },
   },
   {
+    // Su placa es el controlador de steppers; los drivers CL57T del
+    // manipulador también llevan aquí, porque son lo que controla.
     id: 'cl57t',
     etiqueta: 'Controlador CL57T',
     pagina: `${ROBOT}/controladores/cl57t`,
-    padre: 'manipulador',
-    capa: 'drivers',
+    padre: 'embebidos',
+    capa: 'stepper',
   },
   {
     id: 'gripper',
@@ -147,6 +168,8 @@ export const NODOS: NodoExplode[] = [
       nuc: { nodo: 'middleware', etiqueta: 'NUC · middleware' },
       realsense: { nodo: 'percepcion', etiqueta: 'RealSense D435i' },
       lidar: { nodo: 'percepcion', etiqueta: 'RPLiDAR C1' },
+      conjunto: { nodo: 'embebidos', etiqueta: 'Conjunto I²C · USB' },
+      drv8833: { etiqueta: 'Controlador del gripper · USB', pagina: `${ROBOT}/controladores/gripper`, ancla: 'conexionado' },
     },
     facetas: [`${SUB}/servidor-percepcion/verificacion`],
   },

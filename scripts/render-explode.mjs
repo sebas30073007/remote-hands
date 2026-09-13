@@ -200,21 +200,31 @@ async function prepararEscena({ escena, vista, W, H, S, tornilleria, material, a
   }
 
   for (const { def, g } of capas) {
-    if (def.modelo) {
-      const posiciones = def.instancias ?? [def.posicion ?? [0, 0, 0]];
-      for (const p of posiciones) {
-        const m = await cargar(def.modelo);
-        aplicarArcilla(m, def.modelo);
-        const box = new THREE.Box3().setFromObject(m);
-        const centro = box.getCenter(new THREE.Vector3());
-        const envoltura = new THREE.Group();
-        m.position.sub(centro);
-        envoltura.add(m);
-        envoltura.scale.setScalar(def.escala ?? 1);
-        if (def.rotacion) envoltura.rotation.set(...def.rotacion);
-        envoltura.position.set(...p);
-        g.add(envoltura);
-      }
+    // Tres formas de declarar modelos sueltos, reducidas a una lista:
+    // `componentes` (varios modelos), `modelo` + `instancias` (el mismo
+    // modelo repetido) o `modelo` + `posicion` (uno solo).
+    const componentes =
+      def.componentes ??
+      (def.modelo
+        ? (def.instancias ?? [def.posicion ?? [0, 0, 0]]).map((posicion) => ({
+            modelo: def.modelo,
+            posicion,
+            escala: def.escala,
+            rotacion: def.rotacion,
+          }))
+        : []);
+    for (const c of componentes) {
+      const m = await cargar(c.modelo);
+      aplicarArcilla(m, c.modelo);
+      const box = new THREE.Box3().setFromObject(m);
+      const centro = box.getCenter(new THREE.Vector3());
+      const envoltura = new THREE.Group();
+      m.position.sub(centro);
+      envoltura.add(m);
+      envoltura.scale.setScalar(c.escala ?? 1);
+      if (c.rotacion) envoltura.rotation.set(...c.rotacion);
+      envoltura.position.set(...(c.posicion ?? [0, 0, 0]));
+      g.add(envoltura);
     }
   }
 

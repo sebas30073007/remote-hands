@@ -31,6 +31,10 @@
  *    es parte física del conjunto) y aparece al explotar.
  *  - `modelo` + `posicion` + `escala` (+ `rotacion`, en radianes): capa que
  *    viene de otro .glb, colocada en coordenadas del mundo (metros).
+ *    `instancias` repite el mismo modelo en varias posiciones.
+ *  - `componentes`: capa armada con VARIOS modelos distintos, cada uno con
+ *    su `modelo`, `posicion`, `escala` y `rotacion`. Es el caso del
+ *    conjunto I²C: dos Puente H y el controlador de steppers.
  */
 
 /** Dirección de la cámara: isométrica, con el gripper hacia la derecha. */
@@ -112,8 +116,41 @@ const BASE_GRIPPER = [/^AA_base_gripper_bueno:/, /^Soporte_Gripper:/];
 const MOTOR_GRIPPER = [/^JGA25-370/];
 
 const GRIPPER = [...DEDOS, ...PINON, ...BASE_GRIPPER, ...MOTOR_GRIPPER];
-const PLATAFORMA = [...BASE_MOVIL, ...TORRE, ...LIDAR];
-const MANIPULADOR = [...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, ...ESLABON2, ...GRIPPER];
+// La caja de elevación viaja con el manipulador, no con la plataforma: es
+// la columna sobre la que va montado el brazo.
+const PLATAFORMA = [...BASE_MOVIL, ...LIDAR];
+const MANIPULADOR = [...TORRE, ...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, ...ESLABON2, ...GRIPPER];
+
+/* --- Electrónica embebida -------------------------------------------
+   Las placas se colocan en el mundo como un grupo, con un punto de
+   referencia. Todas quedan de frente a la cámara.
+
+   - Puente H ×2, encimados con desfase: el maestro al frente y el esclavo
+     detrás, corrido hacia arriba y a la derecha para que se vean los dos.
+   - Controlador de steppers al lado.
+   - DRV8833: marcador temporal del controlador del gripper (la placa real
+     es un DRV8833 y un ESP32-C3 cableados a mano). El modelo viene
+     acostado y mide 1.8 cm: se pone de pie y se escala ×3, porque a escala
+     real sería un punto junto a las otras placas.
+
+   `k` escala el grupo entero —tamaño y separación— para las escenas donde
+   las placas conviven con piezas de decenas de centímetros: a escala real,
+   un Puente H de 8 cm junto a una base de 40 cm no se distingue. */
+const RAD = Math.PI / 2;
+const puentesH = ([x, y, z], k = 1) => [
+  { modelo: 'puente-h', escala: k, posicion: [x, y, z] },
+  { modelo: 'puente-h', escala: k, posicion: [x + 0.014 * k, y + 0.016 * k, z - 0.034 * k] },
+];
+const steppers = ([x, y, z], k = 1) => [
+  { modelo: 'controlador-steppers', escala: k, posicion: [x + 0.092 * k, y - 0.004 * k, z - 0.012 * k] },
+];
+const drv8833 = ([x, y, z], k = 1) => [
+  { modelo: 'drv8833', escala: 3 * k, rotacion: [RAD, 0, 0], posicion: [x + 0.086 * k, y + 0.066 * k, z - 0.01 * k] },
+];
+/** Factor para las escenas en las que las placas acompañan al robot. */
+const K_ROBOT = 1.8;
+/** Dentro de la caja de elevación, donde van físicamente. */
+const EN_CAJA = [0.16, 0.12, -0.1];
 
 /** Piezas que se reparten por cercanía y no por nombre. */
 export const TORNILLERIA = [/Screw head/, /BALL BEARING/, /^KFL08_chmacera/];
@@ -148,45 +185,57 @@ export const ESCENAS = {
     ],
   },
 
-  /* Nivel 2 — el robot se parte en lo que se mueve y lo que manipula. */
+  /* Nivel 2 — el robot se parte en lo que se mueve, lo que manipula y la
+     electrónica que manda sobre ambos. Las placas van dentro de la caja de
+     elevación, así que salen de ella al explotar. */
   robot: {
     base: 'robot-completo',
     capas: [
-      { id: 'plataforma', piezas: PLATAFORMA, explota: [0, -0.13] },
-      { id: 'manipulador', piezas: MANIPULADOR, explota: [0, 0.1] },
-    ],
-  },
-
-  /* Nivel 3 — plataforma. Los Puente H van DENTRO de la caja de elevación
-     (así los muestra la foto del interior), por eso salen de ella al
-     explotar. Son dos: maestro y esclavo. */
-  plataforma: {
-    base: 'robot-completo',
-    soloPiezas: PLATAFORMA,
-    capas: [
-      { id: 'base', piezas: BASE_MOVIL, explota: [0, -0.14] },
-      { id: 'caja', piezas: TORRE, explota: [0, 0.18] },
-      { id: 'lidar', piezas: LIDAR, explota: [0.28, -0.04] },
+      { id: 'plataforma', piezas: PLATAFORMA, explota: [0, -0.16] },
+      { id: 'manipulador', piezas: MANIPULADOR, explota: [0.04, 0.08] },
       {
-        id: 'puenteh',
-        modelo: 'puente-h',
-        instancias: [
-          [0.15, 0.1, -0.13],
-          [0.24, 0.17, -0.08],
-        ],
+        id: 'embebidos',
+        componentes: [...puentesH(EN_CAJA, K_ROBOT), ...steppers(EN_CAJA, K_ROBOT), ...drv8833(EN_CAJA, K_ROBOT)],
         oculto: true,
-        explota: [-0.32, 0.22],
+        explota: [-0.46, 0.02],
       },
     ],
   },
 
+  /* Nivel 3 — plataforma: la base diferencial, el LiDAR que va sobre ella y
+     los dos Puente H que mueven sus motores. */
+  plataforma: {
+    base: 'robot-completo',
+    soloPiezas: PLATAFORMA,
+    capas: [
+      { id: 'base', piezas: BASE_MOVIL, explota: [0, -0.12] },
+      { id: 'lidar', piezas: LIDAR, explota: [0.3, 0.06] },
+      {
+        id: 'puenteh',
+        componentes: puentesH([0.14, 0.08, -0.1], K_ROBOT),
+        oculto: true,
+        explota: [-0.22, 0.34],
+      },
+    ],
+  },
+
+  /* Nivel 3 — embebidos: las cuatro placas que mandan sobre los motores. */
+  embebidos: {
+    capas: [
+      { id: 'puenteh', componentes: puentesH([0, 0, 0]), explota: [-0.2, -0.04] },
+      { id: 'stepper', componentes: steppers([0, 0, 0]), explota: [0.26, -0.2] },
+      { id: 'drv8833', componentes: drv8833([0, 0, 0]), explota: [0.22, 0.3] },
+    ],
+  },
+
   /* Nivel 3 — manipulador. Apilado en vertical, en el orden de la cadena
-     cinemática: torreta, hombro, eslabón 1, eslabón 2, gripper. Los
-     drivers CL57T viajan en la torreta, y se apartan a un lado. */
+     cinemática: caja de elevación, torreta, hombro, eslabón 1, eslabón 2,
+     gripper. Los drivers CL57T viajan en la torreta y se apartan a un lado. */
   manipulador: {
     base: 'robot-completo',
     soloPiezas: MANIPULADOR,
     capas: [
+      { id: 'caja', piezas: TORRE, explota: [0, -0.34] },
       { id: 'torreta', piezas: TORRETA, explota: [0, -0.2] },
       { id: 'drivers', piezas: DRIVERS, explota: [-0.34, -0.12] },
       { id: 'hombro', piezas: HOMBRO, explota: [0, -0.03] },
@@ -209,7 +258,12 @@ export const ESCENAS = {
   },
 
   /* Nivel 2 — servidor. Tampoco es un ensamble físico: la NUC al centro y
-     los dos sensores que alimentan la percepción. Escala real entre ellos. */
+     todo lo que se conecta a ella. Arriba, los dos sensores de la
+     percepción. Abajo, la electrónica: el conjunto I²C —solo el Puente H
+     maestro va a la NUC por USB; el esclavo y el controlador de steppers
+     cuelgan de él en serie, así que se dibujan como un solo conjunto— y el
+     controlador del gripper, que va a la NUC por su propio USB. Escala real
+     entre todos. */
   servidor: {
     capas: [
       { id: 'nuc', modelo: 'nuc', posicion: [0, 0, 0], explota: [0, -0.1] },
@@ -226,6 +280,18 @@ export const ESCENAS = {
         posicion: [0, 0.02, 0],
         oculto: true,
         explota: [0.42, 0.5],
+      },
+      {
+        id: 'conjunto',
+        componentes: [...puentesH([-0.03, 0, 0]), ...steppers([-0.03, 0, 0])],
+        oculto: true,
+        explota: [-0.4, -0.95],
+      },
+      {
+        id: 'drv8833',
+        componentes: drv8833([-0.08, -0.06, 0]),
+        oculto: true,
+        explota: [0.56, -0.8],
       },
     ],
   },

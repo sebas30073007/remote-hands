@@ -62,6 +62,11 @@ const MODELOS = {
   // Superficies curvas muy teseladas: con error 0.002 no bajaba ni un
   // triángulo; a 0.01 la silueta sigue intacta a tamaño de panel.
   'quest3.glb': ['meta-quest-3', 0.25, 0.01],
+  // Controlador de los steppers del manipulador: otro PCB de KiCad.
+  'steppercontroler.glb': ['controlador-steppers', 0.12, 0.006],
+  // Marcador temporal del controlador del gripper: un DRV8833 con un
+  // ESP32-C3 cableado a mano, sin PCB propia.
+  'drv8833.glb': ['drv8833', 0.7, 0.002],
 };
 
 await MeshoptEncoder.ready;

@@ -95,7 +95,9 @@ const destinoDe = (dueno: NodoExplode, capaId: string) => {
   return {
     capa: capaId,
     etiqueta: d.etiqueta ?? nodo?.etiqueta ?? capaId,
-    href: nodo ? href(nodo.pagina) : `${href(dueno.pagina)}#${d.ancla ?? ''}`,
+    href: nodo
+      ? href(nodo.pagina)
+      : `${href(d.pagina ?? dueno.pagina)}${d.ancla ? `#${d.ancla}` : ''}`,
     baja: Boolean(nodo),
   };
 };
@@ -122,8 +124,98 @@ const escenas = Object.entries(manifiesto.escenas).map(([id, esc]) => {
   };
 });
 
+const notasDe = new Map<string, ReturnType<typeof colocarNotas>>();
+
 const puntos = (anillo: number[][]) => anillo.map(([x, y]) => `${x},${y}`).join(' ');
 const r2 = (n: number) => Math.round(n * 100) / 100;
+
+/* --- Globos: el número fuera de la pieza, unido por una línea guía ----
+   Antes el globo iba en el centro de la pieza, dentro de su capa. Dos
+   problemas: en una pieza pequeña —el LiDAR— el número la tapaba casi
+   entera, y como cada capa apila su contenido, el globo de una pieza de
+   atrás quedaba escondido bajo la pieza de delante.
+
+   Ahora, como en un plano de despiece, el número sale de la pieza con una
+   línea guía y todos los globos van en una capa por encima de las piezas.
+   La posición se calcula aquí, al compilar: se prueba la dirección que se
+   aleja del centro del conjunto y, si el globo cae sobre una pieza, se sale
+   del escenario o choca con otro globo, se gira de 30 en 30 grados. Es
+   determinista y no cuesta nada en el navegador.
+
+   Unidades: `cqw`, porcentaje del ANCHO del escenario en los dos ejes, para
+   que la distancia sea la misma en horizontal y en vertical. */
+const RATIO = LH / LW; // alto del escenario en unidades de ancho
+const LARGO = 12; // distancia de la pieza al globo, en cqw
+const RADIO = 2.8; // radio del globo (1.25rem sobre un escenario de ~340 px)
+type Punto = [number, number];
+type CapaGeo = { id: string; box: number[]; dx: number; dy: number; globo: number[]; poly: number[][][]; pieza: unknown };
+
+const dentroDe = ([x, y]: Punto, anillo: Punto[]) => {
+  let dentro = false;
+  for (let i = 0, j = anillo.length - 1; i < anillo.length; j = i++) {
+    const [xi, yi] = anillo[i];
+    const [xj, yj] = anillo[j];
+    if (yi > y !== yj > y && x < ((xj - xi) * (y - yi)) / (yj - yi) + xi) dentro = !dentro;
+  }
+  return dentro;
+};
+
+const colocarNotas = (capas: CapaGeo[]) => {
+  const aEscenario = (c: CapaGeo, [px, py]: number[]): Punto => [
+    c.box[0] + (px * c.box[2]) / 100 + c.dx,
+    (c.box[1] + (py * c.box[3]) / 100 + c.dy) * RATIO,
+  ];
+  const anclas = capas.map((c) => aEscenario(c, c.globo));
+  const cx = anclas.reduce((a, [x]) => a + x, 0) / anclas.length;
+  const cy = anclas.reduce((a, [, y]) => a + y, 0) / anclas.length;
+  const siluetas = capas.map((c) => c.poly.map((anillo) => anillo.map((pt) => aEscenario(c, pt))));
+  const sobrePieza = (pt: Punto) => siluetas.some((anillos) => anillos.some((an) => dentroDe(pt, an)));
+
+  const puestos: Punto[] = [];
+  const notas = new Map<string, { gx: number; gy: number; ox: number; oy: number; len: number; ang: number }>();
+
+  capas.forEach((c, i) => {
+    if (!c.pieza) return;
+    const [ax, ay] = anclas[i];
+    const base = Math.hypot(ax - cx, ay - cy) < 1 ? -Math.PI / 4 : Math.atan2(ay - cy, ax - cx);
+    let elegido: Punto | null = null;
+
+    // Primero sin tocar ninguna pieza; si no hay hueco, se permite.
+    for (const estricto of [true, false]) {
+      for (let k = 0; k < 12 && !elegido; k++) {
+        const giro = Math.ceil(k / 2) * (k % 2 ? 1 : -1) * (Math.PI / 6);
+        for (const largo of [LARGO, LARGO * 1.5]) {
+          const b: Punto = [ax + largo * Math.cos(base + giro), ay + largo * Math.sin(base + giro)];
+          if (b[0] < 5 || b[0] > 95 || b[1] < 5 || b[1] > 100 * RATIO - 5) continue;
+          if (puestos.some(([px, py]) => Math.hypot(px - b[0], py - b[1]) < 7)) continue;
+          if (estricto && sobrePieza(b)) continue;
+          elegido = b;
+          break;
+        }
+      }
+      if (elegido) break;
+    }
+    elegido ??= [
+      Math.min(95, Math.max(5, ax + LARGO * Math.cos(base))),
+      Math.min(100 * RATIO - 5, Math.max(5, ay + LARGO * Math.sin(base))),
+    ];
+
+    puestos.push(elegido);
+    const ox = elegido[0] - ax;
+    const oy = elegido[1] - ay;
+    notas.set(c.id, {
+      gx: c.globo[0],
+      gy: c.globo[1],
+      ox,
+      oy,
+      len: Math.max(0, Math.hypot(ox, oy) - RADIO),
+      ang: (Math.atan2(oy, ox) * 180) / Math.PI,
+    });
+  });
+  return notas;
+};
+
+for (const e of escenas) notasDe.set(e.id, colocarNotas(e.capas as CapaGeo[]));
 
 /* --- Datos para el script ------------------------------------------- */
 const datos = {
@@ -248,25 +340,42 @@ const datos = {
                     height={Math.round((c.box[3] / 100) * LH)}
                   />
                   {c.pieza && (
-                    <>
-                      <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none">
-                        <a href={c.pieza.href} tabindex="-1" data-capa-ref={c.id}>
-                          {c.poly.map((anillo) => <polygon points={puntos(anillo)} />)}
-                        </a>
-                      </svg>
-                      <a
-                        class="c-xnav__globo"
-                        href={c.pieza.href}
-                        tabindex="-1"
-                        data-capa-ref={c.id}
-                        style={`left:${c.globo[0]}%;top:${c.globo[1]}%`}
-                      >
-                        {c.pieza.n}
+                    <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none">
+                      <a href={c.pieza.href} tabindex="-1" data-capa-ref={c.id}>
+                        {c.poly.map((anillo) => <polygon points={puntos(anillo)} />)}
                       </a>
-                    </>
+                    </svg>
                   )}
                 </div>
               ))}
+
+              {/* Globos y líneas guía: una capa por encima de todas las
+                  piezas, pero cada nota se mueve con su pieza. */}
+              <div class="c-xnav__notas">
+                {e.capas
+                  .filter((c) => c.pieza)
+                  .map((c) => {
+                    const nota = notasDe.get(e.id)!.get(c.id)!;
+                    return (
+                      <div
+                        class="c-xnav__nota"
+                        data-capa={c.id}
+                        data-activa={visible && resaltadasIniciales.includes(c.id) ? 'true' : undefined}
+                        style={
+                          `--x:${c.box[0]}%;--y:${c.box[1]}%;--w:${c.box[2]}%;--h:${c.box[3]}%;` +
+                          `--tx:${r2((c.dx / c.box[2]) * 100)}%;--ty:${r2((c.dy / c.box[3]) * 100)}%;` +
+                          `--gx:${nota.gx}%;--gy:${nota.gy}%;--ox:${r2(nota.ox)};--oy:${r2(nota.oy)};` +
+                          `--len:${r2(nota.len)};--ang:${r2(nota.ang)}deg`
+                        }
+                      >
+                        <span class="c-xnav__guia" />
+                        <a class="c-xnav__globo" href={c.pieza!.href} tabindex="-1" data-capa-ref={c.id}>
+                          {c.pieza!.n}
+                        </a>
+                      </div>
+                    );
+                  })}
+              </div>
             </div>
           );
         })
@@ -341,7 +450,10 @@ const datos = {
           data-panel={p.id}
           hidden={inicial.tab !== p.id}
         >
-          <ul class="c-xnav__lista">
+          {/* Mismo lenguaje que el temario clásico: carpeta raíz, tronco y
+              codos. Una sección de lista se lee como un directorio. */}
+          <p class="c-xnav__raiz">{p.etiqueta}</p>
+          <ul class="c-xnav__arbol">
             {(g?.entries ?? []).map((e) =>
               e.type === 'link' ? (
                 <li>
@@ -351,27 +463,21 @@ const datos = {
                 </li>
               ) : (
                 <li class="c-xnav__subgrupo">
-                  <p class="c-xnav__titulo">{e.label}</p>
-                  <ul class="c-xnav__lista">
-                    {e.entries.flatMap((s) =>
-                      s.type === 'link'
-                        ? [
-                            <li>
-                              <a href={s.href} aria-current={normal(s.href) === actual ? 'page' : undefined}>
-                                {s.label}
-                              </a>
-                            </li>,
-                          ]
-                        : s.entries
-                            .filter((x): x is Extract<Entrada, { type: 'link' }> => x.type === 'link')
-                            .map((x) => (
-                              <li>
-                                <a href={x.href} aria-current={normal(x.href) === actual ? 'page' : undefined}>
-                                  {x.label}
-                                </a>
-                              </li>
-                            ))
-                    )}
+                  <span class="c-xnav__carpeta">{e.label}</span>
+                  <ul class="c-xnav__arbol">
+                    {e.entries
+                      .flatMap((sub) =>
+                        sub.type === 'link'
+                          ? [sub]
+                          : sub.entries.filter((x): x is Extract<Entrada, { type: 'link' }> => x.type === 'link')
+                      )
+                      .map((x) => (
+                        <li>
+                          <a href={x.href} aria-current={normal(x.href) === actual ? 'page' : undefined}>
+                            {x.label}
+                          </a>
+                        </li>
+                      ))}
                   </ul>
                 </li>
               )
@@ -474,9 +580,10 @@ const datos = {
         });
       });
     };
+    // `[data-capa]` cubre la pieza y su globo, que viven en capas distintas.
     const resaltar = (escena: string, capas: string[]) =>
       escenaEl(escena)
-        .querySelectorAll<HTMLElement>('.c-xnav__capa')
+        .querySelectorAll<HTMLElement>('[data-capa]')
         .forEach((c) => (capas.includes(c.dataset.capa!) ? (c.dataset.activa = 'true') : delete c.dataset.activa));
 
     const ponerPestana = (tab: string, enfocar = false) => {
@@ -657,7 +764,7 @@ const datos = {
     const marcar = (ref: string | undefined, si: boolean) => {
       if (!ref) return;
       const escena = raiz.querySelector<HTMLElement>('.c-xnav__escena[data-visible="true"]');
-      escena?.querySelectorAll<HTMLElement>(`.c-xnav__capa[data-capa="${ref}"]`).forEach((c) => {
+      escena?.querySelectorAll<HTMLElement>(`[data-capa="${ref}"]`).forEach((c) => {
         if (si) c.dataset.hover = 'true';
         else delete c.dataset.hover;
       });
