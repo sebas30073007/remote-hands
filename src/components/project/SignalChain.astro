@@ -29,8 +29,8 @@
  *    que regresa.
  *
  * `porFila` (3 por defecto) fija cuántas tarjetas caben por fila; cuando la
- * cadena sigue en la fila de abajo, el tramo de cambio de fila ocupa todo el
- * ancho. En pantalla estrecha todo se apila en una columna.
+ * cadena sigue en la fila de abajo, el tramo de cambio de fila es un codo:
+ * baja de la última tarjeta, cruza y entra a la primera de la fila siguiente. En pantalla estrecha todo se apila en una columna.
  */
 type Enlace = string | { medio?: string; ida?: string; vuelta?: string };
 
@@ -69,7 +69,7 @@ const plantilla = Array.from({ length: columnas }, () => 'minmax(0, 1fr)').join(
       pasos.map((paso, i) => {
         const enlace = i < enlaces.length ? normalizar(enlaces[i]) : null;
         // El tramo que sigue a la última tarjeta de una fila cambia de fila.
-        const cambiaFila = enlace && (i + 1) % columnas === 0;
+        const cambiaFila = enlace && columnas > 1 && (i + 1) % columnas === 0;
         return (
           <>
             <li class="c-chain__paso">
@@ -78,17 +78,28 @@ const plantilla = Array.from({ length: columnas }, () => 'minmax(0, 1fr)').join(
               {paso.detalle && <span class="c-chain__detalle">{paso.detalle}</span>}
             </li>
             {enlace && (
-              <li class:list={['c-chain__tramo', { 'c-chain__tramo--fila': cambiaFila }]}>
-                {enlace.vuelta && (
-                  <span class="c-chain__flecha c-chain__flecha--vuelta">
-                    <span class="c-chain__senal">{enlace.vuelta}</span>
+              <li class:list={['c-chain__tramo', { 'c-chain__tramo--fila': cambiaFila, 'c-chain__tramo--doble': enlace.vuelta }]}>
+                {cambiaFila && (
+                  <>
+                    <span class="c-chain__codo c-chain__codo--sale" aria-hidden="true" />
+                    <span class="c-chain__codo c-chain__codo--fin" aria-hidden="true" />
+                    <span class="c-chain__codo c-chain__codo--cruce" aria-hidden="true" />
+                    <span class="c-chain__codo c-chain__codo--ini" aria-hidden="true" />
+                    <span class="c-chain__codo c-chain__codo--entra" aria-hidden="true" />
+                  </>
+                )}
+                <span class="c-chain__textos">
+                  {enlace.vuelta && (
+                    <span class="c-chain__flecha c-chain__flecha--vuelta">
+                      <span class="c-chain__senal">{enlace.vuelta}</span>
+                      <span class="c-chain__linea" aria-hidden="true" />
+                    </span>
+                  )}
+                  {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
+                  <span class="c-chain__flecha c-chain__flecha--ida">
+                    {enlace.ida && <span class="c-chain__senal">{enlace.ida}</span>}
                     <span class="c-chain__linea" aria-hidden="true" />
                   </span>
-                )}
-                {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
-                <span class="c-chain__flecha c-chain__flecha--ida">
-                  {enlace.ida && <span class="c-chain__senal">{enlace.ida}</span>}
-                  <span class="c-chain__linea" aria-hidden="true" />
                 </span>
               </li>
             )}

@@ -1186,48 +1186,109 @@ a.c-sysmap__edge:focus-visible {
   border-right: 6px solid var(--alloy);
 }
 
-/* --- Tramo vertical: cambio de fila y pantalla estrecha ------------- */
+/* Los textos del tramo son hijos directos del tramo salvo en el codo. */
+.c-chain__textos {
+  display: contents;
+}
+
+.c-chain__codo {
+  display: none;
+}
+
+/* --- Codo: cambio de fila ------------------------------------------- *
+   El tramo ocupa todo el ancho y hereda las columnas de la lista
+   (subgrid), así cada segmento cae en el centro de su tarjeta: baja de la
+   última tarjeta, cruza hacia la izquierda y entra a la primera de la fila
+   siguiente. Los márgenes negativos anulan el hueco entre filas para que
+   las líneas toquen las tarjetas. */
 .c-chain__tramo--fila {
+  display: grid;
   grid-column: 1 / -1;
-}
-
-.c-chain__tramo--fila,
-.c-chain__tramo--fila .c-chain__flecha {
-  flex-direction: row;
-  justify-content: center;
-  align-items: center;
+  grid-template-columns: subgrid;
+  grid-template-rows: auto auto var(--space-lg);
+  gap: 0;
   max-width: none;
+  margin-block: calc(-1 * var(--space-sm));
+  padding: 0;
 }
 
-.c-chain__tramo--fila .c-chain__linea {
-  order: -1;
-  min-width: 0;
-  width: 1px;
-  height: var(--space-2xl);
+.c-chain__tramo--fila .c-chain__codo {
+  display: block;
+  position: relative;
 }
 
-.c-chain__tramo--fila .c-chain__senal {
-  text-align: left;
+.c-chain__codo--sale,
+.c-chain__codo--entra {
+  justify-self: start;
+  width: 50%;
+  border-right: 1px solid var(--alloy);
 }
 
-.c-chain__tramo--fila .c-chain__flecha--ida .c-chain__linea::after {
-  top: auto;
-  right: auto;
-  bottom: 0;
-  left: -4px;
-  border: 0;
+.c-chain__codo--sale {
+  grid-column: -2 / -1;
+  grid-row: 1;
+}
+
+.c-chain__codo--entra {
+  grid-column: 1 / 2;
+  grid-row: 3;
+}
+
+.c-chain__codo--ini,
+.c-chain__codo--cruce,
+.c-chain__codo--fin {
+  grid-row: 2;
+  border-top: 1px solid var(--alloy);
+}
+
+.c-chain__codo--ini {
+  grid-column: 1 / 2;
+  margin-left: 50%;
+}
+
+.c-chain__codo--cruce {
+  grid-column: 2 / -2;
+}
+
+.c-chain__codo--fin {
+  grid-column: -2 / -1;
+  margin-right: 50%;
+}
+
+/* Punta hacia la tarjeta de abajo; en un enlace de ida y vuelta, también
+   hacia la de arriba. */
+.c-chain__codo--entra::after,
+.c-chain__tramo--doble .c-chain__codo--sale::after {
+  content: '';
+  position: absolute;
+  right: -5px;
   border-left: 4.5px solid transparent;
   border-right: 4.5px solid transparent;
+}
+
+.c-chain__codo--entra::after {
+  bottom: 0;
   border-top: 6px solid var(--alloy);
 }
 
-.c-chain__tramo--fila .c-chain__flecha--vuelta .c-chain__linea::after {
+.c-chain__tramo--doble .c-chain__codo--sale::after {
   top: 0;
-  left: -4px;
-  border: 0;
-  border-left: 4.5px solid transparent;
-  border-right: 4.5px solid transparent;
   border-bottom: 6px solid var(--alloy);
+}
+
+.c-chain__tramo--fila .c-chain__textos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-xs);
+  grid-column: 1 / -1;
+  grid-row: 1;
+  justify-self: center;
+  max-width: 40%;
+  padding-block: var(--space-md) var(--space-sm);
+}
+
+.c-chain__tramo--fila .c-chain__linea {
+  display: none;
 }
 
 @media (max-width: 40rem) {
@@ -1253,6 +1314,26 @@ a.c-sysmap__edge:focus-visible {
     flex-direction: row;
     align-items: center;
     gap: var(--space-sm);
+  }
+
+  /* Sin columnas no hay codo: el cambio de fila es un tramo más. */
+  .c-chain__tramo--fila {
+    display: flex;
+    grid-column: auto;
+    margin-block: 0;
+    padding: 0 var(--space-lg);
+  }
+
+  .c-chain__tramo--fila .c-chain__codo {
+    display: none;
+  }
+
+  .c-chain__tramo--fila .c-chain__textos {
+    display: contents;
+  }
+
+  .c-chain__tramo--fila .c-chain__linea {
+    display: block;
   }
 
   .c-chain__linea {
