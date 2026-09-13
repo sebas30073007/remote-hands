@@ -67,6 +67,8 @@ const MODELOS = {
   // Marcador temporal del controlador del gripper: un DRV8833 con un
   // ESP32-C3 cableado a mano, sin PCB propia.
   'drv8833.glb': ['drv8833', 0.7, 0.002],
+  // Final de carrera con palanca: hay uno por cada eje del manipulador.
+  'finaldecarrera.glb': ['final-de-carrera', 0.8, 0.002],
 };
 
 await MeshoptEncoder.ready;

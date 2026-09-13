@@ -17,8 +17,12 @@
  *   public/explode/<escena>/_ensamble.webp
  *   src/generated/explode-manifest.json
  *
- * Uso: node scripts/render-explode.mjs            (todas)
+ * Uso: node scripts/render-explode.mjs            (todas las escenas)
  *      node scripts/render-explode.mjs robot gripper
+ *      node scripts/render-explode.mjs --miniaturas [id …]
+ *
+ * Miniaturas: imágenes sueltas para las páginas (ver `MINIATURAS`), a
+ * `public/images/3d/<id>.webp`. No tocan el manifiesto.
  *
  * Materiales: ver `MATERIAL` en `explode-scenes.mjs`. En modo `original`
  * se respetan los colores y texturas de cada modelo sobre un entorno de
@@ -27,7 +31,7 @@
  * En modo `arcilla`, grises derivados de la luminancia de cada material.
  */
 import { abrirArnes } from './lib/three-harness.mjs';
-import { ESCENAS, VISTA, LIENZO, SUPERMUESTREO, TORNILLERIA, MATERIAL, ACABADOS } from './explode-scenes.mjs';
+import { ESCENAS, MINIATURAS, VISTA, LIENZO, SUPERMUESTREO, TORNILLERIA, MATERIAL, ACABADOS } from './explode-scenes.mjs';
 import sharp from 'sharp';
 import { contours } from 'd3-contour';
 import { mkdir, writeFile, rm } from 'node:fs/promises';
@@ -41,6 +45,7 @@ const serializarRegex = (lista) => (lista ?? []).map((r) => [r.source, r.flags])
 
 const serializarEscena = (esc) => ({
   base: esc.base ?? null,
+  sinTornilleria: Boolean(esc.sinTornilleria),
   soloPiezas: esc.soloPiezas ? serializarRegex(esc.soloPiezas) : null,
   capas: esc.capas.map((c) => ({ ...c, piezas: c.piezas ? serializarRegex(c.piezas) : null })),
 });
@@ -169,7 +174,7 @@ async function prepararEscena({ escena, vista, W, H, S, tornilleria, material, a
       const dueña = conPatrones.find((c) => coincide(parte, re(c.def.piezas)));
       if (dueña && (!solo || coincide(parte, solo))) {
         dueña.g.attach(parte);
-      } else if (coincide(parte, TORN) || !solo) {
+      } else if ((coincide(parte, TORN) && !escena.sinTornilleria) || !solo) {
         pendientes.push(parte);
       }
     }
@@ -367,7 +372,7 @@ const areaAnillo = (r) =>
     return a + x * y2 - x2 * y;
   }, 0)) / 2;
 
-async function procesarCapa(png, destino) {
+async function procesarCapa(png, destino, W = LIENZO.w, H = LIENZO.h) {
   const { data, info } = await sharp(png)
     .resize(W, H, { kernel: 'lanczos3' })
     .ensureAlpha()
@@ -435,7 +440,38 @@ async function procesarCapa(png, destino) {
 }
 
 /* ------------------------------------------------------------------ */
-const pedidas = process.argv.slice(2);
+const argumentos = process.argv.slice(2);
+const modoMiniaturas = argumentos.includes('--miniaturas');
+const pedidas = argumentos.filter((a) => !a.startsWith('--'));
+
+if (modoMiniaturas) {
+  const ids = pedidas.length ? pedidas : Object.keys(MINIATURAS);
+  const { page, close } = await abrirArnes({ width: 64, height: 64 });
+  await mkdir('public/images/3d', { recursive: true });
+  for (const id of ids) {
+    const mini = MINIATURAS[id];
+    if (!mini) {
+      console.error(`miniatura desconocida: ${id}`);
+      continue;
+    }
+    const { w, h } = mini.lienzo ?? { w: 480, h: 360 };
+    const meta = await page.evaluate(prepararEscena, {
+      escena: serializarEscena(mini),
+      vista: VISTA,
+      W: w, H: h, S: SUPERMUESTREO,
+      tornilleria: serializarRegex(TORNILLERIA),
+      material: MATERIAL,
+      acabados: ACABADOS,
+    });
+    const png = decodificar(await page.evaluate(renderizar, meta.capas.filter((c) => !c.vacia).map((c) => c.id)));
+    const destino = `public/images/3d/${id}.webp`;
+    const r = await procesarCapa(png, destino, w, h);
+    console.log(`${id.padEnd(20)} -> ${destino}${r ? '' : ' (VACÍA)'}`);
+  }
+  await close();
+  process.exit(0);
+}
+
 const nombres = pedidas.length ? pedidas : Object.keys(ESCENAS);
 
 let manifiesto = {};

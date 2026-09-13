@@ -205,6 +205,7 @@ export default defineConfig({
                     // Mecánica
                     { slug: 'sistema/subsistemas/robot-movil/plataforma-movil' },
                     { slug: 'sistema/subsistemas/robot-movil/manipulador' },
+                    { slug: 'sistema/subsistemas/robot-movil/sensores' },
                     // Electrónica y software. «Sistemas embebidos» es la
                     // página que compara los tres controladores ESP32-C3;
                     // el detalle de cada uno, y el código de los cuatro,
@@ -215,6 +216,7 @@ export default defineConfig({
                       collapsed: true,
                       items: [
                         { slug: 'sistema/subsistemas/robot-movil/firmware', label: 'Software embebido' },
+                        { slug: 'sistema/subsistemas/robot-movil/conjunto-i2c', label: 'Conjunto I²C' },
                         { slug: 'sistema/subsistemas/robot-movil/electronica', label: 'Puente H' },
                         { slug: 'sistema/subsistemas/robot-movil/controladores/cl57t', label: 'CL57T' },
                         { slug: 'sistema/subsistemas/robot-movil/controladores/gripper', label: 'Gripper' },

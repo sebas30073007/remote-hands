@@ -1,0 +1,61 @@
+---
+title: Sensores
+description: Los sensores del robot — el LiDAR y la cámara RGB-D que alimentan la percepción, y los tres finales de carrera del manipulador.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { ParameterTable } from '@project';
+
+<figure>
+  <img src="/explode/sensores/_ensamble.webp" alt="La cámara RealSense D435i, el RPLiDAR C1 y los tres finales de carrera del robot" />
+</figure>
+
+El robot lleva sensores de dos tipos. Dos miran hacia fuera —el LiDAR y la
+cámara RGB-D— y alimentan la percepción de la NUC. Tres miran hacia dentro:
+los finales de carrera que le dicen al manipulador dónde está su cero.
+
+## Sinopsis
+
+### Percepción
+
+Los dos sensores de percepción van conectados por USB a la NUC, que procesa
+cada uno en su propio pipeline y publica el resultado al visor por ZeroMQ.
+
+<ParameterTable
+  caption="Sensores de percepción"
+  rows={[
+    { parameter: 'RPLiDAR C1', value: 'COM3', unit: '460 800 baud', notes: 'Grid de ocupación 2D, paredes, puntos' },
+    { parameter: 'Intel RealSense D435i', value: 'USB3', unit: '—', notes: 'Video RGB al XR, profundidad calibrada, visión' },
+  ]}
+/>
+
+El LiDAR va sobre la plataforma móvil; la cámara, al frente de la base
+rotatoria del manipulador. Qué hace la NUC con cada uno está en
+[Percepción](/sistema/subsistemas/servidor-percepcion/percepcion/).
+
+<figure>
+  <img src="/images/build/realsense-montaje-frontal.webp" alt="Cámara Intel RealSense D435i montada en posición frontal sobre la base del manipulador" />
+  <figcaption>La RealSense D435i en su posición frontal, sobre la base del manipulador.</figcaption>
+</figure>
+
+### Finales de carrera
+
+Hay uno por eje del manipulador, y los lee el [Controlador
+CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/). Sirven de
+referencia de cero para el homing y de límite mecánico del recorrido.
+
+| Eje | Entrada | GPIO | Uso en el firmware actual |
+| --- | --- | --- | --- |
+| Base | `SW1` | GPIO1 | Montado, sin lectura: la base no hace homing |
+| Codo | `SW2` | GPIO3 | Homing |
+| Muñeca | `SW3` | GPIO4 | Homing |
+
+La secuencia de búsqueda del cero está en la [rutina de
+homing](/sistema/subsistemas/robot-movil/controladores/cl57t/#rutina-de-homing).
+
+<figure>
+  <img src="/images/build/final-carrera-eslabon.webp" alt="Final de carrera montado en el interior del brazo" />
+  <figcaption>Final de carrera con palanca metálica en el recorrido de un eslabón.</figcaption>
+</figure>

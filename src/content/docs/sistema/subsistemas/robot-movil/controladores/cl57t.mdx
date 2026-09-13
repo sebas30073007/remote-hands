@@ -1,44 +1,36 @@
 ---
-title: "Controlador de drivers (CL57T)"
-description: Placa propia con ESP32-C3 que gobierna los tres drivers CL57T del manipulador, con homing y compensación de muñeca.
+title: Controlador CL57T
+description: La placa que mueve los tres ejes del manipulador — qué es, cómo funciona, cómo se conecta, su PCB y su firmware.
+# Tres bloques grandes en el índice de la página, no una lista de
+# subsecciones: Sinopsis, PCB y Firmware.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
 ---
 
-import { ReplicationLevel, ParameterTable, InterfaceTable, Artifact } from '@project';
+import { ParameterTable, InterfaceTable, Artifact, SignalChain } from '@project';
 
-Esta placa de diseño propio genera las señales de paso para los tres drivers
-de motor del manipulador. Está basada en un ESP32-C3, y cada uno de los
-drivers que gobierna es un **CL57T** de lazo cerrado, compatible con
-NEMA17.
+<figure>
+  <img src="/images/3d/controlador-cl57t.webp" alt="Placa del controlador CL57T, con su módulo ESP32-C3 y sus borneras" />
+</figure>
 
-<ReplicationLevel
-  level="buildable"
-  provides={[
-    'Gerbers verificados (13 archivos, incluye taladros PTH) listos para pedido',
-    'Lista de materiales con designadores, cantidades y encapsulados',
-    'Archivo de posiciones y designadores para ensamble',
-    'Firmware completo, con pinout, protocolo, homing y rampas documentados',
-    'Resolución y rango de recorrido de cada eje',
-  ]}
-  missing={[
-    'Números de parte de proveedor: la columna LCSC del BOM está vacía',
-    'Configuración de los DIP switch del propio driver CL57T: micropasos y corriente por fase, que fijan la resolución real del eje',
-    'Diagrama de cableado entre la placa, los tres CL57T y sus fuentes de alimentación',
-  ]}
-/>
+El controlador CL57T es la placa que mueve los tres ejes del manipulador:
+base, codo y muñeca. Recibe de la NUC la posición a la que tiene que ir cada
+eje y la convierte en los pulsos que hacen girar sus motores.
 
-<Artifact href="/pcb/controlador-drivers/gerbers.zip" name="Gerbers de fabricación — Controlador de drivers" />
-<Artifact href="/pcb/controlador-drivers/bom.csv" name="BOM — Controlador de drivers (CSV)" />
-<Artifact href="/firmware/main_manipulador_final.py" name="main_manipulador_final.py" />
+## Sinopsis
 
-## Requisitos
+### Qué es
 
-El controlador debía:
+Una placa de diseño propio basada en un **ESP32-C3**. No mueve los motores
+por sí misma: genera las señales de paso (`PUL`), dirección (`DIR`) y
+habilitación (`ENABLE`) para tres drivers **CL57T** comerciales, que son los
+que entregan la potencia a cada motor NEMA17.
 
-- Mover los tres ejes del manipulador de forma independiente.
-- Generar las señales PUL, DIR y ENABLE hacia cada driver CL57T.
-- Aceptar finales de carrera para las rutinas de homing.
-- Recibir los comandos de posición desde la NUC por I²C, a través del Puente
-  H maestro.
+Comparte arquitectura con el módulo Puente H —ESP32-C3, aislamiento óptico,
+conectores I²C encadenables— pero sin etapa de potencia: de esta placa solo
+salen señales lógicas. Por eso es más pequeña y usa optoacopladores PC817 en
+lugar de 4N25.
 
 <ParameterTable
   caption="Driver CL57T"
@@ -49,7 +41,17 @@ El controlador debía:
   ]}
 />
 
-## Resolución y rangos por eje
+### Cómo funciona
+
+La NUC no le habla directamente. Manda la orden al Puente H maestro por USB,
+y el maestro la reenvía por I²C a esta placa, que escucha en la dirección
+`0x0B`. Cada orden es una línea de texto —`CODO_GOTO <grados>`,
+`POSE <base> <codo> <muñeca>`— y la placa responde cuando el movimiento
+termina.
+
+Para cada eje convierte el ángulo pedido en pasos, según la reducción de su
+transmisión, y los emite con una rampa de aceleración y frenado. En cada
+encendido busca el cero del codo y de la muñeca con sus finales de carrera.
 
 <ParameterTable
   caption="Resolución por eje (incluye reducción HTD3M + planetario 10:1 en codo y muñeca)"
@@ -60,19 +62,40 @@ El controlador debía:
   ]}
 />
 
-## La placa
+### Conexiones
 
-Comparte arquitectura con el módulo Puente H —ESP32-C3, aislamiento óptico,
-conectores I²C encadenables— pero sin etapa de potencia: aquí solo salen
-señales lógicas hacia los drivers, que son los que manejan los motores. Por
-eso es más pequeña y usa optoacopladores PC817 en lugar de 4N25.
+Del operador al motor. Cada tramo lleva el medio por el que viaja la orden.
+
+<SignalChain
+  pasos={[
+    { nombre: 'Meta Quest 3', detalle: 'interfaz XR', imagen: '/images/3d/meta-quest-3.webp' },
+    { nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' },
+    { nombre: 'Puente H maestro', detalle: 'ESP32-C3', imagen: '/images/3d/puente-h.webp' },
+    { nombre: 'Controlador CL57T', detalle: 'ESP32-C3', imagen: '/images/3d/controlador-cl57t.webp' },
+    { nombre: 'Driver CL57T × 3', detalle: 'lazo cerrado', imagen: '/images/3d/driver-cl57t.webp' },
+    { nombre: 'NEMA17 + reductor planetario × 3', detalle: 'base, codo y muñeca', imagen: '/images/3d/nema17-reductor.webp' },
+  ]}
+  enlaces={['ZMQ · cmd (manip_cmd)', 'Serial · COM4', 'I²C 0x0B · texto ASCII', 'PUL / DIR / ENABLE', '']}
+/>
+
+A la placa llegan también los **tres finales de carrera** del brazo, uno por
+eje. Sus entradas están en [Asignación de pines](#asignación-de-pines).
+
+<figure>
+  <img src="/images/build/conexiones-driver-cl57t.webp" alt="Conexiones de los drivers CL57T" />
+  <figcaption>Cableado de los drivers CL57T, alojados dentro de la estructura en «C» que eleva el manipulador.</figcaption>
+</figure>
+
+## PCB
+
+### La placa
 
 <figure>
   <img
     src="/images/esquematico-controlador-drivers.png"
-    alt="Esquemático en KiCad del controlador de drivers CL57T"
+    alt="Esquemático en KiCad del controlador CL57T"
   />
-  <figcaption>Esquemático del controlador de drivers: el ESP32-C3, las salidas PUL/DIR hacia los tres CL57T y las entradas de final de carrera.</figcaption>
+  <figcaption>Esquemático: el ESP32-C3, las salidas PUL/DIR hacia los tres drivers y las entradas de final de carrera.</figcaption>
 </figure>
 
 <ParameterTable
@@ -87,7 +110,7 @@ eso es más pequeña y usa optoacopladores PC817 en lugar de 4N25.
 />
 
 <InterfaceTable
-  caption="Lista de materiales — controlador de drivers"
+  caption="Lista de materiales"
   columns={['Designadores', 'Cant.', 'Valor', 'Encapsulado']}
   rows={[
     ['ESP32-C3', 1, 'ESP32-C3 SuperMini', 'Módulo SMD'],
@@ -108,44 +131,38 @@ eso es más pequeña y usa optoacopladores PC817 en lugar de 4N25.
 La placa lleva **cuatro** borneras de salida para tres ejes: la cuarta quedó
 como reserva y no se usa en esta configuración.
 
-## Asignación de pines ESP32-C3
+<figure>
+  <img
+    src="/images/pcb-2-capas-controlador-drivers.png"
+    alt="Layout de PCB de dos capas del controlador CL57T"
+  />
+  <figcaption>Layout de dos capas.</figcaption>
+</figure>
+
+<Artifact href="/pcb/controlador-drivers/gerbers.zip" name="Gerbers de fabricación — Controlador CL57T" />
+<Artifact href="/pcb/controlador-drivers/bom.csv" name="Lista de materiales — Controlador CL57T (CSV)" />
+
+### Asignación de pines
 
 | Señal | GPIO | Función |
 | --- | --- | --- |
 | `PUL_BASE` / `DIR_BASE` | GPIO20 / GPIO21 | Base |
 | `PUL_CODO` / `DIR_CODO` | GPIO7 / GPIO10 | Codo |
 | `PUL_MUNECA` / `DIR_MUNECA` | GPIO5 / GPIO6 | Muñeca |
-| `SW2` / `SW3` | GPIO3 / GPIO4 | Finales de carrera codo / muñeca |
+| `SW1` | GPIO1 | Final de carrera de la base |
+| `SW2` / `SW3` | GPIO3 / GPIO4 | Finales de carrera de codo / muñeca |
 | `SDA` / `SCL` | GPIO8 / GPIO9 | Bus I²C esclavo (dirección `0x0B`) |
 | `BTN` | GPIO0 | Botón local (homing sin NUC) |
 
-<figure>
-  <img
-    src="/images/pcb-2-capas-controlador-drivers.png"
-    alt="Layout de PCB de dos capas del controlador de drivers CL57T"
-  />
-  <figcaption>Layout de dos capas. El mismo proceso de fabricación y el mismo costo por lote que el módulo Puente H.</figcaption>
-</figure>
+## Firmware
 
-## Flujo de comando de eje
+El firmware es MicroPython sobre el ESP32-C3. Atiende las órdenes por I²C y
+también por USB serie, que queda siempre disponible para depurar.
 
-```text
-Meta Quest (XR)
-    │ ZMQ cmd (manip_cmd)
-    ▼
-NUC (Python 3.12)
-    │ Serial COM4
-    ▼
-Puente H maestro (ESP32-C3)
-    │ I²C addr 0x0B (texto ASCII)
-    ▼
-Controlador CL57T (ESP32-C3)
-    │ PUL / DIR / ENABLE
-    ▼
-Driver CL57T × 3 → NEMA17 + reductor planetario × 3
-```
+<Artifact href="/firmware/main_manipulador_final.py" name="Firmware — main_manipulador_final.py" />
+<Artifact href="/software/calibracion_manipulador.py" name="Script de calibración del manipulador" />
 
-## Protocolo ASCII por I²C (esclavo 0x0B)
+### Protocolo ASCII por I²C
 
 <InterfaceTable
   caption="Comandos principales — todos bloquean hasta que el movimiento termina"
@@ -161,11 +178,9 @@ Driver CL57T × 3 → NEMA17 + reductor planetario × 3
   ]}
 />
 
-## Rutina de homing — 4 fases
+### Rutina de homing
 
-El codo y la muñeca necesitan homing en cada encendido. La base no lo
-necesita: no tiene final de carrera, y arranca desde la posición en la que
-haya quedado.
+El codo y la muñeca buscan su cero en cada encendido, en cuatro fases:
 
 ```text
 Fase 1 — Búsqueda rápida:  avanza hacia el switch a 1 800 µs/paso
@@ -174,12 +189,16 @@ Fase 3 — Búsqueda fina:    avanza de nuevo a 3 200 µs/paso (más precisión)
 Fase 4 — Clearance final:  retrocede 120 pasos → posición cero reproducible
 ```
 
+La base tiene su propio final de carrera, en la entrada `SW1`, pero el
+firmware actual no lo lee: la base no hace homing y arranca desde la
+posición en la que haya quedado.
+
 Una pulsación larga del botón físico (GPIO0) ejecuta `HOME_ALL` sin
 intervención de la NUC. Esa vía sirve durante el desarrollo y para recuperar
 el brazo tras un error. La lectura de cada final de carrera aplica un
 debounce de 5 ms con doble confirmación.
 
-## Compensación mecánica de muñeca
+### Compensación mecánica de muñeca
 
 La transmisión de correa HTD3M entre el codo y la muñeca acopla físicamente
 ambos ejes: cuando el codo gira, la muñeca gira con él aunque nadie se lo
@@ -191,7 +210,7 @@ separan: el ángulo lógico que ve el operador (`pos_muneca`) permanece
 estable, mientras la posición física del motor (`pos_muneca_motor`) sí
 cambia.
 
-## Rampas de velocidad
+### Rampas de velocidad
 
 Cada eje usa su propio perfil trapezoidal: aceleración lineal, crucero y
 deceleración lineal. Esa forma de arrancar y frenar evita la pérdida de pasos
@@ -217,18 +236,3 @@ y vuelve a 2 500 µs para frenar.
 La base añade una regla propia: si un movimiento cruza el cero y recorre más
 de **60°**, se parte en dos tramos. Un giro largo de la base a través del
 origen mueve todo el brazo, y partirlo evita el tirón en el punto de cruce.
-
-<figure>
-  <img src="/images/build/conexiones-driver-cl57t.webp" alt="Conexiones de los drivers CL57T" />
-  <figcaption>Cableado de los drivers CL57T, alojados dentro de la estructura en «C» que eleva el manipulador.</figcaption>
-</figure>
-
-<Artifact href="/software/calibracion_manipulador.py" name="Script de calibración del manipulador" />
-
-## Verificación
-
-El controlador alcanza los rangos de cada eje sin pérdida de pasos
-detectada, y la rutina de homing funciona con los finales de carrera. El
-control remoto desde la interfaz XR seguía pendiente de integración completa
-en la última verificación registrada. El detalle está en [Verificación del
-robot móvil](/sistema/subsistemas/robot-movil/verificacion/).

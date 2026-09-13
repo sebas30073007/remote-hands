@@ -1,0 +1,70 @@
+---
+/**
+ * Cadena de señal: del operador al motor, un eslabón por componente.
+ *
+ * Sustituye al diagrama en texto (`Meta Quest ─▶ NUC ─▶ …`). Cada eslabón
+ * lleva la miniatura 3D del componente —la misma cámara y los mismos
+ * materiales que la vista explosionada, así el lector reconoce la pieza que
+ * acaba de señalar en el panel— y cada tramo, el medio por el que viaja la
+ * orden: puerto, bus, dirección, señales.
+ *
+ * Vertical a propósito: una cadena de seis componentes no cabe en
+ * horizontal en la columna de contenido, y se lee de arriba abajo, en el
+ * mismo sentido que la orden.
+ *
+ * Uso:
+ * <SignalChain
+ *   pasos={[{ nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' }, …]}
+ *   enlaces={['Serial · COM4', …]}
+ * />
+ *
+ * `enlaces` va ENTRE pasos consecutivos: siempre uno menos que pasos. Un
+ * enlace vacío dibuja la flecha sin rótulo.
+ */
+interface Paso {
+  nombre: string;
+  /** Qué corre o qué es, en mono: dato técnico. */
+  detalle?: string;
+  /** Ruta desde la raíz del sitio. */
+  imagen: string;
+}
+
+interface Props {
+  pasos: Paso[];
+  enlaces: string[];
+  caption?: string;
+}
+
+const { pasos, enlaces, caption } = Astro.props;
+
+if (enlaces.length !== pasos.length - 1) {
+  throw new Error(`SignalChain: ${pasos.length} pasos necesitan ${pasos.length - 1} enlaces, se recibieron ${enlaces.length}.`);
+}
+
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const src = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
+---
+
+<figure class="c-chain not-content">
+  <ol class="c-chain__lista">
+    {
+      pasos.map((paso, i) => (
+        <>
+          <li class="c-chain__paso">
+            <img class="c-chain__img" src={src(paso.imagen)} alt="" loading="lazy" decoding="async" width="160" height="120" />
+            <span class="c-chain__texto">
+              <span class="c-chain__nombre">{paso.nombre}</span>
+              {paso.detalle && <span class="c-chain__detalle">{paso.detalle}</span>}
+            </span>
+          </li>
+          {i < enlaces.length && (
+            <li class="c-chain__tramo">
+              {enlaces[i] && <span class="c-chain__senal">{enlaces[i]}</span>}
+            </li>
+          )}
+        </>
+      ))
+    }
+  </ol>
+  {caption && <figcaption class="c-chain__caption">{caption}</figcaption>}
+</figure>

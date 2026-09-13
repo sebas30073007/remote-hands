@@ -6,34 +6,33 @@
  * (`data-ui="explosion"` en `<html>`, ver `UiModeToggle.astro`). La pestaña
  * «Sistema» dibuja el robot; al elegir una pieza, la página cambia y el
  * dibujo se separa en las piezas de esa parte. Las otras cinco pestañas son
- * listas: Reporte, Operar, Construir, Evidencia y Referencia no son cosas
- * que se puedan desmontar.
+ * árboles de páginas: Reporte, Operar, Construir, Evidencia y Referencia no
+ * son cosas que se puedan desmontar.
  *
  * Cómo está hecho, y por qué:
  *
- *  - Las imágenes son capas PNG renderizadas desde el CAD con cámara
- *    ortográfica (`scripts/render-explode.mjs`). Explotar es trasladarlas
- *    con CSS: exacto, a 60 fps, y sin WebGL en un panel que está en todas
- *    las páginas.
- *  - TODO el estado se renderiza en el servidor: las seis escenas, el
- *    listado de cada nodo y las cinco pestañas, con la página actual ya
- *    marcada. La primera pintura es correcta sin JavaScript. El script solo
- *    cambia atributos y anima entre estados.
+ *  - Las imágenes son capas renderizadas desde el CAD con cámara ortográfica
+ *    (`scripts/render-explode.mjs`). Explotar es trasladarlas con CSS:
+ *    exacto, a 60 fps, y sin WebGL en un panel que está en todas las páginas.
+ *  - El dibujo ES la navegación. No hay listado de piezas: cada pieza es un
+ *    enlace, su globo es el objetivo de teclado, y al señalarla el rótulo al
+ *    pie del lienzo dice qué es. El nombre de ese rótulo es el mismo de las
+ *    migas y del título de la página (`explode-nav.ts`).
+ *  - Un nodo se alcanza por varias rutas y el panel recuerda por cuál vino
+ *    (ver `explode-nav.ts`). El servidor dibuja la ruta canónica; el script
+ *    la sustituye por la real al navegar.
  *  - El panel lleva `transition:persist`: con `<ClientRouter />` sobrevive a
  *    la navegación, y por eso puede animar del estado anterior al nuevo en
  *    vez de reaparecer desde cero en cada clic.
- *  - La escena es un realce para puntero (`aria-hidden`). El camino
- *    accesible son los listados de debajo: los mismos destinos, como
- *    enlaces reales.
  */
 import manifiesto from '../../generated/explode-manifest.json';
 import {
   NODOS,
   PESTANAS,
   nodoPorId,
-  escenaDeNodo,
   duenoDeEscena,
-  cadena,
+  rutaCanonica,
+  escenaDeRuta,
   type NodoExplode,
 } from '../../lib/explode-nav';
 
@@ -56,7 +55,7 @@ const normal = (p: string) => {
 };
 const actual = normal(pathname);
 
-/* --- Temario clásico: etiquetas y listas de las pestañas ------------- */
+/* --- Temario clásico: etiquetas y árboles de las pestañas ------------ */
 const etiquetas = new Map<string, string>();
 const aplanar = (es: Entrada[]) =>
   es.forEach((e) => (e.type === 'link' ? etiquetas.set(normal(e.href), e.label) : aplanar(e.entries)));
@@ -72,7 +71,7 @@ const estados: Record<string, Estado> = {};
 estados[normal(base)] = { tab: 'sistema', nodo: 'sistema', explotada: false };
 for (const n of NODOS) {
   estados[normal(href(n.pagina))] = { tab: 'sistema', nodo: n.id, explotada: true };
-  for (const f of n.facetas ?? []) estados[normal(href(f))] = { tab: 'sistema', nodo: n.id, explotada: true };
+  for (const f of n.facetas ?? []) estados[normal(href(f))] ??= { tab: 'sistema', nodo: n.id, explotada: true };
 }
 for (const p of PESTANAS) {
   const recorrer = (es: Entrada[]) =>
@@ -84,71 +83,53 @@ for (const p of PESTANAS) {
   if (g) recorrer(g.entries);
 }
 const inicial: Estado = estados[actual] ?? { tab: 'sistema', nodo: 'sistema', explotada: false };
-const nodoInicial = inicial.nodo ?? 'sistema';
-const { escena: escenaInicial, resaltadas: resaltadasIniciales } = escenaDeNodo(nodoInicial);
+const rutaInicial = rutaCanonica(inicial.nodo ?? 'sistema');
+const { escena: escenaInicial, resaltadas: resaltadasIniciales } = escenaDeRuta(rutaInicial);
 
 /* --- Piezas de cada escena ------------------------------------------- */
-const destinoDe = (dueno: NodoExplode, capaId: string) => {
-  const d = dueno.piezas?.[capaId];
+const piezaDe = (dueno: NodoExplode, capa: string) => {
+  const d = dueno.piezas?.[capa];
   if (!d) return null;
   const nodo = d.nodo ? nodoPorId.get(d.nodo) : undefined;
   return {
-    capa: capaId,
-    etiqueta: d.etiqueta ?? nodo?.etiqueta ?? capaId,
-    href: nodo
-      ? href(nodo.pagina)
-      : `${href(d.pagina ?? dueno.pagina)}${d.ancla ? `#${d.ancla}` : ''}`,
-    baja: Boolean(nodo),
+    capa,
+    nodo: nodo?.id ?? null,
+    nombre: d.nombre ?? nodo?.nombre ?? capa,
+    descripcion: d.descripcion ?? nodo?.descripcion ?? '',
+    href: nodo ? href(nodo.pagina) : `${href(d.pagina ?? dueno.pagina)}${d.ancla ? `#${d.ancla}` : ''}`,
   };
-};
-const piezasDe = (escena: string) => {
-  const dueno = duenoDeEscena(escena);
-  return Object.keys(dueno.piezas ?? {})
-    .map((id) => destinoDe(dueno, id))
-    .filter((p): p is NonNullable<typeof p> => Boolean(p))
-    .map((p, i) => ({ ...p, n: i + 1 }));
 };
 
 const { w: LW, h: LH } = manifiesto.lienzo;
 const escenas = Object.entries(manifiesto.escenas).map(([id, esc]) => {
   const dueno = duenoDeEscena(id);
-  const piezas = piezasDe(id);
   return {
     id,
     dueno,
     ensamble: esc.ensamble,
-    capas: esc.capas.map((c) => ({
-      ...c,
-      pieza: piezas.find((p) => p.capa === c.id) ?? null,
-    })),
+    capas: esc.capas.map((c) => ({ ...c, pieza: piezaDe(dueno, c.id) })),
   };
 });
 
-const notasDe = new Map<string, ReturnType<typeof colocarNotas>>();
-
 const puntos = (anillo: number[][]) => anillo.map(([x, y]) => `${x},${y}`).join(' ');
 const r2 = (n: number) => Math.round(n * 100) / 100;
+const rotuloDe = (p: { nombre: string; descripcion: string }) =>
+  p.descripcion ? `${p.nombre} (${p.descripcion})` : p.nombre;
 
 /* --- Globos: el número fuera de la pieza, unido por una línea guía ----
-   Antes el globo iba en el centro de la pieza, dentro de su capa. Dos
-   problemas: en una pieza pequeña —el LiDAR— el número la tapaba casi
-   entera, y como cada capa apila su contenido, el globo de una pieza de
-   atrás quedaba escondido bajo la pieza de delante.
-
-   Ahora, como en un plano de despiece, el número sale de la pieza con una
-   línea guía y todos los globos van en una capa por encima de las piezas.
-   La posición se calcula aquí, al compilar: se prueba la dirección que se
-   aleja del centro del conjunto y, si el globo cae sobre una pieza, se sale
-   del escenario o choca con otro globo, se gira de 30 en 30 grados. Es
-   determinista y no cuesta nada en el navegador.
+   Como en un plano de despiece, el número sale de la pieza con una línea
+   guía y todos los globos van en una capa por encima de las piezas. La
+   posición se calcula aquí, al compilar: se prueba la dirección que se aleja
+   del centro del conjunto y, si el globo cae sobre una pieza, se sale del
+   escenario o choca con otro globo, se gira de 30 en 30 grados.
 
    Unidades: `cqw`, porcentaje del ANCHO del escenario en los dos ejes, para
    que la distancia sea la misma en horizontal y en vertical. */
-const RATIO = LH / LW; // alto del escenario en unidades de ancho
-const LARGO = 12; // distancia de la pieza al globo, en cqw
-const RADIO = 2.8; // radio del globo (1.25rem sobre un escenario de ~340 px)
+const RATIO = LH / LW;
+const LARGO = 12;
+const RADIO = 2.8;
 type Punto = [number, number];
-type CapaGeo = { id: string; box: number[]; dx: number; dy: number; globo: number[]; poly: number[][][]; pieza: unknown };
+type CapaGeo = (typeof escenas)[number]['capas'][number];
 
 const dentroDe = ([x, y]: Punto, anillo: Punto[]) => {
   let dentro = false;
@@ -172,20 +153,17 @@ const colocarNotas = (capas: CapaGeo[]) => {
   const sobrePieza = (pt: Punto) => siluetas.some((anillos) => anillos.some((an) => dentroDe(pt, an)));
 
   const puestos: Punto[] = [];
-  const notas = new Map<string, { gx: number; gy: number; ox: number; oy: number; len: number; ang: number }>();
-
+  const notas = new Map<string, { ox: number; oy: number; len: number; ang: number }>();
   capas.forEach((c, i) => {
     if (!c.pieza) return;
     const [ax, ay] = anclas[i];
-    const base = Math.hypot(ax - cx, ay - cy) < 1 ? -Math.PI / 4 : Math.atan2(ay - cy, ax - cx);
+    const rumbo = Math.hypot(ax - cx, ay - cy) < 1 ? -Math.PI / 4 : Math.atan2(ay - cy, ax - cx);
     let elegido: Punto | null = null;
-
-    // Primero sin tocar ninguna pieza; si no hay hueco, se permite.
     for (const estricto of [true, false]) {
       for (let k = 0; k < 12 && !elegido; k++) {
         const giro = Math.ceil(k / 2) * (k % 2 ? 1 : -1) * (Math.PI / 6);
         for (const largo of [LARGO, LARGO * 1.5]) {
-          const b: Punto = [ax + largo * Math.cos(base + giro), ay + largo * Math.sin(base + giro)];
+          const b: Punto = [ax + largo * Math.cos(rumbo + giro), ay + largo * Math.sin(rumbo + giro)];
           if (b[0] < 5 || b[0] > 95 || b[1] < 5 || b[1] > 100 * RATIO - 5) continue;
           if (puestos.some(([px, py]) => Math.hypot(px - b[0], py - b[1]) < 7)) continue;
           if (estricto && sobrePieza(b)) continue;
@@ -196,33 +174,38 @@ const colocarNotas = (capas: CapaGeo[]) => {
       if (elegido) break;
     }
     elegido ??= [
-      Math.min(95, Math.max(5, ax + LARGO * Math.cos(base))),
-      Math.min(100 * RATIO - 5, Math.max(5, ay + LARGO * Math.sin(base))),
+      Math.min(95, Math.max(5, ax + LARGO * Math.cos(rumbo))),
+      Math.min(100 * RATIO - 5, Math.max(5, ay + LARGO * Math.sin(rumbo))),
     ];
-
     puestos.push(elegido);
     const ox = elegido[0] - ax;
     const oy = elegido[1] - ay;
-    notas.set(c.id, {
-      gx: c.globo[0],
-      gy: c.globo[1],
-      ox,
-      oy,
-      len: Math.max(0, Math.hypot(ox, oy) - RADIO),
-      ang: (Math.atan2(oy, ox) * 180) / Math.PI,
-    });
+    notas.set(c.id, { ox, oy, len: Math.max(0, Math.hypot(ox, oy) - RADIO), ang: (Math.atan2(oy, ox) * 180) / Math.PI });
   });
   return notas;
 };
-
-for (const e of escenas) notasDe.set(e.id, colocarNotas(e.capas as CapaGeo[]));
+const notasDe = new Map(escenas.map((e) => [e.id, colocarNotas(e.capas)]));
 
 /* --- Datos para el script ------------------------------------------- */
 const datos = {
   estados,
   nodos: Object.fromEntries(
-    NODOS.map((n) => [n.id, { padre: n.padre ?? null, escena: n.escena ?? null, capa: n.capa ?? null }])
+    NODOS.map((n) => [
+      n.id,
+      { nombre: n.nombre, descripcion: n.descripcion, padre: n.padre ?? null, escena: n.escena ?? null, href: href(n.pagina) },
+    ])
   ),
+  piezas: Object.fromEntries(
+    escenas.map((e) => [
+      e.id,
+      Object.fromEntries(
+        e.capas
+          .filter((c) => c.pieza)
+          .map((c) => [c.id, { nodo: c.pieza!.nodo, nombre: c.pieza!.nombre, descripcion: c.pieza!.descripcion }])
+      ),
+    ])
+  ),
+  duenos: Object.fromEntries(escenas.map((e) => [e.id, e.dueno.id])),
   geometria: Object.fromEntries(
     escenas.map((e) => [
       e.id,
@@ -238,7 +221,7 @@ const datos = {
 <div
   class="c-xnav"
   data-xnav
-  data-estado={JSON.stringify(inicial)}
+  data-ruta={JSON.stringify(rutaInicial)}
   data-pestana={inicial.tab}
   data-explotada={String(inicial.explotada)}
   transition:persist="xnav"
@@ -272,26 +255,33 @@ const datos = {
     data-panel="sistema"
     hidden={inicial.tab !== 'sistema'}
   >
-    <div class="c-xnav__migas-set">
+    {/* Migas de la ruta real. El servidor pone la canónica; el script la
+        reescribe con la ruta por la que se llegó. */}
+    <nav class="c-xnav__migas" aria-label="Ubicación en el sistema" data-migas>
       {
-        NODOS.map((n) => (
-          <nav class="c-xnav__migas" aria-label="Ubicación en el sistema" data-info={n.id} hidden={n.id !== nodoInicial}>
-            {cadena(n.id).map((m, i, arr) =>
-              i < arr.length - 1 ? (
-                <>
-                  <a href={href(m.pagina)}>{m.etiqueta}</a>
-                  <span class="c-xnav__sep" aria-hidden="true">›</span>
-                </>
+        rutaInicial.map((id, i) => {
+          const n = nodoPorId.get(id)!;
+          return (
+            <>
+              {i > 0 && (
+                <span class="c-xnav__sep" aria-hidden="true">
+                  /
+                </span>
+              )}
+              {i < rutaInicial.length - 1 ? (
+                <a href={href(n.pagina)} data-migas-idx={i}>
+                  {n.nombre}
+                </a>
               ) : (
-                <span class="c-xnav__aqui">{m.etiqueta}</span>
-              )
-            )}
-          </nav>
-        ))
+                <span class="c-xnav__aqui">{n.nombre}</span>
+              )}
+            </>
+          );
+        })
       }
-    </div>
+    </nav>
 
-    <div class="c-xnav__stage" aria-hidden="true" style={`aspect-ratio:${LW}/${LH}`}>
+    <div class="c-xnav__stage" role="group" aria-label="Vista explosionada" style={`aspect-ratio:${LW}/${LH}`}>
       {
         escenas.map((e) => {
           const visible = e.id === escenaInicial;
@@ -315,7 +305,7 @@ const datos = {
                   height={Math.round((e.ensamble.box[3] / 100) * LH)}
                 />
                 <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none">
-                  <a href={href(e.dueno.pagina)} tabindex="-1">
+                  <a href={href(e.dueno.pagina)} aria-label={`Explorar: ${rotuloDe(e.dueno)}`} data-ensamble={e.id}>
                     {e.ensamble.poly.map((anillo) => <polygon points={puntos(anillo)} />)}
                   </a>
                 </svg>
@@ -340,7 +330,7 @@ const datos = {
                     height={Math.round((c.box[3] / 100) * LH)}
                   />
                   {c.pieza && (
-                    <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none">
+                    <svg class="c-xnav__hit" viewBox="0 0 100 100" preserveAspectRatio="none" aria-hidden="true">
                       <a href={c.pieza.href} tabindex="-1" data-capa-ref={c.id}>
                         {c.poly.map((anillo) => <polygon points={puntos(anillo)} />)}
                       </a>
@@ -349,12 +339,13 @@ const datos = {
                 </div>
               ))}
 
-              {/* Globos y líneas guía: una capa por encima de todas las
-                  piezas, pero cada nota se mueve con su pieza. */}
+              {/* Globos y líneas guía: por encima de todas las piezas, pero
+                  cada nota se mueve con la suya. El globo es el objetivo de
+                  teclado de la pieza. */}
               <div class="c-xnav__notas">
                 {e.capas
                   .filter((c) => c.pieza)
-                  .map((c) => {
+                  .map((c, i) => {
                     const nota = notasDe.get(e.id)!.get(c.id)!;
                     return (
                       <div
@@ -364,13 +355,13 @@ const datos = {
                         style={
                           `--x:${c.box[0]}%;--y:${c.box[1]}%;--w:${c.box[2]}%;--h:${c.box[3]}%;` +
                           `--tx:${r2((c.dx / c.box[2]) * 100)}%;--ty:${r2((c.dy / c.box[3]) * 100)}%;` +
-                          `--gx:${nota.gx}%;--gy:${nota.gy}%;--ox:${r2(nota.ox)};--oy:${r2(nota.oy)};` +
+                          `--gx:${c.globo[0]}%;--gy:${c.globo[1]}%;--ox:${r2(nota.ox)};--oy:${r2(nota.oy)};` +
                           `--len:${r2(nota.len)};--ang:${r2(nota.ang)}deg`
                         }
                       >
                         <span class="c-xnav__guia" />
-                        <a class="c-xnav__globo" href={c.pieza!.href} tabindex="-1" data-capa-ref={c.id}>
-                          {c.pieza!.n}
+                        <a class="c-xnav__globo" href={c.pieza!.href} data-capa-ref={c.id} aria-label={rotuloDe(c.pieza!)}>
+                          {i + 1}
                         </a>
                       </div>
                     );
@@ -380,64 +371,34 @@ const datos = {
           );
         })
       }
+
+      {/* Rótulo al pie del lienzo: qué es la pieza señalada. */}
+      <p class="c-xnav__rotulo" data-rotulo aria-live="polite">
+        {inicial.explotada ? 'Señala una pieza' : 'Toca el robot para desmontarlo'}
+      </p>
     </div>
 
-    <p class="c-xnav__pista">Toca el robot para desmontarlo.</p>
-
-    <div class="c-xnav__listas">
+    <div class="c-xnav__facetas">
       {
-        NODOS.map((n) => {
-          const { escena } = escenaDeNodo(n.id);
-          const dueno = duenoDeEscena(escena);
-          const piezas = piezasDe(escena);
-          const capasNodo = Array.isArray(n.capa) ? n.capa : n.capa ? [n.capa] : [];
-          const docs = [n.pagina, ...(n.facetas ?? [])];
-          return (
-            <div class="c-xnav__info" data-info={n.id} hidden={n.id !== nodoInicial}>
-              {piezas.length > 0 && (
-                <>
-                  <p class="c-xnav__titulo">Piezas · {dueno.etiqueta}</p>
-                  <ol class="c-xnav__piezas">
-                    {piezas.map((p) => (
-                      <li data-activa={!n.escena && capasNodo.includes(p.capa) ? 'true' : undefined}>
-                        <a
-                          href={p.href}
-                          data-capa-ref={p.capa}
-                          aria-current={normal(p.href) === actual && !p.href.includes('#') ? 'page' : undefined}
-                        >
-                          <span class="c-xnav__num" aria-hidden="true">
-                            {p.n}
-                          </span>
-                          <span class="c-xnav__nombre">{p.etiqueta}</span>
-                          {p.baja && (
-                            <span class="c-xnav__baja" aria-hidden="true">
-                              ›
-                            </span>
-                          )}
-                        </a>
-                      </li>
-                    ))}
-                  </ol>
-                </>
-              )}
-              <p class="c-xnav__titulo">Documentos · {n.etiqueta}</p>
-              <ul class="c-xnav__docs">
-                {docs.map((slug, i) => (
-                  <li>
-                    <a href={href(slug)} aria-current={normal(href(slug)) === actual ? 'page' : undefined}>
-                      {i === 0 ? 'Vista general' : (etiquetas.get(normal(href(slug))) ?? slug)}
-                    </a>
-                  </li>
-                ))}
-              </ul>
-            </div>
-          );
-        })
+        NODOS.filter((n) => n.facetas?.length).map((n) => (
+          <div class="c-xnav__info" data-info={n.id} hidden={n.id !== rutaInicial[rutaInicial.length - 1]}>
+            <p class="c-xnav__titulo">Documentos</p>
+            <ul class="c-xnav__etiquetas">
+              {n.facetas!.map((slug) => (
+                <li>
+                  <a href={href(slug)} aria-current={normal(href(slug)) === actual ? 'page' : undefined}>
+                    {etiquetas.get(normal(href(slug))) ?? slug}
+                  </a>
+                </li>
+              ))}
+            </ul>
+          </div>
+        ))
       }
     </div>
   </div>
 
-  {/* ------------------------------------------ Pestañas de lista */}
+  {/* ---------------------------------------- Pestañas de árbol */}
   {
     PESTANAS.map((p) => {
       const g = grupoPorEtiqueta(p.grupo);
@@ -498,7 +459,9 @@ const datos = {
   type Caja = [number, number, number, number];
   type Datos = {
     estados: Record<string, Estado>;
-    nodos: Record<string, { padre: string | null; escena: string | null; capa: string | string[] | null }>;
+    nodos: Record<string, { nombre: string; descripcion: string; padre: string | null; escena: string | null; href: string }>;
+    piezas: Record<string, Record<string, { nodo: string | null; nombre: string; descripcion: string }>>;
+    duenos: Record<string, string>;
     geometria: Record<
       string,
       { ensamble: Caja; capas: Record<string, { box: Caja; dx: number; dy: number; oculto: boolean }> }
@@ -522,20 +485,93 @@ const datos = {
 
     const datos: Datos = JSON.parse(raiz.querySelector('[data-xnav-datos]')!.textContent!);
     const stage = raiz.querySelector<HTMLElement>('.c-xnav__stage')!;
+    const rotulo = raiz.querySelector<HTMLElement>('[data-rotulo]')!;
+    const migas = raiz.querySelector<HTMLElement>('[data-migas]')!;
     const escenaEl = (id: string) => raiz.querySelector<HTMLElement>(`.c-xnav__escena[data-escena="${id}"]`)!;
+    const escenaVisible = () =>
+      raiz.querySelector<HTMLElement>('.c-xnav__escena[data-visible="true"]')?.dataset.escena ?? 'sistema';
     const sinMovimiento = () => matchMedia('(prefers-reduced-motion: reduce)').matches;
     const visible = () => raiz.getClientRects().length > 0;
 
-    const arr = (c: string | string[] | null) => (Array.isArray(c) ? c : c ? [c] : []);
-    const escenaDe = (nodo: string) => {
-      const n = datos.nodos[nodo];
+    /* --- Rutas ------------------------------------------------------- */
+    const canonica = (id: string) => {
+      const out: string[] = [];
+      let n: string | null = id;
+      while (n && datos.nodos[n]) {
+        out.unshift(n);
+        n = datos.nodos[n].padre;
+      }
+      return out;
+    };
+    const capasHacia = (escena: string, nodo: string) =>
+      Object.entries(datos.piezas[escena] ?? {})
+        .filter(([, p]) => p.nodo === nodo)
+        .map(([capa]) => capa);
+    const escenaDe = (ruta: string[]) => {
+      const ultimo = ruta[ruta.length - 1];
+      const n = datos.nodos[ultimo];
       if (!n) return { escena: 'sistema', resaltadas: [] as string[] };
       if (n.escena) return { escena: n.escena, resaltadas: [] as string[] };
-      const padre = n.padre ? datos.nodos[n.padre] : null;
-      return { escena: padre?.escena ?? 'sistema', resaltadas: arr(n.capa) };
+      const previo = datos.nodos[ruta[ruta.length - 2] ?? n.padre ?? 'sistema'];
+      const escena = previo?.escena ?? 'sistema';
+      return { escena, resaltadas: capasHacia(escena, ultimo) };
     };
-    const duenoDe = (escena: string) =>
-      Object.entries(datos.nodos).find(([, n]) => n.escena === escena)?.[0] ?? 'sistema';
+    const leerRuta = (): string[] => JSON.parse(raiz.dataset.ruta ?? '["sistema"]');
+
+    /**
+     * La ruta a la que se llega. Si el clic que causó la navegación dejó una
+     * ruta pendiente y termina en el nodo de la página nueva, esa manda: así
+     * el mismo nodo conserva el camino por el que se llegó. Si no, se intenta
+     * seguir la ruta anterior (retroceder, o bajar un nivel desde la escena
+     * visible) y, en último caso, la canónica.
+     */
+    let pendiente: string[] | null = null;
+    const resolverRuta = (nodo: string, previa: string[]) => {
+      if (pendiente && pendiente[pendiente.length - 1] === nodo) return pendiente;
+      const i = previa.indexOf(nodo);
+      if (i >= 0) return previa.slice(0, i + 1);
+      const { escena } = escenaDe(previa);
+      if (capasHacia(escena, nodo).length) {
+        const j = previa.indexOf(datos.duenos[escena]);
+        if (j >= 0) return [...previa.slice(0, j + 1), nodo];
+      }
+      return canonica(nodo);
+    };
+
+    /* --- Migas y rótulo ---------------------------------------------- */
+    const pintarMigas = (ruta: string[]) => {
+      migas.replaceChildren(
+        ...ruta.flatMap((id, i) => {
+          const n = datos.nodos[id];
+          const partes: Node[] = [];
+          if (i > 0) {
+            const sep = document.createElement('span');
+            sep.className = 'c-xnav__sep';
+            sep.setAttribute('aria-hidden', 'true');
+            sep.textContent = '/';
+            partes.push(sep);
+          }
+          if (i < ruta.length - 1) {
+            const a = document.createElement('a');
+            a.href = n.href;
+            a.dataset.migasIdx = String(i);
+            a.textContent = n.nombre;
+            partes.push(a);
+          } else {
+            const s = document.createElement('span');
+            s.className = 'c-xnav__aqui';
+            s.textContent = n.nombre;
+            partes.push(s);
+          }
+          return partes;
+        })
+      );
+    };
+    const ponerRotulo = (texto: string | null) => {
+      rotulo.textContent =
+        texto ?? (raiz.dataset.explotada === 'true' ? 'Señala una pieza' : 'Toca el robot para desmontarlo');
+      rotulo.classList.toggle('is-pieza', Boolean(texto));
+    };
 
     /* --- Geometría para el zoom entre escenas ------------------------ */
     type Rect = { x: number; y: number; w: number; h: number };
@@ -568,18 +604,16 @@ const datos = {
       el.classList.remove('is-instantanea');
     };
     const cancelar = () =>
-      raiz.querySelectorAll<HTMLElement>('.c-xnav__escena').forEach((el) => {
-        el.getAnimations().forEach((a) => a.cancel());
-      });
-    const mostrarSolo = (id: string, explotada: boolean) => {
+      raiz.querySelectorAll<HTMLElement>('.c-xnav__escena').forEach((el) => el.getAnimations().forEach((a) => a.cancel()));
+    const mostrarSolo = (id: string, explotada: boolean) =>
       raiz.querySelectorAll<HTMLElement>('.c-xnav__escena').forEach((el) => {
         const es = el.dataset.escena === id;
         instantaneo(el, () => {
           el.dataset.visible = String(es);
           el.dataset.explotada = String(es && explotada);
+          el.style.zIndex = '';
         });
       });
-    };
     // `[data-capa]` cubre la pieza y su globo, que viven en capas distintas.
     const resaltar = (escena: string, capas: string[]) =>
       escenaEl(escena)
@@ -602,9 +636,8 @@ const datos = {
       const elA = escenaEl(desde);
       const elB = escenaEl(hacia);
       if (sentido === 'baja') {
-        // La pieza elegida en la escena de arriba crece hasta ocupar el
-        // lugar del conjunto de abajo, que aparece encima de ella y se
-        // explota cuando ya casi llegó.
+        // La pieza elegida crece hasta ocupar el lugar del conjunto de
+        // abajo, que aparece encima de ella y se explota al llegar.
         const L = rectCapa(desde, capa, desdeExpl)!;
         const E = rectEns(hacia);
         instantaneo(elB, () => {
@@ -627,8 +660,8 @@ const datos = {
         );
         setTimeout(() => (elB.dataset.explotada = 'true'), 150);
       } else {
-        // Al revés: el conjunto actual se pliega y encoge hasta su sitio
-        // en la escena de arriba, que llega explotada desde un zoom.
+        // Al revés: el conjunto actual se pliega y encoge hasta su sitio en
+        // la escena de arriba, que llega explotada desde un zoom.
         const L = rectCapa(hacia, capa, true)!;
         const E = rectEns(desde);
         instantaneo(elB, () => {
@@ -669,72 +702,129 @@ const datos = {
       setTimeout(() => (elB.dataset.explotada = 'true'), 110);
     };
 
-    const aplicar = (prev: Estado, next: Estado, animar: boolean) => {
+    const aplicar = (previa: string[], prevExpl: boolean, next: Estado, animar: boolean) => {
       ponerPestana(next.tab);
-      raiz.dataset.explotada = String(next.explotada);
 
       const aqui = normal(location.pathname);
-      raiz.querySelectorAll<HTMLAnchorElement>('a[href]').forEach((a) => {
+      raiz.querySelectorAll<HTMLAnchorElement>('.c-xnav__facetas a[href], .c-xnav__arbol a[href]').forEach((a) => {
         const h = a.getAttribute('href')!;
-        if (a.closest('svg') || a.classList.contains('c-xnav__globo')) return;
         if (!h.includes('#') && normal(h) === aqui) a.setAttribute('aria-current', 'page');
         else a.removeAttribute('aria-current');
       });
 
-      // Una página de lista no mueve la escena: al volver a la pestaña
+      // Una página de árbol no mueve la escena: al volver a la pestaña
       // Sistema se ve donde se quedó.
       if (!next.nodo) return;
-      raiz.querySelectorAll<HTMLElement>('[data-info]').forEach((el) => (el.hidden = el.dataset.info !== next.nodo));
 
-      const n = escenaDe(next.nodo);
+      const ruta = resolverRuta(next.nodo, previa);
+      pendiente = null;
+      raiz.dataset.ruta = JSON.stringify(ruta);
+      raiz.dataset.explotada = String(next.explotada);
+      pintarMigas(ruta);
+      ponerRotulo(null);
+      raiz
+        .querySelectorAll<HTMLElement>('[data-info]')
+        .forEach((el) => (el.hidden = el.dataset.info !== ruta[ruta.length - 1]));
+
+      const n = escenaDe(ruta);
+      const p = escenaDe(previa);
       resaltar(n.escena, n.resaltadas);
-      raiz.querySelectorAll<HTMLElement>('.c-xnav__listas [data-info] li').forEach((li) => {
-        const info = li.closest<HTMLElement>('[data-info]')!;
-        if (info.dataset.info !== next.nodo) return;
-        const ref = li.querySelector<HTMLElement>('[data-capa-ref]')?.dataset.capaRef;
-        if (ref && n.resaltadas.includes(ref)) li.dataset.activa = 'true';
-        else delete li.dataset.activa;
-      });
-
-      const p = prev.nodo ? escenaDe(prev.nodo) : null;
       cancelar();
-      if (!animar || !p) return mostrarSolo(n.escena, next.explotada);
+      if (!animar) return mostrarSolo(n.escena, next.explotada);
       if (p.escena === n.escena) {
         const el = escenaEl(n.escena);
         el.dataset.visible = 'true';
         el.dataset.explotada = String(next.explotada);
         return;
       }
-
-      const duenoN = datos.nodos[duenoDe(n.escena)];
-      const duenoP = datos.nodos[duenoDe(p.escena)];
-      const capaN = arr(duenoN.capa)[0];
-      const capaP = arr(duenoP.capa)[0];
-      if (duenoN.padre && escenaDe(duenoN.padre).escena === p.escena && capaN) {
-        const oculto = datos.geometria[p.escena].capas[capaN]?.oculto;
-        if (oculto && !prev.explotada) return fundido(p.escena, n.escena);
-        return zoom(p.escena, prev.explotada, n.escena, capaN, 'baja');
+      // Bajar: la escena nueva es de un nodo que la escena anterior dibuja
+      // como pieza. Subir: al revés. Cualquier otro salto, fundido.
+      const capaBaja = capasHacia(p.escena, datos.duenos[n.escena])[0];
+      if (capaBaja) {
+        const oculto = datos.geometria[p.escena].capas[capaBaja]?.oculto;
+        if (oculto && !prevExpl) return fundido(p.escena, n.escena);
+        return zoom(p.escena, prevExpl, n.escena, capaBaja, 'baja');
       }
-      if (duenoP.padre && escenaDe(duenoP.padre).escena === n.escena && capaP) {
-        return zoom(p.escena, true, n.escena, capaP, 'sube');
-      }
+      const capaSube = capasHacia(n.escena, datos.duenos[p.escena])[0];
+      if (capaSube) return zoom(p.escena, true, n.escena, capaSube, 'sube');
       fundido(p.escena, n.escena);
     };
 
     // El puntero se queda donde hizo clic, y lo que quede debajo en la
     // página nueva no debe arrastrar el resalte de la anterior.
-    const limpiarHover = () =>
-      raiz.querySelectorAll<HTMLElement>('[data-hover]').forEach((el) => delete el.dataset.hover);
+    const limpiarHover = () => raiz.querySelectorAll<HTMLElement>('[data-hover]').forEach((el) => delete el.dataset.hover);
 
     const sincronizar = (animar: boolean) => {
       limpiarHover();
       const next: Estado = datos.estados[normal(location.pathname)] ?? { tab: 'sistema', nodo: 'sistema', explotada: false };
-      const prev: Estado = JSON.parse(raiz.dataset.estado ?? 'null') ?? next;
-      aplicar(prev, next, animar && visible() && !sinMovimiento());
-      raiz.dataset.estado = JSON.stringify(next);
+      aplicar(leerRuta(), raiz.dataset.explotada === 'true', next, animar && visible() && !sinMovimiento());
     };
 
-    /* --- Eventos ------------------------------------------------------ */
+    /* --- Señalar piezas: resalte y rótulo ---------------------------- */
+    const marcar = (ref: string | undefined, si: boolean) => {
+      if (!ref) return;
+      const escena = escenaVisible();
+      escenaEl(escena)
+        .querySelectorAll<HTMLElement>(`[data-capa="${ref}"]`)
+        .forEach((c) => (si ? (c.dataset.hover = 'true') : delete c.dataset.hover));
+      const pieza = datos.piezas[escena]?.[ref];
+      ponerRotulo(si && pieza ? (pieza.descripcion ? `${pieza.nombre} (${pieza.descripcion})` : pieza.nombre) : null);
+    };
+    const refDe = (t: EventTarget | null) =>
+      (t as Element | null)?.closest?.<HTMLElement>('[data-capa-ref]')?.dataset.capaRef;
+    stage.addEventListener('pointerover', (e) => marcar(refDe(e.target), true));
+    stage.addEventListener('pointerout', (e) => marcar(refDe(e.target), false));
+    stage.addEventListener('focusin', (e) => {
+      const ref = refDe(e.target);
+      if (ref) return marcar(ref, true);
+      const ens = (e.target as Element).closest<Element>('[data-ensamble]');
+      if (ens) {
+        const dueno = datos.nodos[datos.duenos[ens.getAttribute('data-ensamble')!]];
+        ponerRotulo(`${dueno.nombre} (${dueno.descripcion})`);
+      }
+    });
+    stage.addEventListener('focusout', (e) => {
+      const ref = refDe(e.target);
+      if (ref) marcar(ref, false);
+      else ponerRotulo(null);
+    });
+
+    /* --- Clics: la ruta viaja con el clic ---------------------------- */
+    raiz.addEventListener(
+      'click',
+      (e) => {
+        const a = (e.target as Element).closest<Element>('a');
+        if (!a || !raiz.contains(a)) return;
+        const ruta = leerRuta();
+        const miga = a.getAttribute('data-migas-idx');
+        const ref = a.getAttribute('data-capa-ref');
+        const escena = escenaVisible();
+
+        if (miga != null) {
+          pendiente = ruta.slice(0, Number(miga) + 1);
+        } else if (ref) {
+          const pieza = datos.piezas[escena]?.[ref];
+          const dueno = datos.duenos[escena];
+          const j = ruta.indexOf(dueno);
+          const prefijo = j >= 0 ? ruta.slice(0, j + 1) : canonica(dueno);
+          if (pieza?.nodo) pendiente = [...prefijo, pieza.nodo];
+          // Una sección de la página actual no cambia de nodo: la pieza se
+          // resalta en su sitio.
+          else resaltar(escena, [ref]);
+        } else if (a.hasAttribute('data-ensamble')) {
+          pendiente = canonica(datos.duenos[a.getAttribute('data-ensamble')!]);
+        }
+
+        // Los `<a>` dentro de SVG no siempre los intercepta el router: se
+        // navega a mano para conservar la transición.
+        if (a instanceof SVGElement) {
+          e.preventDefault();
+          navigate(a.getAttribute('href')!);
+        }
+      },
+      true
+    );
+
     document.addEventListener('astro:after-swap', () => sincronizar(true));
 
     raiz.querySelector('[role="tablist"]')!.addEventListener('click', (e) => {
@@ -749,34 +839,6 @@ const datos = {
       const j = (i + (ev.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
       ponerPestana(tabs[j].dataset.tab!, true);
       ev.preventDefault();
-    });
-
-    // Los `<a>` dentro de SVG no siempre los intercepta el router: se
-    // navega a mano para conservar la transición.
-    stage.addEventListener('click', (e) => {
-      const a = (e.target as Element).closest('svg a');
-      if (!a) return;
-      e.preventDefault();
-      navigate(a.getAttribute('href')!);
-    });
-
-    // Apuntar una pieza en el dibujo marca su fila en el listado, y al revés.
-    const marcar = (ref: string | undefined, si: boolean) => {
-      if (!ref) return;
-      const escena = raiz.querySelector<HTMLElement>('.c-xnav__escena[data-visible="true"]');
-      escena?.querySelectorAll<HTMLElement>(`[data-capa="${ref}"]`).forEach((c) => {
-        if (si) c.dataset.hover = 'true';
-        else delete c.dataset.hover;
-      });
-      raiz
-        .querySelectorAll<HTMLElement>(`.c-xnav__info:not([hidden]) a[data-capa-ref="${ref}"]`)
-        .forEach((a) => (si ? (a.dataset.hover = 'true') : delete a.dataset.hover));
-    };
-    raiz.addEventListener('pointerover', (e) => {
-      marcar((e.target as Element).closest<HTMLElement>('[data-capa-ref]')?.dataset.capaRef, true);
-    });
-    raiz.addEventListener('pointerout', (e) => {
-      marcar((e.target as Element).closest<HTMLElement>('[data-capa-ref]')?.dataset.capaRef, false);
     });
 
     sincronizar(false);

@@ -1055,3 +1055,109 @@ a.c-sysmap__edge:focus-visible {
     transition: none;
   }
 }
+
+/* -------------------------------------------------------------------
+   Cadena de señal (`SignalChain.astro`)
+
+   Eslabones como tarjetas con su miniatura 3D, unidos por un tronco
+   vertical con flecha. El tronco pasa por el centro de las miniaturas,
+   así la orden se lee bajando de pieza en pieza. El rótulo de cada tramo
+   va en mono: es dato técnico (puerto, bus, dirección).
+   ------------------------------------------------------------------- */
+.c-chain {
+  --chain-img: 4.5rem;
+  --chain-eje: calc(var(--space-md) + var(--chain-img) / 2);
+  margin: var(--space-2xl) 0;
+}
+
+.c-chain__lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.c-chain__lista > li {
+  margin: 0;
+}
+
+.c-chain__paso {
+  display: flex;
+  align-items: center;
+  gap: var(--space-md);
+  padding: var(--space-sm) var(--space-md);
+  border: 1px solid var(--divider);
+  border-radius: var(--radius-lg);
+  background: var(--surface);
+}
+
+/* Con el selector de `.sl-markdown-content`: la regla general de imágenes
+   en figuras (borde, radio y `width: 100%`) también alcanza a estas
+   miniaturas, y las estiraba a todo el ancho de la tarjeta. */
+.sl-markdown-content .c-chain__img,
+.c-chain__img {
+  flex: none;
+  width: var(--chain-img);
+  height: calc(var(--chain-img) * 0.75);
+  border: 0;
+  border-radius: 0;
+  object-fit: contain;
+}
+
+.c-chain__texto {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.c-chain__nombre {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.c-chain__detalle {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.c-chain__tramo {
+  position: relative;
+  display: flex;
+  align-items: center;
+  min-height: var(--space-2xl);
+  padding-left: calc(var(--chain-eje) + var(--space-md));
+}
+
+/* Tronco del tramo. */
+.c-chain__tramo::before {
+  content: '';
+  position: absolute;
+  left: var(--chain-eje);
+  top: 0;
+  bottom: 6px;
+  width: 1px;
+  background: var(--alloy);
+}
+
+/* Punta de flecha, hacia el paso de abajo. */
+.c-chain__tramo::after {
+  content: '';
+  position: absolute;
+  left: calc(var(--chain-eje) - 4px);
+  bottom: 0;
+  border-left: 4.5px solid transparent;
+  border-right: 4.5px solid transparent;
+  border-top: 6px solid var(--alloy);
+}
+
+.c-chain__senal {
+  font-family: var(--font-mono);
+  font-size: 0.75rem;
+  color: var(--text-secondary);
+}
+
+.c-chain__caption {
+  margin-top: var(--space-sm);
+  font-size: 0.8125rem;
+  color: var(--text-secondary);
+}

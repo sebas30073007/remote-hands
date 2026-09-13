@@ -229,16 +229,27 @@
    robot, por ejemplo— robaban el clic. `visiblePainted` y no `all`, para
    respetar además la escena oculta con `visibility`. */
 /* Al hacer clic, el navegador dibujaba su anillo de foco alrededor de la
-   caja del `<a>` del SVG: un rectángulo negro sobre el render. Estos
-   enlaces no reciben foco de teclado (`tabindex="-1"`, el camino accesible
-   es el listado), así que el anillo sobra; la señal de la pieza es su
-   contorno rojo. */
+   caja del `<a>` del SVG: un rectángulo negro sobre el render. El anillo de
+   la caja no dice nada —la señal de la pieza es su contorno rojo—, así que
+   se quita. Con teclado, el foco lo llevan el globo (anillo propio, abajo)
+   y, en el conjunto ensamblado, el contorno de la imagen. */
 .c-xnav__hit a,
 .c-xnav__hit a:focus,
 .c-xnav__hit a:focus-visible,
-#starlight__sidebar .c-xnav__globo:focus,
-#starlight__sidebar .c-xnav__globo:focus-visible {
+#starlight__sidebar .c-xnav__globo:focus:not(:focus-visible) {
   outline: none;
+}
+
+#starlight__sidebar .c-xnav__globo:focus-visible {
+  outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
+  outline-offset: 2px;
+}
+
+.c-xnav__ens:has(a:focus-visible) img {
+  filter: drop-shadow(1px 0 0 var(--technical-white)) drop-shadow(-1px 0 0 var(--technical-white))
+    drop-shadow(0 1px 0 var(--technical-white)) drop-shadow(0 -1px 0 var(--technical-white))
+    drop-shadow(1px 0 0 var(--sebs-signal)) drop-shadow(-1px 0 0 var(--sebs-signal))
+    drop-shadow(0 1px 0 var(--sebs-signal)) drop-shadow(0 -1px 0 var(--sebs-signal)); /* sebs-allow: borde de foco */
 }
 
 .c-xnav__stage {
@@ -351,20 +362,29 @@
   line-height: 1;
   transform: translate(-50%, -50%);
   opacity: 0;
+  visibility: hidden;
   pointer-events: none;
   transition:
     opacity var(--dur-micro) var(--ease),
+    visibility 0s linear var(--dur-micro),
     border-color var(--dur-micro) var(--ease);
 }
 
-#starlight__sidebar .c-xnav__escena[data-explotada='true'] .c-xnav__globo,
 .c-xnav__escena[data-explotada='true'] .c-xnav__guia {
   opacity: 1;
   transition-delay: 240ms, 0ms;
 }
 
+/* `visibility` además de `opacity`: un globo transparente seguía
+   recibiendo el foco del teclado con el conjunto ensamblado. */
 #starlight__sidebar .c-xnav__escena[data-explotada='true'] .c-xnav__globo {
+  opacity: 1;
+  visibility: visible;
   pointer-events: auto;
+  transition:
+    opacity var(--dur-micro) var(--ease) 240ms,
+    visibility 0s linear 0s,
+    border-color var(--dur-micro) var(--ease);
 }
 
 #starlight__sidebar .c-xnav__nota[data-hover] .c-xnav__globo,
@@ -377,21 +397,41 @@
   background: var(--sebs-signal); /* sebs-allow: línea guía de la pieza apuntada/activa */
 }
 
-.c-xnav__pista {
-  margin: var(--space-sm) 0 0;
-  font-size: 0.75rem;
+/* --- Rótulo al pie del lienzo -------------------------------------- */
+/* Dice qué es la pieza señalada: «NUC (cómputo al borde)». Es el mismo
+   nombre de las migas y del título de la página. En reposo, una
+   indicación en gris; con una pieza, el nombre en color de texto. Va sobre
+   una pastilla blanca para leerse encima de un render. */
+.c-xnav__rotulo {
+  position: absolute;
+  left: 50%;
+  bottom: var(--space-sm);
+  z-index: 200;
+  max-width: calc(100% - 2 * var(--space-sm));
+  margin: 0;
+  padding: var(--space-xs) var(--space-sm);
+  border-radius: var(--radius-round);
+  background: color-mix(in srgb, var(--technical-white) 88%, transparent);
   color: var(--text-secondary);
+  font-size: 0.75rem;
+  line-height: 1.3;
   text-align: center;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  transform: translateX(-50%);
+  pointer-events: none;
 }
 
-.c-xnav[data-explotada='true'] .c-xnav__pista {
-  display: none;
+.c-xnav__rotulo.is-pieza {
+  color: var(--text);
+  font-weight: 600;
 }
 
-/* --- Listados ------------------------------------------------------- */
+/* --- Documentos del nodo, como etiquetas ---------------------------- */
 .c-xnav__titulo {
-  margin: var(--space-lg) 0 var(--space-xs);
-  padding-inline: var(--space-sm);
+  margin: var(--space-md) 0 var(--space-xs);
+  padding-inline: var(--space-xs);
   font-size: 0.6875rem;
   font-weight: 600;
   letter-spacing: 0.08em;
@@ -399,55 +439,43 @@
   color: var(--text-secondary);
 }
 
-.c-xnav__piezas,
-.c-xnav__docs {
+.c-xnav__etiquetas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-xs);
   margin: 0;
-  padding: 0;
+  padding: 0 var(--space-xs);
   list-style: none;
 }
 
-.c-xnav__piezas li,
-.c-xnav__docs li {
+.c-xnav__etiquetas li {
   margin: 0;
 }
 
-#starlight__sidebar .c-xnav__piezas a {
-  gap: var(--space-sm);
-}
-
-.c-xnav__num {
-  display: grid;
-  flex: none;
-  place-items: center;
-  width: 1.25rem;
-  height: 1.25rem;
-  border: 1px solid var(--mist);
+#starlight__sidebar .c-xnav__etiquetas a {
+  display: inline-flex;
+  padding: var(--space-xs) var(--space-sm);
+  border: 1px solid var(--divider);
   border-radius: var(--radius-round);
-  font-family: var(--font-mono);
-  font-size: 0.625rem;
+  font-size: 0.75rem;
+  line-height: 1.2;
   color: var(--text-secondary);
+  background: none;
 }
 
-.c-xnav__baja {
-  margin-left: auto;
-  color: var(--alloy);
+#starlight__sidebar .c-xnav__etiquetas a:hover {
+  border-color: var(--alloy);
+  color: var(--text);
+  background: none;
 }
 
-#starlight__sidebar .c-xnav a[aria-current='page'],
-#starlight__sidebar .c-xnav__piezas li[data-activa] > a {
+#starlight__sidebar .c-xnav a[aria-current='page'] {
   color: var(--text);
   font-weight: 600;
 }
 
-#starlight__sidebar .c-xnav__piezas li[data-activa] .c-xnav__num,
-#starlight__sidebar .c-xnav__piezas a[aria-current='page'] .c-xnav__num {
+#starlight__sidebar .c-xnav__etiquetas a[aria-current='page'] {
   border-color: var(--text);
-  color: var(--text);
-}
-
-#starlight__sidebar .c-xnav__piezas a[data-hover] {
-  background: var(--surface-secondary);
-  color: var(--text);
 }
 
 /* --- Pestañas de lista: árbol de archivos --------------------------- */

@@ -80,6 +80,7 @@ export const ACABADOS = {
 const TORRE = [/^AA_Torre:/, /^AA_Petaña_L_union_torre/];
 const BASE_MOVIL = [/^APOLO/];
 const LIDAR = [/^AA_RPLIDAR/];
+const REALSENSE = [/^AA_RealSense_D435:/];
 
 const TORRETA = [
   /^AA_sandwich_/,
@@ -91,7 +92,6 @@ const TORRETA = [
   /^reductor_nema17:3$/,
   /^htd3m_20T_offset_28_9mm:/,
   /^Cinta_base:/,
-  /^AA_RealSense_D435:/,
   /^Soporte_R435I:/,
 ];
 const DRIVERS = [/^driver_CL57T:/];
@@ -119,7 +119,9 @@ const GRIPPER = [...DEDOS, ...PINON, ...BASE_GRIPPER, ...MOTOR_GRIPPER];
 // La caja de elevación viaja con el manipulador, no con la plataforma: es
 // la columna sobre la que va montado el brazo.
 const PLATAFORMA = [...BASE_MOVIL, ...LIDAR];
-const MANIPULADOR = [...TORRE, ...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, ...ESLABON2, ...GRIPPER];
+/** El manipulador sin su cámara: en la escena del robot, la RealSense se va con los sensores. */
+const BRAZO = [...TORRE, ...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, ...ESLABON2, ...GRIPPER];
+const MANIPULADOR = [...BRAZO, ...REALSENSE];
 
 /* --- Electrónica embebida -------------------------------------------
    Las placas se colocan en el mundo como un grupo, con un punto de
@@ -127,7 +129,8 @@ const MANIPULADOR = [...TORRE, ...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, .
 
    - Puente H ×2, encimados con desfase: el maestro al frente y el esclavo
      detrás, corrido hacia arriba y a la derecha para que se vean los dos.
-   - Controlador de steppers al lado.
+   - Controlador CL57T al lado, con sus tres finales de carrera debajo:
+     uno por eje (base, codo y muñeca).
    - DRV8833: marcador temporal del controlador del gripper (la placa real
      es un DRV8833 y un ESP32-C3 cableados a mano). El modelo viene
      acostado y mide 1.8 cm: se pone de pie y se escala ×3, porque a escala
@@ -137,13 +140,20 @@ const MANIPULADOR = [...TORRE, ...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, .
    las placas conviven con piezas de decenas de centímetros: a escala real,
    un Puente H de 8 cm junto a una base de 40 cm no se distingue. */
 const RAD = Math.PI / 2;
-const puentesH = ([x, y, z], k = 1) => [
-  { modelo: 'puente-h', escala: k, posicion: [x, y, z] },
+const puenteH = ([x, y, z], k = 1) => [{ modelo: 'puente-h', escala: k, posicion: [x, y, z] }];
+const puenteHEsclavo = ([x, y, z], k = 1) => [
   { modelo: 'puente-h', escala: k, posicion: [x + 0.014 * k, y + 0.016 * k, z - 0.034 * k] },
 ];
-const steppers = ([x, y, z], k = 1) => [
+const puentesH = (p, k = 1) => [...puenteH(p, k), ...puenteHEsclavo(p, k)];
+const controladorCL57T = ([x, y, z], k = 1) => [
   { modelo: 'controlador-steppers', escala: k, posicion: [x + 0.092 * k, y - 0.004 * k, z - 0.012 * k] },
 ];
+/** El final de carrera mide 13 mm: ×2.5 para que la palanca se lea. De frente a la cámara. */
+const final = (posicion, k = 1) => ({ modelo: 'final-de-carrera', escala: 2.5 * k, rotacion: [0, Math.PI / 4, 0], posicion });
+/** Los tres finales en fila bajo el controlador CL57T, que es quien los lee. */
+const finalesDelCL57T = ([x, y, z], k = 1) =>
+  [0, 1, 2].map((i) => final([x + (0.066 + i * 0.026) * k, y - 0.05 * k, z - 0.012 * k], k));
+const cl57tConFinales = (p, k = 1) => [...controladorCL57T(p, k), ...finalesDelCL57T(p, k)];
 const drv8833 = ([x, y, z], k = 1) => [
   { modelo: 'drv8833', escala: 3 * k, rotacion: [RAD, 0, 0], posicion: [x + 0.086 * k, y + 0.066 * k, z - 0.01 * k] },
 ];
@@ -151,6 +161,11 @@ const drv8833 = ([x, y, z], k = 1) => [
 const K_ROBOT = 1.8;
 /** Dentro de la caja de elevación, donde van físicamente. */
 const EN_CAJA = [0.16, 0.12, -0.1];
+/** Los tres finales de carrera agrupados bajo la RealSense, al frente de la
+    torreta. Van juntos y no cada uno en su eje: repartidos por el brazo
+    quedaban como tres puntos sueltos a alturas distintas y el grupo
+    «sensores» no se leía como grupo. */
+const JUNTO_A_CAMARA = [0, 1, 2].map((i) => [0.16 + i * 0.04, 0.33, 0.07]);
 
 /** Piezas que se reparten por cercanía y no por nombre. */
 export const TORNILLERIA = [/Screw head/, /BALL BEARING/, /^KFL08_chmacera/];
@@ -185,19 +200,26 @@ export const ESCENAS = {
     ],
   },
 
-  /* Nivel 2 — el robot se parte en lo que se mueve, lo que manipula y la
-     electrónica que manda sobre ambos. Las placas van dentro de la caja de
-     elevación, así que salen de ella al explotar. */
+  /* Nivel 2 — el robot en cuatro: lo que se mueve, lo que manipula, la
+     electrónica que manda sobre ambos y los sensores. Las placas van dentro
+     de la caja de elevación y salen de ella al explotar; los sensores salen
+     de donde están montados. */
   robot: {
     base: 'robot-completo',
     capas: [
-      { id: 'plataforma', piezas: PLATAFORMA, explota: [0, -0.16] },
-      { id: 'manipulador', piezas: MANIPULADOR, explota: [0.04, 0.08] },
+      { id: 'plataforma', piezas: BASE_MOVIL, explota: [0, -0.16] },
+      { id: 'manipulador', piezas: BRAZO, explota: [0.02, 0.08] },
       {
         id: 'embebidos',
-        componentes: [...puentesH(EN_CAJA, K_ROBOT), ...steppers(EN_CAJA, K_ROBOT), ...drv8833(EN_CAJA, K_ROBOT)],
+        componentes: [...puentesH(EN_CAJA, K_ROBOT), ...controladorCL57T(EN_CAJA, K_ROBOT), ...drv8833(EN_CAJA, K_ROBOT)],
         oculto: true,
         explota: [-0.46, 0.02],
+      },
+      {
+        id: 'sensores',
+        piezas: [...LIDAR, ...REALSENSE],
+        componentes: JUNTO_A_CAMARA.map((p) => final(p, 2)),
+        explota: [0.4, 0.04],
       },
     ],
   },
@@ -219,12 +241,27 @@ export const ESCENAS = {
     ],
   },
 
-  /* Nivel 3 — embebidos: las cuatro placas que mandan sobre los motores. */
+  /* Nivel 3 — embebidos: las cuatro placas que mandan sobre los motores. El
+     controlador CL57T trae sus tres finales de carrera: los lee él. */
   embebidos: {
     capas: [
       { id: 'puenteh', componentes: puentesH([0, 0, 0]), explota: [-0.2, -0.04] },
-      { id: 'stepper', componentes: steppers([0, 0, 0]), explota: [0.26, -0.2] },
+      { id: 'stepper', componentes: cl57tConFinales([0, 0, 0]), explota: [0.26, -0.2] },
       { id: 'drv8833', componentes: drv8833([0, 0, 0]), explota: [0.22, 0.3] },
+    ],
+  },
+
+  /* Nivel 3 — sensores del robot: el LiDAR y la RealSense, que alimentan la
+     percepción, y los tres finales de carrera del manipulador. */
+  sensores: {
+    capas: [
+      { id: 'realsense', modelo: 'realsense-d435', posicion: [0, 0.07, 0], explota: [-0.24, 0.2] },
+      { id: 'lidar', modelo: 'rplidar-c1', posicion: [0.1, 0.01, -0.02], explota: [0.26, 0.1] },
+      {
+        id: 'finales',
+        componentes: [0, 1, 2].map((i) => final([-0.04 + i * 0.035, -0.05, 0.02], 1.3)),
+        explota: [0, -0.3],
+      },
     ],
   },
 
@@ -236,7 +273,7 @@ export const ESCENAS = {
     soloPiezas: MANIPULADOR,
     capas: [
       { id: 'caja', piezas: TORRE, explota: [0, -0.34] },
-      { id: 'torreta', piezas: TORRETA, explota: [0, -0.2] },
+      { id: 'torreta', piezas: [...TORRETA, ...REALSENSE], explota: [0, -0.2] },
       { id: 'drivers', piezas: DRIVERS, explota: [-0.34, -0.12] },
       { id: 'hombro', piezas: HOMBRO, explota: [0, -0.03] },
       { id: 'eslabon1', piezas: ESLABON1, explota: [0, 0.12] },
@@ -260,8 +297,8 @@ export const ESCENAS = {
   /* Nivel 2 — servidor. Tampoco es un ensamble físico: la NUC al centro y
      todo lo que se conecta a ella. Arriba, los dos sensores de la
      percepción. Abajo, la electrónica: el conjunto I²C —solo el Puente H
-     maestro va a la NUC por USB; el esclavo y el controlador de steppers
-     cuelgan de él en serie, así que se dibujan como un solo conjunto— y el
+     maestro va a la NUC por USB; el esclavo y el controlador CL57T cuelgan
+     de él en serie, así que se dibujan como un solo conjunto— y el
      controlador del gripper, que va a la NUC por su propio USB. Escala real
      entre todos. */
   servidor: {
@@ -283,7 +320,7 @@ export const ESCENAS = {
       },
       {
         id: 'conjunto',
-        componentes: [...puentesH([-0.03, 0, 0]), ...steppers([-0.03, 0, 0])],
+        componentes: [...puentesH([-0.03, 0, 0]), ...controladorCL57T([-0.03, 0, 0])],
         oculto: true,
         explota: [-0.4, -0.95],
       },
@@ -293,6 +330,61 @@ export const ESCENAS = {
         oculto: true,
         explota: [0.56, -0.8],
       },
+    ],
+  },
+
+  /* Nivel 3 — conjunto I²C, visto desde la NUC: el Puente H maestro, que es
+     el único con USB a la NUC; el esclavo, en 0x08; y el controlador CL57T,
+     en 0x0B, con sus tres finales de carrera. */
+  'conjunto-i2c': {
+    capas: [
+      { id: 'maestro', componentes: puenteH([0, 0, 0]), explota: [-0.28, -0.12] },
+      { id: 'esclavo', componentes: puenteHEsclavo([0, 0, 0]), explota: [-0.06, 0.26] },
+      { id: 'cl57t', componentes: cl57tConFinales([0, 0, 0]), explota: [0.3, -0.06] },
+    ],
+  },
+};
+
+/**
+ * Miniaturas: una imagen suelta por modelo, con la misma cámara y los
+ * mismos materiales que la vista explosionada. Las usan las páginas (la
+ * cadena de señal del CL57T, el collage del sistema). No entran en el
+ * manifiesto del navegador. `lienzo` en px. `sinTornilleria` apaga el
+ * reparto de tornillos por cercanía: en una pieza aislada solo mete
+ * tornillos y rodamientos flotando.
+ *
+ * Uso: node scripts/render-explode.mjs --miniaturas [id …]
+ */
+export const MINIATURAS = {
+  'meta-quest-3': { lienzo: { w: 480, h: 360 }, capas: [{ id: 'm', modelo: 'meta-quest-3', rotacion: [0, -0.3, 0] }] },
+  nuc: { lienzo: { w: 480, h: 360 }, capas: [{ id: 'm', modelo: 'nuc' }] },
+  'puente-h': { lienzo: { w: 480, h: 360 }, capas: [{ id: 'm', modelo: 'puente-h' }] },
+  'controlador-cl57t': { lienzo: { w: 480, h: 360 }, capas: [{ id: 'm', modelo: 'controlador-steppers' }] },
+  'driver-cl57t': {
+    lienzo: { w: 480, h: 360 },
+    base: 'robot-completo',
+    sinTornilleria: true,
+    soloPiezas: [/^driver_CL57T:1$/],
+    capas: [{ id: 'm', piezas: [/^driver_CL57T:1$/] }],
+  },
+  'nema17-reductor': {
+    lienzo: { w: 480, h: 360 },
+    base: 'robot-completo',
+    sinTornilleria: true,
+    soloPiezas: [/^nema17:1$/, /^reductor_nema17:1$/],
+    capas: [{ id: 'm', piezas: [/^nema17:1$/, /^reductor_nema17:1$/] }],
+  },
+  'final-de-carrera': { lienzo: { w: 480, h: 360 }, capas: [{ id: 'm', modelo: 'final-de-carrera', rotacion: [0, Math.PI / 4, 0] }] },
+  /* Collage de la página «Sistema»: el visor a la izquierda; a la derecha,
+     el robot con su NUC. En pantalla la derecha es +x +z, así que el visor
+     se corre hacia −x −z y la NUC hacia +x +z, junto a la base. */
+  sistema: {
+    lienzo: { w: 1200, h: 760 },
+    base: 'robot-completo',
+    capas: [
+      { id: 'robot', piezas: [/./] },
+      { id: 'nuc', modelo: 'nuc', escala: 1.8, posicion: [0.56, 0.06, 0.16] },
+      { id: 'quest', modelo: 'meta-quest-3', escala: 1.6, rotacion: [0, -0.3, 0], posicion: [-0.3, 0.52, -0.62] },
     ],
   },
 };

@@ -31,6 +31,10 @@ export { default as StatusBadge } from './StatusBadge.astro';
 // cuántos subsistemas tiene el proyecto ni cómo se llaman—.
 export { default as SystemMap } from './SystemMap.astro';
 
+// Cadena de señal con miniaturas 3D: del operador al motor, un eslabón por
+// componente, con el medio por el que viaja la orden en cada tramo.
+export { default as SignalChain } from './SignalChain.astro';
+
 // Plantillas de página (colocadas automáticamente por PageTitle; se
 // exportan también por si una página necesita repetir una cabecera fuera
 // de su posición por defecto, igual que course-docs expone CourseHeader).

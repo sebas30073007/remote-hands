@@ -1,5 +1,5 @@
 ---
-title: Arquitectura del sistema
+title: Sistema
 description: Cómo se dividen las responsabilidades entre el operador, la NUC coordinadora y los controladores embebidos de Remote Hands.
 ---
 
@@ -10,8 +10,13 @@ recibir. Esa última capacidad importa: el robot solo transmite lo que el
 operador pidió, en lugar de saturar la red con todo lo que produce.
 
 <figure>
-  <img src="/images/diagrama-general.png" alt="Diagrama general de la arquitectura: Meta Quest, NUC, y red embebida del robot" />
-  <figcaption>Arquitectura general: Meta Quest, NUC coordinadora y red embebida del robot.</figcaption>
+  <img src="/images/3d/sistema.webp" alt="La Meta Quest 3 con sus controles, y el robot manipulador junto a su NUC" />
+  <figcaption>
+    El visor del operador y el robot con su NUC. Se comunican por ZMQ sobre
+    WiFi: el visor manda las articulaciones (`q1`, `q2`, `qb`) y el movimiento
+    de la base (`±255, ±255`); el robot devuelve video de 740 × 680 px y el
+    LiDAR a 100 × 100 px.
+  </figcaption>
 </figure>
 
 La **NUC actúa como coordinador** del sistema. Los demás subsistemas
