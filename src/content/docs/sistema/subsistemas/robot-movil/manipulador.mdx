@@ -96,11 +96,16 @@ El gripper tiene su propio controlador y su propio USB a la NUC; está en
 
 ## Mecánica
 
-### Base rotatoria
+La mecánica del brazo se divide en cinco conjuntos, los mismos en los que se
+desmonta en el panel: estructura, mecanismo, actuadores, gripper y cámara.
 
-El giro de todo el conjunto respecto a la plataforma lo genera un motor
-situado en la parte posterior, con reducción por polea y banda. La base usa
-una reducción menor que los eslabones: basta para orientar el conjunto.
+### Estructura
+
+Toda la lámina de acero: la caja de elevación, la base giratoria, los
+soportes de los motores y los dos eslabones. El giro de todo el conjunto
+respecto a la plataforma lo genera un motor situado en la parte posterior,
+con reducción por polea y banda; la base usa una reducción menor que los
+eslabones, porque basta para orientar el conjunto.
 
 La estructura en «C» que eleva el brazo se fabricó en lámina doblada y se
 **reforzó con doble capa** después de que las pruebas mostraran que su
@@ -112,9 +117,9 @@ los drivers CL57T y su cableado.
   <figcaption>La lámina doblada en «C», con el refuerzo de doble capa que se añadió tras detectar que cedía bajo el peso del brazo.</figcaption>
 </figure>
 
-### Transmisión
+### Mecanismo
 
-Poleas, bandas y chumaceras llevan el movimiento de los motores hasta los
+Poleas, bandas, ejes y chumaceras llevan el movimiento de los motores hasta los
 eslabones. Las chumaceras sostienen cada eje y evitan que roce directamente
 contra la lámina, lo que reduce fricción, desgaste y juego.
 
@@ -131,6 +136,25 @@ aparecían holguras y vibración.
   <img src="/images/build/tensor-rodamiento-correa.webp" alt="Tensor de banda con rodamiento sobre barra roscada" />
   <figcaption>Tensor con rodamiento sobre barra roscada: la solución que corrigió el deslizamiento sin rediseñar la estructura.</figcaption>
 </figure>
+
+### Actuadores
+
+Tres motores NEMA 17 con reductor planetario 10:1, uno por eje, cada uno con
+su driver CL57T de lazo cerrado. Los manda el Controlador CL57T, que va con
+los drivers dentro de la caja de elevación. El detalle eléctrico y el
+firmware están en [Controlador
+CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/).
+
+### Gripper
+
+La pinza del extremo, con su propio motor y su propio controlador. Está en
+[Gripper](/sistema/subsistemas/robot-movil/controladores/gripper/).
+
+### Cámara
+
+La RealSense D435i va al frente de la base giratoria, sobre su soporte, y
+gira con el brazo. Está en [RealSense
+D435i](/sistema/subsistemas/robot-movil/sensores/realsense-d435i/).
 
 ### Finales de carrera
 

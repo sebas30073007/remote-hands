@@ -7,7 +7,7 @@ tableOfContents:
   maxHeadingLevel: 2
 ---
 
-import { SignalChain } from '@project';
+import { Artifact, SignalChain } from '@project';
 
 <figure>
   <img src="/images/3d/meta-quest-3.webp" alt="Visor Meta Quest 3 con sus dos controladores" />
@@ -97,3 +97,33 @@ robot igual que este.
   cada panel, la conducción, el manipulador y el feedback háptico y de audio.
 - **[Unity y comunicación ZMQ](/sistema/subsistemas/interfaz-xr/unity/)**:
   paquetes, endpoints, configuración por defecto y los scripts.
+
+### Prueba desde tu PC
+
+Para probar la aplicación sin el robot, una PC puede hacerse pasar por la
+NUC. Este script abre los mismos puertos que el coordinador: publica un
+video de prueba en el `5555` y muestra cada comando que el visor envía por
+el `5002`.
+
+1. Conecta la PC y el visor a la misma red WiFi.
+2. Instala las dependencias: `pip install pyzmq numpy opencv-python`.
+3. Corre el script, que imprime la IP de la PC:
+
+```bash
+python nuc_simulada.py
+```
+
+4. En el visor, escribe esa IP como IP de la NUC.
+
+<Artifact href="/software/pruebas/nuc_simulada.py" name="NUC simulada — nuc_simulada.py" />
+
+Si el panel central muestra barras de color en movimiento con la hora, el
+video llega. Al mover los controles, en la consola aparece cada comando,
+por ejemplo:
+
+```text
+[12:04:31] cmd {"type": "drive_cmd", "v": 0.42, "w": 0.0, "enabled": true}
+```
+
+Si Windows pregunta por el firewall, permite las conexiones de Python en
+redes privadas.

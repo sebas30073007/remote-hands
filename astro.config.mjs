@@ -205,7 +205,15 @@ export default defineConfig({
                     // Mecánica
                     { slug: 'sistema/subsistemas/robot-movil/plataforma-movil' },
                     { slug: 'sistema/subsistemas/robot-movil/manipulador' },
-                    { slug: 'sistema/subsistemas/robot-movil/sensores' },
+                    {
+                      label: 'Sensores',
+                      collapsed: true,
+                      items: [
+                        { slug: 'sistema/subsistemas/robot-movil/sensores', label: 'Sensores' },
+                        { slug: 'sistema/subsistemas/robot-movil/sensores/rplidar-c1' },
+                        { slug: 'sistema/subsistemas/robot-movil/sensores/realsense-d435i' },
+                      ],
+                    },
                     // Electrónica y software. «Sistemas embebidos» es la
                     // página que compara los tres controladores ESP32-C3;
                     // el detalle de cada uno, y el código de los cuatro,

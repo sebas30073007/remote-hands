@@ -98,7 +98,7 @@ export const NODOS: NodoExplode[] = [
     piezas: {
       base: { nombre: 'Base diferencial', descripcion: 'chasis rehabilitado', ancla: 'rehabilitación' },
       puenteh: { nodo: 'puenteh', nombre: 'Puente H ×2' },
-      lidar: { nodo: 'percepcion', nombre: 'RPLiDAR C1', descripcion: 'mapa 2D' },
+      lidar: { nodo: 'rplidar' },
     },
   },
   {
@@ -124,8 +124,8 @@ export const NODOS: NodoExplode[] = [
     padre: 'robot',
     escena: 'sensores',
     piezas: {
-      realsense: { nodo: 'percepcion', nombre: 'RealSense D435i', descripcion: 'video RGB-D' },
-      lidar: { nodo: 'percepcion', nombre: 'RPLiDAR C1', descripcion: 'mapa 2D' },
+      realsense: { nodo: 'realsense' },
+      lidar: { nodo: 'rplidar' },
       finales: {
         nombre: 'Finales de carrera ×3',
         descripcion: 'referencia de homing',
@@ -149,6 +149,22 @@ export const NODOS: NodoExplode[] = [
     padre: 'embebidos',
   },
   {
+    id: 'rplidar',
+    nombre: 'RPLiDAR C1',
+    descripcion: 'LiDAR 2D',
+    pagina: `${ROBOT}/sensores/rplidar-c1`,
+    padre: 'sensores',
+  },
+  {
+    // También es la cámara del manipulador: se llega por Sensores y por
+    // Robot / Manipulador / Cámara, a la misma página.
+    id: 'realsense',
+    nombre: 'RealSense D435i',
+    descripcion: 'cámara RGB-D',
+    pagina: `${ROBOT}/sensores/realsense-d435i`,
+    padre: 'sensores',
+  },
+  {
     id: 'manipulador',
     nombre: 'Manipulador',
     descripcion: 'brazo de 3 GDL',
@@ -156,13 +172,11 @@ export const NODOS: NodoExplode[] = [
     padre: 'robot',
     escena: 'manipulador',
     piezas: {
-      caja: { nombre: 'Caja de elevación', descripcion: 'columna del brazo', ancla: 'integración-con-la-plataforma' },
-      torreta: { nombre: 'Base rotatoria', descripcion: 'giro del brazo', ancla: 'base-rotatoria' },
-      hombro: { nombre: 'Hombro', descripcion: 'motores y bandas', ancla: 'transmisión' },
-      eslabon1: { nombre: 'Eslabón 1', descripcion: 'brazo', ancla: 'cómo-funciona' },
-      eslabon2: { nombre: 'Eslabón 2', descripcion: 'antebrazo', ancla: 'cómo-funciona' },
+      estructura: { nombre: 'Estructura', descripcion: 'lámina de acero', ancla: 'estructura' },
+      mecanismo: { nombre: 'Mecanismo', descripcion: 'poleas y bandas', ancla: 'mecanismo' },
+      actuadores: { nodo: 'cl57t', nombre: 'Actuadores', descripcion: 'motores, drivers y controlador' },
       gripper: { nodo: 'gripper' },
-      drivers: { nodo: 'cl57t', nombre: 'Drivers CL57T ×3', descripcion: 'potencia de los steppers' },
+      camara: { nodo: 'realsense', nombre: 'Cámara', descripcion: 'RealSense D435i' },
     },
   },
   {
@@ -188,12 +202,12 @@ export const NODOS: NodoExplode[] = [
     escena: 'servidor',
     piezas: {
       nuc: { nodo: 'middleware' },
-      realsense: { nodo: 'percepcion', nombre: 'RealSense D435i', descripcion: 'video RGB-D' },
-      lidar: { nodo: 'percepcion', nombre: 'RPLiDAR C1', descripcion: 'mapa 2D' },
+      realsense: { nodo: 'realsense' },
+      lidar: { nodo: 'rplidar' },
       conjunto: { nodo: 'conjunto-i2c' },
       drv8833: { nombre: 'Controlador del gripper', descripcion: 'USB directo', ...GRIPPER_CONEXIONES },
     },
-    facetas: [`${SUB}/servidor-percepcion/verificacion`],
+    facetas: [`${SUB}/servidor-percepcion/percepcion`, `${SUB}/servidor-percepcion/verificacion`],
   },
   {
     id: 'conjunto-i2c',

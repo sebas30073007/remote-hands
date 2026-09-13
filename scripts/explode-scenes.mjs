@@ -77,39 +77,37 @@ export const ACABADOS = {
   },
 };
 
-const TORRE = [/^AA_Torre:/, /^AA_Petaña_L_union_torre/];
 const BASE_MOVIL = [/^APOLO/];
 const LIDAR = [/^AA_RPLIDAR/];
 const REALSENSE = [/^AA_RealSense_D435:/];
 
-const TORRETA = [
+/* El manipulador por función, no por articulación. */
+/** Toda la lámina de acero: la caja de elevación, la base giratoria, los soportes y los eslabones. */
+const ESTRUCTURA = [
+  /^AA_Torre:/,
+  /^AA_Petaña_L_union_torre/,
   /^AA_sandwich_/,
-  /^rodamiento_150mm:/,
   /^base_giratoria:/,
   /^base_nema:/,
-  /^htd3m_50T_Base:/,
-  /^nema17:3$/,
-  /^reductor_nema17:3$/,
-  /^htd3m_20T_offset_28_9mm:/,
-  /^Cinta_base:/,
+  /^Nueva L_nema17/,
+  /^eslabon_300mm:/,
+  /^eslabon_200mm:/,
   /^Soporte_R435I:/,
 ];
-const DRIVERS = [/^driver_CL57T:/];
-const HOMBRO = [
-  /^Nueva L_nema17/,
-  /^nema17:[12]$/,
-  /^reductor_nema17:[12]$/,
+/** Lo que transmite el giro: poleas, bandas, ejes, chumaceras y rodamientos. */
+const MECANISMO = [
+  /^rodamiento_150mm:/,
+  /^htd3m_/,
+  /^AA_20T_/,
+  /^Cinta_/,
+  /^KFL08_chmacera:/,
   /^eje_primer_eslabon:/,
-  /^KFL08_chmacera:[123]$/,
-  /^AA_20T_Eslabon1:/,
-  /^AA_20T_Eslabon1_2:/,
-  /^AA_20T_Eslabon2_2:/,
-  /^htd3m_20T_offset_16_5mm:/,
-  /^Cinta_pequeña:/,
   /^7mm_145mm/,
+  /^8mm_130mm/,
+  /BALL BEARING/,
 ];
-const ESLABON1 = [/^eslabon_300mm:/, /^Cinta_larga:/];
-const ESLABON2 = [/^eslabon_200mm:/, /^KFL08_chmacera:[4567]$/, /^AA_20T_Eslabon2_3:/, /^8mm_130mm/];
+/** Los tres motores con su reductor y sus tres drivers. El controlador CL57T no está en el CAD: se añade como modelo. */
+const ACTUADORES = [/^nema17:/, /^reductor_nema17:/, /^driver_CL57T:/];
 const DEDOS = [/^AA_gripper:/, /^AA_cremallera_gripper:/];
 const PINON = [/^AA_piñon_gripper:/];
 const BASE_GRIPPER = [/^AA_base_gripper_bueno:/, /^Soporte_Gripper:/];
@@ -120,7 +118,7 @@ const GRIPPER = [...DEDOS, ...PINON, ...BASE_GRIPPER, ...MOTOR_GRIPPER];
 // la columna sobre la que va montado el brazo.
 const PLATAFORMA = [...BASE_MOVIL, ...LIDAR];
 /** El manipulador sin su cámara: en la escena del robot, la RealSense se va con los sensores. */
-const BRAZO = [...TORRE, ...TORRETA, ...DRIVERS, ...HOMBRO, ...ESLABON1, ...ESLABON2, ...GRIPPER];
+const BRAZO = [...ESTRUCTURA, ...MECANISMO, ...ACTUADORES, ...GRIPPER];
 const MANIPULADOR = [...BRAZO, ...REALSENSE];
 
 /* --- Electrónica embebida -------------------------------------------
@@ -271,20 +269,24 @@ export const ESCENAS = {
     ],
   },
 
-  /* Nivel 3 — manipulador. Apilado en vertical, en el orden de la cadena
-     cinemática: caja de elevación, torreta, hombro, eslabón 1, eslabón 2,
-     gripper. Los drivers CL57T viajan en la torreta y se apartan a un lado. */
+  /* Nivel 3 — manipulador, por función. La estructura se queda en su
+     lugar; el mecanismo y los actuadores se apartan a los lados, el gripper
+     sube y la cámara baja al frente. El controlador CL57T va con los
+     actuadores, en la caja de elevación donde está montado. */
   manipulador: {
     base: 'robot-completo',
     soloPiezas: MANIPULADOR,
     capas: [
-      { id: 'caja', piezas: TORRE, explota: [0, -0.34] },
-      { id: 'torreta', piezas: [...TORRETA, ...REALSENSE], explota: [0, -0.2] },
-      { id: 'drivers', piezas: DRIVERS, explota: [-0.34, -0.12] },
-      { id: 'hombro', piezas: HOMBRO, explota: [0, -0.03] },
-      { id: 'eslabon1', piezas: ESLABON1, explota: [0, 0.12] },
-      { id: 'eslabon2', piezas: ESLABON2, explota: [0.04, 0.27] },
-      { id: 'gripper', piezas: GRIPPER, explota: [0.24, 0.36] },
+      { id: 'estructura', piezas: ESTRUCTURA, explota: [0, 0] },
+      { id: 'mecanismo', piezas: MECANISMO, explota: [-0.34, 0.06] },
+      {
+        id: 'actuadores',
+        piezas: ACTUADORES,
+        componentes: controladorCL57T(EN_CAJA, K_ROBOT),
+        explota: [0.36, -0.08],
+      },
+      { id: 'gripper', piezas: GRIPPER, explota: [0.2, 0.3] },
+      { id: 'camara', piezas: REALSENSE, explota: [-0.3, -0.26] },
     ],
   },
 

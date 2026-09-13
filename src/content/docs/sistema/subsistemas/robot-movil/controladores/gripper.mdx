@@ -187,3 +187,24 @@ abajo desde el cero de cerrado. De ahí sale la resolución de 357,1 counts/mm.
 
 <Artifact href="/software/gripper_cal.json" name="Calibración de referencia — gripper_cal.json" />
 <Artifact href="/software/calibracion_gripper.py" name="Script de calibración del gripper" />
+
+### Prueba desde tu PC
+
+El script hace lo mismo que la NUC por COM5: pide el estado con `p` y manda
+posiciones con `m <mm>`, esperando a que cada movimiento termine.
+
+1. Conecta el USB-C del ESP32-C3 a la PC y busca su puerto COM.
+2. Instala la dependencia: `pip install pyserial`.
+3. Corre la prueba:
+
+```bash
+python prueba_gripper.py --puerto COM5
+python prueba_gripper.py --puerto COM5 --mover --posiciones 60 20 40
+python prueba_gripper.py --puerto COM5 --consola
+```
+
+<Artifact href="/software/pruebas/prueba_gripper.py" name="Prueba del gripper — prueba_gripper.py" />
+
+La primera línea muestra la posición, `busy` y `calibrado`. Si no está
+calibrado, los comandos de posición están bloqueados: calibra primero con
+`so` y `sc` desde `--consola`.

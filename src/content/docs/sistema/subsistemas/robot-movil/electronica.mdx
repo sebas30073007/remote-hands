@@ -324,3 +324,29 @@ el manipulador montado, acelerar a fondo compromete la estabilidad.
     { parameter: 'Prioridad de USB', value: '8000', unit: 'ms', notes: 'Ventana en que USB desplaza al medio del DIP switch' },
   ]}
 />
+
+### Prueba desde tu PC
+
+El maestro acepta por USB los mismos comandos de texto que le manda la NUC,
+así que se prueba conectándolo directo a una PC. El script consulta la placa
+y el bus I²C y, si se lo pides, mueve los dos motores unos segundos,
+reenviando la orden a 15 Hz como la NUC para que no salte el timeout de
+2,5 s.
+
+1. Pon el DIP switch en `100` (maestro) **antes** de alimentar la placa.
+2. Conecta el USB-C del ESP32-C3 a la PC. Para mover, conecta también la
+   potencia y deja las ruedas en el aire.
+3. Instala la dependencia: `pip install pyserial`.
+4. Corre la prueba:
+
+```bash
+python prueba_puente_h.py --puerto COM4
+python prueba_puente_h.py --puerto COM4 --mover --consigna 80 --segundos 3
+python prueba_puente_h.py --puerto COM4 --consola
+```
+
+<Artifact href="/software/pruebas/prueba_puente_h.py" name="Prueba del Puente H — prueba_puente_h.py" />
+
+La placa debe responder `PONG`, su estado, y `I2C_SCAN:0x8,0xb` si el
+esclavo y el controlador CL57T están conectados al bus. Con `--consola`
+puedes escribir cualquier comando; `HELP` los lista.

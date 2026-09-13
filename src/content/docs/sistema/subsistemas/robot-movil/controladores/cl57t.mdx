@@ -236,3 +236,26 @@ y vuelve a 2 500 µs para frenar.
 La base añade una regla propia: si un movimiento cruza el cero y recorre más
 de **60°**, se parte en dos tramos. Un giro largo de la base a través del
 origen mueve todo el brazo, y partirlo evita el tirón en el punto de cruce.
+
+### Prueba desde tu PC
+
+La placa acepta por USB los mismos comandos que recibe por I²C, así que se
+prueba sin el Puente H maestro: basta conectar su USB-C a una PC. El script
+consulta el estado y, si se lo pides, hace el homing y un vaivén corto de la
+base. Cada comando de movimiento bloquea hasta terminar.
+
+1. Conecta el USB-C del ESP32-C3 a la PC y busca su puerto COM.
+2. Para mover: drivers CL57T alimentados y el brazo libre de obstáculos.
+3. Instala la dependencia: `pip install pyserial`.
+4. Corre la prueba:
+
+```bash
+python prueba_controlador_cl57t.py --puerto COM6
+python prueba_controlador_cl57t.py --puerto COM6 --home --mover
+python prueba_controlador_cl57t.py --puerto COM6 --consola
+```
+
+<Artifact href="/software/pruebas/prueba_controlador_cl57t.py" name="Prueba del Controlador CL57T — prueba_controlador_cl57t.py" />
+
+La placa debe responder `PONG` y una línea `OK busy=0 …` con los ángulos y
+el estado de los finales de carrera. Tras `HOME_ALL`, `calibrated=1`.

@@ -1,0 +1,102 @@
+---
+title: RPLiDAR C1
+description: El LiDAR 2D del robot — características, tasa de operación, conexión, el código que lo usa y un script para probarlo desde una PC.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { ParameterTable, Artifact, SignalChain } from '@project';
+
+<figure>
+  <img src="/images/3d/rplidar-c1.webp" alt="RPLiDAR C1 de Slamtec" />
+</figure>
+
+El RPLiDAR C1 es el LiDAR 2D del robot. Gira 360° midiendo la distancia a lo
+que lo rodea, y con eso la NUC arma el mapa de ocupación y las paredes que ve
+el operador.
+
+## Sinopsis
+
+### Características
+
+<ParameterTable
+  caption="RPLiDAR C1, según la hoja de datos de Slamtec"
+  rows={[
+    { parameter: 'Principio de medición', value: 'DTOF', unit: '—', notes: 'tiempo de vuelo directo' },
+    { parameter: 'Campo de visión', value: '360', unit: '°', notes: 'en un plano' },
+    { parameter: 'Alcance', value: '0,05 – 12', unit: 'm', notes: 'sobre superficie blanca' },
+    { parameter: 'Resolución angular', value: '0,72', unit: '°' },
+    { parameter: 'Interfaz', value: 'UART', unit: '460 800 baud', notes: 'con adaptador USB incluido' },
+    { parameter: 'Alimentación', value: '5', unit: 'V', notes: 'por el mismo USB' },
+  ]}
+/>
+
+### Tasa de operación
+
+<ParameterTable
+  caption="Lo que entrega el sensor y lo que usa el robot"
+  rows={[
+    { parameter: 'Frecuencia de escaneo', value: '10', unit: 'Hz', notes: 'típica, del fabricante' },
+    { parameter: 'Muestras por segundo', value: '5 000', unit: 'Hz', notes: '≈ 500 puntos por vuelta' },
+    { parameter: 'Grid de ocupación', value: '12', unit: 'Hz', notes: 'publicado por la NUC' },
+    { parameter: 'Puntos crudos al visor', value: '8', unit: 'Hz', notes: 'modo puntos' },
+    { parameter: 'Paredes', value: '1', unit: 'Hz', notes: 'modo paredes' },
+    { parameter: 'Alcance usado', value: '6', unit: 'm', notes: 'la NUC descarta lo que está más lejos' },
+  ]}
+/>
+
+### Conexiones
+
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'RPLiDAR C1', detalle: 'sobre la plataforma', imagen: '/images/3d/rplidar-c1.webp' },
+    { nombre: 'NUC', detalle: 'percepción', imagen: '/images/3d/nuc.webp' },
+  ]}
+  enlaces={[{ medio: 'USB · COM3 · 460 800 baud', ida: 'ángulo · distancia · calidad', vuelta: 'SCAN · STOP' }]}
+/>
+
+Qué hace la NUC con cada vuelta está en
+[Percepción](/sistema/subsistemas/servidor-percepcion/percepcion/#rplidar-c1).
+
+## Código
+
+### En el robot
+
+El LiDAR lo atiende el coordinador de la NUC, en la función
+`lidar_async_worker()`. El puerto y los baudios están fijos al inicio del
+archivo: `LIDAR_PORT = "COM3"` y `LIDAR_BAUD = 460800`. Usa la librería
+`rplidarc1`, que no está en PyPI; si falta, el coordinador arranca sin LiDAR.
+
+<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
+
+### Prueba desde tu PC
+
+Este script habla directo el protocolo serie del sensor, así que no necesita
+la librería del robot: solo `pyserial`. Pide la información y el estado del
+sensor, arranca el escaneo e imprime una línea por vuelta.
+
+1. Conecta el LiDAR a la PC con su adaptador USB. En Windows aparece como un
+   puerto COM en el Administrador de dispositivos; en Linux, como
+   `/dev/ttyUSB0`.
+2. Instala la dependencia: `pip install pyserial` (y `matplotlib` si quieres
+   ver la vuelta dibujada).
+3. Corre la prueba:
+
+```bash
+python prueba_rplidar_c1.py --puerto COM3
+python prueba_rplidar_c1.py --puerto COM3 --grafica
+```
+
+<Artifact href="/software/pruebas/prueba_rplidar_c1.py" name="Prueba del RPLiDAR C1 — prueba_rplidar_c1.py" />
+
+Si todo está bien, el sensor responde `Estado : OK` y cada vuelta imprime algo
+como:
+
+```text
+ 10.0 Hz ·  510 puntos ( 468 válidos) · frente   1432 mm · más cercano    212 mm
+```
+
+Una frecuencia cercana a 10 Hz confirma que el motor gira a su velocidad; los
+puntos no válidos son direcciones sin retorno, como una puerta abierta.

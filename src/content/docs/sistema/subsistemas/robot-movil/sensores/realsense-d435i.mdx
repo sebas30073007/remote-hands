@@ -1,0 +1,104 @@
+---
+title: RealSense D435i
+description: La cámara RGB-D del robot — características, tasa de operación, conexión, el código que la usa y un script para probarla desde una PC.
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { ParameterTable, Artifact, SignalChain } from '@project';
+
+<figure>
+  <img src="/images/3d/realsense-d435.webp" alt="Cámara Intel RealSense D435i" />
+</figure>
+
+La Intel RealSense D435i es la cámara del robot. Da el video que ve el
+operador y, además, la distancia a cada píxel, que la NUC usa para ubicar en
+el espacio lo que detecta la visión por computadora.
+
+## Sinopsis
+
+### Características
+
+<ParameterTable
+  caption="RealSense D435i, según la hoja de datos de Intel"
+  rows={[
+    { parameter: 'Profundidad', value: 'estéreo infrarrojo activo', unit: '—', notes: 'con proyector de patrón' },
+    { parameter: 'Resolución de profundidad', value: 'hasta 1280 × 720', unit: 'px', notes: 'campo de visión 87° × 58°' },
+    { parameter: 'Resolución de color', value: 'hasta 1920 × 1080', unit: 'px', notes: 'campo de visión 69° × 42°' },
+    { parameter: 'Alcance ideal', value: '0,3 – 3', unit: 'm' },
+    { parameter: 'IMU', value: '6 ejes', unit: '—', notes: 'acelerómetro y giroscopio; el robot no la usa' },
+    { parameter: 'Interfaz', value: 'USB 3', unit: 'Type-C', notes: 'alimentación por el mismo cable' },
+  ]}
+/>
+
+### Tasa de operación
+
+<ParameterTable
+  caption="Lo que configura el robot"
+  rows={[
+    { parameter: 'Color', value: '640 × 480 a 30', unit: 'fps', notes: 'BGR8' },
+    { parameter: 'Profundidad', value: '640 × 480 a 30', unit: 'fps', notes: 'Z16, alineada al color' },
+    { parameter: 'Video al visor', value: 'hasta 30', unit: 'fps', notes: 'JPEG calidad 85' },
+    { parameter: 'Visión por computadora', value: '10', unit: 'Hz', notes: 'resultados publicados' },
+    { parameter: 'Profundidad válida', value: 'hasta 2 500', unit: 'mm', notes: 'corregida con curva de calibración' },
+  ]}
+/>
+
+### Conexiones
+
+<SignalChain
+  porFila={2}
+  pasos={[
+    { nombre: 'RealSense D435i', detalle: 'al frente del manipulador', imagen: '/images/3d/realsense-d435.webp' },
+    { nombre: 'NUC', detalle: 'percepción', imagen: '/images/3d/nuc.webp' },
+  ]}
+  enlaces={[{ medio: 'USB 3', ida: 'color · profundidad' }]}
+/>
+
+Qué hace la NUC con los dos streams está en
+[Percepción](/sistema/subsistemas/servidor-percepcion/percepcion/#realsense-d435i).
+
+## Código
+
+### En el robot
+
+La cámara la atiende el coordinador de la NUC, en la función
+`camera_thread()`. La resolución y los fps están fijos al inicio del
+archivo (`COLOR_W`, `COLOR_H`, `COLOR_FPS` y sus equivalentes de
+profundidad). Necesita `pyrealsense2`, que a su vez requiere el SDK de Intel
+instalado.
+
+<Artifact href="/software/nuc_master_code.py" name="Coordinador de la NUC — nuc_master_code.py" />
+
+### Prueba desde tu PC
+
+Este script abre la cámara con la misma configuración que la NUC y muestra
+el color y la profundidad lado a lado, con la distancia al centro de la
+imagen.
+
+1. Instala el [Intel RealSense SDK
+   2.0](https://github.com/IntelRealSense/librealsense/releases). Con él
+   viene RealSense Viewer, útil para una primera revisión.
+2. Conecta la cámara a un puerto **USB 3**, con un cable USB 3. En USB 2
+   funciona, pero sin garantía de 30 fps en los dos streams.
+3. Instala las dependencias: `pip install pyrealsense2 numpy opencv-python`.
+4. Corre la prueba:
+
+```bash
+python prueba_realsense_d435i.py
+python prueba_realsense_d435i.py --sin-ventana
+```
+
+<Artifact href="/software/pruebas/prueba_realsense_d435i.py" name="Prueba de la RealSense D435i — prueba_realsense_d435i.py" />
+
+Si todo está bien, el script identifica la cámara y su tipo de USB, y cada
+segundo imprime algo como:
+
+```text
+Cámara : Intel RealSense D435I · serie 123456789012 · firmware 5.16.0.1 · USB 3.2
+30.0 fps · distancia al centro    843 mm
+```
+
+Acerca la mano al centro de la imagen: la distancia debe bajar. Si marca
+0 mm, ese píxel no tiene dato de profundidad, algo normal a menos de 30 cm.
