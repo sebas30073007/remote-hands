@@ -46,3 +46,7 @@ raw assets/
 # scripts temporales de verificación
 *.tmp.mjs
 .*-tmp.mjs
+
+# Python
+__pycache__/
+*.pyc
