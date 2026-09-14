@@ -74,6 +74,24 @@ export const ACABADOS = {
     wire160123147: { color: '#17181A', roughness: 0.2 }, // sensores frontales y lentes
     wire177161249: { color: '#5A5D62', roughness: 0.85 }, // correa y brazos
     wire194045245: { color: '#2B2D30', roughness: 0.9 }, // almohadilla facial
+    // Los controles traen un solo material para 29 piezas sueltas. Por pieza
+    // (identificadas resaltando cada una en un render de diagnóstico), la
+    // cara y sus botones van en gris oscuro, como el Touch Plus real; el
+    // mango y el aro de seguimiento se quedan blancos. Pares izquierda/derecha.
+    nodos: Object.fromEntries(
+      [
+        ['Object009_14', 'Object009_15', '#1F2023', 0.5], // cara
+        ['Object009_4', 'Object009_24', '#18191B', 0.45], // base del joystick
+        ['Object009_10', 'Object009_19', '#141517', 0.4], // joystick
+        ['Object009_5', 'Object009_23', '#141517', 0.4], // botones
+        ['Object009_6', 'Object009_25', '#141517', 0.4],
+        ['Object009_7', 'Object009_26', '#141517', 0.4],
+        ['Object009_13', 'Object009_17', '#141517', 0.4],
+      ].flatMap(([izq, der, color, roughness]) => [
+        [izq, { color, roughness }],
+        [der, { color, roughness }],
+      ])
+    ),
   },
 };
 

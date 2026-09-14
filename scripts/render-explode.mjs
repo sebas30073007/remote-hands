@@ -137,10 +137,22 @@ async function prepararEscena({ escena, vista, W, H, S, tornilleria, material, a
     if (mat.transmission) mat.transmission = 0;
     return mat;
   };
+  // Acabado de una pieza concreta, para modelos que comparten un material
+  // entre piezas de colores distintos (los controles del Quest 3).
+  const porPieza = (mat, modelo, nombre) => {
+    const ac = acabados[modelo]?.nodos?.[nombre];
+    if (!ac) return mat;
+    const m = mat.clone();
+    m.color = new THREE.Color(ac.color);
+    m.roughness = ac.roughness ?? m.roughness;
+    m.metalness = ac.metalness ?? 0;
+    m.userData.acabado = true;
+    return m;
+  };
   const aplicarArcilla = (obj, modelo) =>
     obj.traverse((o) => {
       if (!o.isMesh) return;
-      const f = color ? (m) => original(m, modelo) : arcilla;
+      const f = color ? (m) => porPieza(original(m, modelo), modelo, o.name) : arcilla;
       o.material = Array.isArray(o.material) ? o.material.map(f) : f(o.material);
     });
 

@@ -10,7 +10,7 @@
  * Este plugin envuelve cada racha de `<Artifact>` seguidos —aunque haya
  * saltos de línea entre ellos— en `<div class="c-files">`, que el CSS
  * reparte en tres columnas con un solo rótulo. Así todas las páginas los
- * presentan igual sin que ninguna tenga que envolverlos a mano.
+ * presentan igual, bajo el rótulo «Archivos», sin envolverlos a mano.
  */
 const esArtefacto = (n) => n.type === 'mdxJsxFlowElement' && n.name === 'Artifact';
 const esVacio = (n) => n.type === 'text' && !n.value.trim();
@@ -32,7 +32,7 @@ export default function rehypeArtefactos() {
             type: 'element',
             tagName: 'p',
             properties: { className: ['c-files__label'] },
-            children: [{ type: 'text', value: racha.length > 1 ? 'Artefactos' : 'Artefacto' }],
+            children: [{ type: 'text', value: 'Archivos' }],
           },
           ...racha,
         ],
