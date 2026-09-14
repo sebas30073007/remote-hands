@@ -9,6 +9,10 @@
  * la tipografía que el sistema reserva para los datos técnicos. Así
  * cualquier formato tiene icono sin tener que dibujarlo.
  *
+ * La hoja va rellena del color del icono, y el pliegue y la extensión, del
+ * color del fondo (`--c-fileicon-fondo`): una hoja sólida con el texto
+ * calado, que se lee mejor en tamaño pequeño que un contorno.
+ *
  * Candidata a @sebs/docs-core (§29 del brief).
  */
 interface Props {
@@ -42,8 +46,9 @@ const etiqueta = util.slice(0, 5).toUpperCase();
   {
     esCarpeta ? (
       <path
+        class="c-fileicon__hoja"
         d="M2.5 12.5V5.5a1 1 0 0 1 1-1h10l3 4h20a1 1 0 0 1 1 1v33a1 1 0 0 1-1 1h-33a1 1 0 0 1-1-1z"
-        fill="none"
+        fill="currentColor"
         stroke="currentColor"
         stroke-width="2"
         stroke-linejoin="round"
@@ -51,13 +56,15 @@ const etiqueta = util.slice(0, 5).toUpperCase();
     ) : (
       <>
         <path
+          class="c-fileicon__hoja"
           d="M3.5 2.5a1 1 0 0 1 1-1h18l14 14v31a1 1 0 0 1-1 1h-31a1 1 0 0 1-1-1z"
-          fill="none"
+          fill="currentColor"
           stroke="currentColor"
           stroke-width="2"
           stroke-linejoin="round"
         />
         <path
+          class="c-fileicon__pliegue"
           d="M22.5 1.5v13a1 1 0 0 0 1 1h13"
           fill="none"
           stroke="currentColor"

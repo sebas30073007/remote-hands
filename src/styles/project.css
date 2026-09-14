@@ -74,6 +74,7 @@
     .c-verification__head,
     .c-verification__meta,
     .c-verification__evidence,
+    .c-files,
     .c-file,
     .c-file__link,
     .c-file__foot,
@@ -465,6 +466,40 @@
 /* -------------------------------------------------------------------
    Artifact — igual a `CourseFile` de course-docs, vocabulario neutro.
    ------------------------------------------------------------------- */
+/* Cuadrícula de artefactos (`rehype-artefactos.mjs`): toda racha de
+   archivos se reparte en tres columnas bajo un solo rótulo. */
+.c-files {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  align-items: start;
+  gap: var(--space-sm);
+  margin: var(--space-2xl) 0;
+}
+
+.c-files__label {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: 0.6875rem;
+  font-weight: 500;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  color: var(--text-secondary);
+}
+
+.c-files > .c-file {
+  margin: 0;
+}
+
+.c-files .c-file__label {
+  display: none;
+}
+
+@media (max-width: 30rem) {
+  .c-files {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 .c-file {
   position: relative;
   display: flex;
@@ -515,12 +550,21 @@
   color: var(--text);
 }
 
+/* Hoja rellena; el pliegue y la extensión, calados en el color del fondo. */
+.c-fileicon__pliegue {
+  stroke: var(--c-fileicon-fondo, var(--surface));
+}
+
 .c-fileicon__ext {
   font-family: var(--font-mono);
   font-size: 9px;
-  font-weight: 500;
+  font-weight: 600;
   letter-spacing: 0.04em;
-  fill: currentColor;
+  fill: var(--c-fileicon-fondo, var(--surface));
+}
+
+.c-file__link:hover {
+  --c-fileicon-fondo: var(--surface-secondary);
 }
 
 .c-file__name {

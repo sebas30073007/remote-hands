@@ -7,6 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeMermaid from 'rehype-mermaid';
 import rehypeBase from './src/lib/rehype-base.mjs';
+import rehypeArtefactos from './src/lib/rehype-artefactos.mjs';
 import redirecciones from './src/lib/redirecciones.json' with { type: 'json' };
 
 /** Dominio y ruta base de despliegue. Ver el comentario de `defineConfig`. */
@@ -47,6 +48,7 @@ export default defineConfig({
       remarkPlugins: [remarkMath],
       rehypePlugins: [
         [rehypeBase, { base: BASE }],
+        rehypeArtefactos,
         rehypeKatex,
         [
           rehypeMermaid,
