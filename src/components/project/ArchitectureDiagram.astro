@@ -1,0 +1,328 @@
+---
+/**
+ * Diagrama de arquitectura detallado: todo el sistema en una sola vista.
+ *
+ * Donde `SignalChain` y `SignalHub` cuentan una conexión o una pieza, este
+ * desglosa el sistema entero en cinco bloques —operador y app, red
+ * ZeroMQ, módulos de la NUC, sensores y electrónica embebida— y dibuja por
+ * dónde viaja cada dato, hasta los motores.
+ *
+ * Es un SVG trazado a mano sobre una rejilla fija (1580 × 900): las
+ * posiciones están pensadas para que casi ninguna línea se cruce. Los
+ * colores salen de los tokens del sitio, así que respeta el tema. Cada
+ * caja con página enlaza a ella.
+ *
+ * Convención de líneas: continua para datos, discontinua para control
+ * interno (el modo activo que la coordinación impone a la percepción).
+ * Las puntas señalan hacia dónde viaja la información; los enlaces serie
+ * llevan punta en los dos extremos porque también devuelven estado.
+ */
+const base = import.meta.env.BASE_URL.replace(/\/$/, '');
+const img = (r: string) => `${base}/images/3d/${r}.webp`;
+const pag = (r: string) => `${base}${r}`;
+
+type Caja = {
+  x: number;
+  y: number;
+  w: number;
+  h: number;
+  titulo: string;
+  sub?: string;
+  imagen?: string;
+  href?: string;
+};
+
+const W = 1580;
+const H = 900;
+
+const regiones = [
+  { x: 20, y: 20, w: 330, h: 860, titulo: 'Operador · Meta Quest 3', href: '/sistema/subsistemas/interfaz-xr/' },
+  { x: 370, y: 380, w: 190, h: 500, titulo: 'Red WiFi · ZeroMQ', href: '/sistema/subsistemas/servidor-percepcion/middleware/' },
+  { x: 580, y: 20, w: 480, h: 860, titulo: 'NUC · Python 3.12', href: '/sistema/subsistemas/servidor-percepcion/' },
+  { x: 1090, y: 20, w: 470, h: 340, titulo: 'Sensores', href: '/sistema/subsistemas/robot-movil/sensores/' },
+  { x: 1090, y: 380, w: 470, h: 500, titulo: 'Embebidos y actuadores', href: '/sistema/subsistemas/robot-movil/firmware/' },
+];
+
+const cajas: Record<string, Caja> = {
+  // Operador
+  controles: { x: 40, y: 250, w: 290, h: 56, titulo: 'Controles Touch Plus', sub: 'joystick · gatillos · botones' },
+  modos: { x: 40, y: 330, w: 290, h: 56, titulo: 'Modos y paneles', sub: 'Mobile · Manip · Base · paro' },
+  video: { x: 40, y: 420, w: 290, h: 56, titulo: 'Panel central', sub: 'video RGB en vivo' },
+  estado: { x: 40, y: 510, w: 290, h: 56, titulo: 'Panel de estado', sub: 'telemetría · grid LiDAR 2D' },
+  escena: { x: 40, y: 600, w: 290, h: 56, titulo: 'Escena 3D inmersiva', sub: 'paredes · nube de puntos' },
+  emisor: { x: 40, y: 720, w: 290, h: 56, titulo: 'Emisor de comandos', sub: 'JSON, cada orden repetida' },
+
+  // ZeroMQ
+  p5555: { x: 385, y: 420, w: 160, h: 56, titulo: '5555 · video', sub: 'PUB → JPEG q85' },
+  p5001: { x: 385, y: 510, w: 160, h: 56, titulo: '5001 · estado', sub: 'PUB → JSON' },
+  p5007: { x: 385, y: 600, w: 160, h: 56, titulo: '5007 · LiDAR 3D', sub: 'PUB → binario' },
+  p5002: { x: 385, y: 720, w: 160, h: 56, titulo: '5002 · comandos', sub: 'SUB ← JSON' },
+
+  // NUC
+  percCam: { x: 850, y: 140, w: 190, h: 80, titulo: 'Percepción · cámara', sub: 'JPEG · YOLO · RGB-D', href: '/sistema/subsistemas/servidor-percepcion/percepcion/#realsense-d435i' },
+  percLid: { x: 850, y: 250, w: 190, h: 80, titulo: 'Percepción · LiDAR', sub: 'grid · paredes · puntos', href: '/sistema/subsistemas/servidor-percepcion/percepcion/#rplidar-c1' },
+  suscriptor: { x: 600, y: 720, w: 190, h: 56, titulo: 'Suscriptor', sub: 'comandos JSON' },
+  coord: { x: 850, y: 720, w: 190, h: 56, titulo: 'Coordinación', sub: 'modos · watchdogs' },
+  serie: { x: 850, y: 806, w: 190, h: 56, titulo: 'Puentes serie', sub: 'COM4 · COM5 · 115 200' },
+
+  // Sensores
+  realsense: { x: 1105, y: 120, w: 440, h: 100, titulo: 'RealSense D435i', sub: 'RGB-D 640 × 480 · 30 fps', imagen: 'realsense-d435', href: '/sistema/subsistemas/robot-movil/sensores/realsense-d435i/' },
+  lidar: { x: 1105, y: 240, w: 440, h: 100, titulo: 'RPLiDAR C1', sub: '360° · 10 Hz · 12 m', imagen: 'rplidar-c1', href: '/sistema/subsistemas/robot-movil/sensores/rplidar-c1/' },
+
+  // Embebidos
+  puentes: { x: 1105, y: 420, w: 210, h: 90, titulo: 'Puente H ×2', sub: 'maestro/esclavo', imagen: 'puente-h', href: '/sistema/subsistemas/robot-movil/electronica/' },
+  dc: { x: 1340, y: 420, w: 210, h: 90, titulo: 'Motores DC ×2', sub: 'tracción', imagen: 'base-diferencial', href: '/sistema/subsistemas/robot-movil/plataforma-movil/' },
+  cl57t: { x: 1105, y: 540, w: 210, h: 90, titulo: 'Controlador', sub: 'CL57T', imagen: 'controlador-cl57t', href: '/sistema/subsistemas/robot-movil/controladores/cl57t/' },
+  drivers: { x: 1340, y: 540, w: 210, h: 90, titulo: 'Drivers ×3', sub: 'lazo cerrado', imagen: 'driver-cl57t', href: '/sistema/subsistemas/robot-movil/controladores/cl57t/#drivers-y-motores' },
+  finales: { x: 1105, y: 660, w: 210, h: 90, titulo: 'Finales ×2', sub: 'codo · muñeca', imagen: 'final-de-carrera', href: '/sistema/subsistemas/robot-movil/sensores/#finales-de-carrera' },
+  nema: { x: 1340, y: 660, w: 210, h: 90, titulo: 'NEMA 17 ×3', sub: 'reductor 10:1', imagen: 'nema17-reductor', href: '/sistema/subsistemas/robot-movil/manipulador/' },
+  ctlGripper: { x: 1105, y: 780, w: 210, h: 90, titulo: 'Control gripper', sub: 'ESP32-C3', imagen: 'controlador-gripper', href: '/sistema/subsistemas/robot-movil/controladores/gripper/' },
+  gripper: { x: 1340, y: 780, w: 210, h: 90, titulo: 'Gripper', sub: 'motor + encoder', imagen: 'gripper', href: '/sistema/subsistemas/robot-movil/controladores/gripper/' },
+};
+
+// La caja de publicadores es alta: una fila por puerto.
+const publicadores = { x: 600, y: 376, w: 190, h: 280 };
+
+type Linea = {
+  d: [number, number][];
+  rotulo?: string;
+  en?: [number, number];
+  ancla?: 'start' | 'middle' | 'end';
+  doble?: boolean;
+  control?: boolean;
+};
+
+const lineas: Linea[] = [
+  // Operador
+  { d: [[185, 306], [185, 330]] },
+  { d: [[40, 358], [28, 358], [28, 748], [40, 748]] },
+  { d: [[330, 748], [385, 748]] },
+  { d: [[385, 448], [330, 448]] },
+  { d: [[385, 538], [330, 538]] },
+  { d: [[385, 628], [330, 628]] },
+
+  // ZeroMQ ↔ NUC
+  { d: [[545, 748], [600, 748]] },
+  { d: [[600, 448], [545, 448]] },
+  { d: [[600, 538], [545, 538]] },
+  { d: [[600, 628], [545, 628]] },
+  { d: [[790, 748], [850, 748]] },
+
+  // Percepción → publicadores
+  { d: [[850, 165], [806, 165], [806, 448], [790, 448]] },
+  { d: [[850, 195], [818, 195], [818, 528], [790, 528]] },
+  { d: [[850, 275], [830, 275], [830, 548], [790, 548]] },
+  { d: [[850, 305], [842, 305], [842, 628], [790, 628]] },
+
+  // Coordinación
+  { d: [[945, 720], [945, 330]], rotulo: 'modo activo', en: [953, 520], ancla: 'start', control: true },
+  { d: [[945, 776], [945, 806]] },
+
+  // Sensores → percepción
+  { d: [[1105, 170], [1040, 170]], rotulo: 'USB 3', en: [1075, 162] },
+  { d: [[1105, 290], [1040, 290]], rotulo: 'COM3', en: [1075, 282] },
+
+  // Serie → embebidos
+  { d: [[1040, 826], [1070, 826], [1070, 465], [1105, 465]], rotulo: 'COM4', en: [1062, 640], ancla: 'end', doble: true },
+  { d: [[1040, 846], [1105, 846]], rotulo: 'COM5', en: [1075, 862], doble: true },
+
+  // Embebidos
+  { d: [[1315, 465], [1340, 465]] },
+  { d: [[1210, 510], [1210, 540]], rotulo: 'I²C 0x0B', en: [1218, 529], ancla: 'start' },
+  { d: [[1315, 585], [1340, 585]] },
+  { d: [[1445, 630], [1445, 660]], rotulo: 'PUL/DIR', en: [1453, 649], ancla: 'start' },
+  { d: [[1210, 660], [1210, 630]], rotulo: 'SW2 · SW3', en: [1218, 649], ancla: 'start' },
+  { d: [[1315, 825], [1340, 825]] },
+];
+
+const puntos = (d: [number, number][]) => d.map(([x, y]) => `${x},${y}`).join(' ');
+---
+
+<figure class="c-arq not-content">
+  <div class="c-arq__marco">
+    <svg class="c-arq__svg" viewBox={`0 0 ${W} ${H}`} role="img" aria-labelledby="c-arq-titulo">
+      <title id="c-arq-titulo">
+        Arquitectura de Remote Hands: el operador en Meta Quest 3, la red ZeroMQ con sus cuatro puertos, los
+        módulos de la NUC, los sensores y la electrónica embebida hasta los motores.
+      </title>
+      <defs>
+        <marker id="c-arq-punta" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse">
+          <path d="M0,0 L10,5 L0,10 z" class="c-arq__punta" />
+        </marker>
+      </defs>
+
+      {
+        regiones.map((r) => (
+          <g class="c-arq__region">
+            <rect x={r.x} y={r.y} width={r.w} height={r.h} rx="16" />
+            <a href={pag(r.href)}>
+              <text x={r.x + 18} y={r.y + 32} class="c-arq__region-titulo">
+                {r.titulo}
+              </text>
+            </a>
+          </g>
+        ))
+      }
+
+      {/* Renders de cabecera de las regiones */}
+      <image href={img('meta-quest-3')} x="70" y="70" width="230" height="160" preserveAspectRatio="xMidYMid meet" />
+      <image href={img('nuc')} x="600" y="70" width="190" height="130" preserveAspectRatio="xMidYMid meet" />
+
+      {/* Líneas: un halo del color de la región abre un hueco en los cruces */}
+      {
+        lineas.map((l) => (
+          <g class:list={['c-arq__linea', { 'c-arq__linea--control': l.control }]}>
+            <polyline points={puntos(l.d)} class="c-arq__halo" />
+            <polyline
+              points={puntos(l.d)}
+              class="c-arq__trazo"
+              marker-end="url(#c-arq-punta)"
+              marker-start={l.doble ? 'url(#c-arq-punta)' : undefined}
+            />
+            {l.rotulo && (
+              <text x={l.en![0]} y={l.en![1]} text-anchor={l.ancla ?? 'middle'} class="c-arq__rotulo">
+                {l.rotulo}
+              </text>
+            )}
+          </g>
+        ))
+      }
+
+      {/* Publicadores: una fila por puerto */}
+      <g class="c-arq__caja">
+        <rect x={publicadores.x} y={publicadores.y} width={publicadores.w} height={publicadores.h} rx="10" />
+        <text x={publicadores.x + 14} y={publicadores.y + 28} class="c-arq__titulo">Publicadores</text>
+        <line x1={publicadores.x} x2={publicadores.x + publicadores.w} y1={publicadores.y + 44} y2={publicadores.y + 44} class="c-arq__division" />
+        <text x={publicadores.x + 14} y="453" class="c-arq__sub">video · JPEG</text>
+        <text x={publicadores.x + 14} y="543" class="c-arq__sub">estado · grid · visión</text>
+        <text x={publicadores.x + 14} y="633" class="c-arq__sub">paredes · puntos</text>
+      </g>
+
+      {
+        Object.values(cajas).map((c) => {
+          const tieneImg = Boolean(c.imagen);
+          const tx = c.x + (tieneImg ? 88 : 14);
+          const contenido = (
+            <g class="c-arq__caja">
+              <rect x={c.x} y={c.y} width={c.w} height={c.h} rx="10" />
+              {tieneImg && (
+                <image href={img(c.imagen!)} x={c.x + 8} y={c.y + 8} width="72" height={c.h - 16} preserveAspectRatio="xMidYMid meet" />
+              )}
+              <text x={tx} y={c.y + c.h / 2 - 3} class="c-arq__titulo">
+                {c.titulo}
+              </text>
+              {c.sub && (
+                <text x={tx} y={c.y + c.h / 2 + 17} class="c-arq__sub">
+                  {c.sub}
+                </text>
+              )}
+            </g>
+          );
+          return c.href ? <a href={pag(c.href)} class="c-arq__enlace">{contenido}</a> : contenido;
+        })
+      }
+    </svg>
+  </div>
+  <figcaption class="c-chain__caption">
+    Líneas continuas: datos. Discontinua: control interno. Las puntas señalan hacia dónde viaja la información; los
+    enlaces serie van en los dos sentidos. Cada caja con página enlaza a ella.
+  </figcaption>
+</figure>
+
+<style>
+  .c-arq {
+    margin: var(--space-2xl) 0;
+  }
+
+  /* Un diagrama así no se lee por debajo de ~900 px: en pantalla estrecha
+     se desplaza en horizontal en vez de encogerse hasta ser ilegible. */
+  .c-arq__marco {
+    overflow-x: auto;
+  }
+
+  .c-arq__svg {
+    display: block;
+    width: 100%;
+    min-width: 900px;
+    height: auto;
+    font-family: var(--font-sans);
+  }
+
+  .c-arq__region rect {
+    fill: var(--surface-secondary);
+    stroke: var(--divider);
+  }
+
+  .c-arq__region-titulo {
+    font-size: 19px;
+    font-weight: 600;
+    fill: var(--text);
+  }
+
+  .c-arq__caja rect {
+    fill: var(--surface);
+    stroke: var(--divider);
+    transition: stroke var(--dur-micro, 120ms) ease;
+  }
+
+  .c-arq__titulo {
+    font-size: 16px;
+    font-weight: 600;
+    fill: var(--text);
+  }
+
+  .c-arq__sub {
+    font-family: var(--font-mono);
+    font-size: 12.5px;
+    fill: var(--text-secondary);
+  }
+
+  .c-arq__enlace:hover rect,
+  .c-arq__enlace:focus-visible rect {
+    stroke: var(--text);
+  }
+
+  .c-arq__enlace:focus-visible {
+    outline: none;
+  }
+
+  .c-arq__enlace:focus-visible rect {
+    stroke: var(--sebs-signal); /* sebs-allow: borde de foco */
+    stroke-width: 2;
+  }
+
+  .c-arq__division {
+    stroke: var(--divider);
+  }
+
+  .c-arq__halo {
+    fill: none;
+    stroke: var(--surface-secondary);
+    stroke-width: 7;
+    stroke-linejoin: round;
+  }
+
+  .c-arq__trazo {
+    fill: none;
+    stroke: var(--text-secondary);
+    stroke-width: 1.6;
+    stroke-linejoin: round;
+  }
+
+  .c-arq__linea--control .c-arq__trazo {
+    stroke-dasharray: 6 5;
+  }
+
+  .c-arq__punta {
+    fill: var(--text-secondary);
+  }
+
+  .c-arq__rotulo {
+    font-family: var(--font-mono);
+    font-size: 12px;
+    fill: var(--text-secondary);
+    paint-order: stroke;
+    stroke: var(--surface-secondary);
+    stroke-width: 4px;
+  }
+</style>

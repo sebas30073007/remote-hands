@@ -35,6 +35,7 @@ export { default as SystemMap } from './SystemMap.astro';
 // componente, con el medio por el que viaja la orden en cada tramo.
 export { default as SignalChain } from './SignalChain.astro';
 export { default as SignalHub } from './SignalHub.astro';
+export { default as ArchitectureDiagram } from './ArchitectureDiagram.astro';
 
 // Plantillas de página (colocadas automáticamente por PageTitle; se
 // exportan también por si una página necesita repetir una cabecera fuera

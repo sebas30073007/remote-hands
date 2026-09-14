@@ -3,20 +3,14 @@ title: Comunicaciones del sistema
 description: El contrato de comunicación completo — canales ZMQ, puertos, modos de sensor y el bus embebido entre la NUC y la electrónica.
 ---
 
-import { InterfaceTable } from '@project';
+import { InterfaceTable, ArchitectureDiagram } from '@project';
 
 Remote Hands usa dos protocolos distintos, en dos capas separadas: **ZMQ
 sobre WiFi** entre el operador y la NUC, y **USB/I²C** entre la NUC y la
 electrónica embebida. Esta página es el contrato completo de las dos capas:
 qué canal lleva qué, en qué dirección y por qué puerto.
 
-<figure>
-  <img
-    src="/images/arquitectura-del-sistema.png"
-    alt="Diagrama de la arquitectura del sistema con los enlaces entre operador, NUC y robot"
-  />
-  <figcaption>Los dos dominios de comunicación del sistema: ZMQ sobre WiFi del operador a la NUC, y USB/I²C de la NUC a la electrónica embebida.</figcaption>
-</figure>
+<ArchitectureDiagram />
 
 ## Meta Quest ↔ NUC
 
