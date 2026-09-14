@@ -3,11 +3,11 @@
  * Navegación por vista explosionada.
  *
  * Sustituye al temario de lista cuando el modo UI/UX está activo
- * (`data-ui="explosion"` en `<html>`, ver `UiModeToggle.astro`). La pestaña
- * «Sistema» dibuja el robot; al elegir una pieza, la página cambia y el
- * dibujo se separa en las piezas de esa parte. Las otras cinco pestañas son
- * árboles de páginas: Reporte, Operar, Construir, Evidencia y Referencia no
- * son cosas que se puedan desmontar.
+ * (`data-ui="explosion"` en `<html>`, ver `UiModeToggle.astro`). Arriba, siempre
+ * a la vista, el dibujo del sistema; al elegir una pieza, la página cambia y
+ * el dibujo se separa en las piezas de esa parte. Debajo, las pocas páginas
+ * que no son piezas —Reporte y Operar— como una lista abierta, sin
+ * pestañas que obliguen a hacer clic para ver qué contienen.
  *
  * Cómo está hecho, y por qué:
  *
@@ -55,7 +55,7 @@ const normal = (p: string) => {
 };
 const actual = normal(pathname);
 
-/* --- Temario clásico: etiquetas y árboles de las pestañas ------------ */
+/* --- Temario clásico: etiquetas y listas bajo el panel --------------- */
 const etiquetas = new Map<string, string>();
 const aplanar = (es: Entrada[]) =>
   es.forEach((e) => (e.type === 'link' ? etiquetas.set(normal(e.href), e.label) : aplanar(e.entries)));
@@ -222,39 +222,12 @@ const datos = {
   class="c-xnav"
   data-xnav
   data-ruta={JSON.stringify(rutaInicial)}
-  data-pestana={inicial.tab}
   data-explotada={String(inicial.explotada)}
   transition:persist="xnav"
   transition:animate="none"
 >
-  <div class="c-xnav__tabs" role="tablist" aria-label="Secciones">
-    {
-      [{ id: 'sistema', etiqueta: 'Sistema' }, ...PESTANAS].map((t) => (
-        <button
-          type="button"
-          role="tab"
-          class="c-xnav__tab"
-          id={`xnav-tab-${t.id}`}
-          aria-controls={`xnav-panel-${t.id}`}
-          aria-selected={String(t.id === inicial.tab)}
-          tabindex={t.id === inicial.tab ? 0 : -1}
-          data-tab={t.id}
-        >
-          {t.etiqueta}
-        </button>
-      ))
-    }
-  </div>
-
-  {/* ------------------------------------------------ Pestaña Sistema */}
-  <div
-    class="c-xnav__panel"
-    role="tabpanel"
-    id="xnav-panel-sistema"
-    aria-labelledby="xnav-tab-sistema"
-    data-panel="sistema"
-    hidden={inicial.tab !== 'sistema'}
-  >
+  {/* ------------------------------------------------ Sistema, siempre arriba */}
+  <div class="c-xnav__panel" data-panel="sistema">
     {/* Migas de la ruta real. El servidor pone la canónica; el script la
         reescribe con la ruta por la que se llegó. */}
     <nav class="c-xnav__migas" aria-label="Ubicación en el sistema" data-migas>
@@ -398,56 +371,34 @@ const datos = {
     </div>
   </div>
 
-  {/* ---------------------------------------- Pestañas de árbol */}
-  {
-    PESTANAS.map((p) => {
-      const g = grupoPorEtiqueta(p.grupo);
-      return (
-        <div
-          class="c-xnav__panel"
-          role="tabpanel"
-          id={`xnav-panel-${p.id}`}
-          aria-labelledby={`xnav-tab-${p.id}`}
-          data-panel={p.id}
-          hidden={inicial.tab !== p.id}
-        >
-          {/* Mismo lenguaje que el temario clásico: carpeta raíz, tronco y
-              codos. Una sección de lista se lee como un directorio. */}
-          <p class="c-xnav__raiz">{p.etiqueta}</p>
-          <ul class="c-xnav__arbol">
-            {(g?.entries ?? []).map((e) =>
-              e.type === 'link' ? (
+  {/* ---------------------------------------- El resto, a la vista */}
+  {/* Sin pestañas: son pocas páginas, y cada sección muestra las suyas
+      bajo el panel. Mismo lenguaje que el temario clásico: carpeta raíz,
+      tronco y codos. */}
+  <nav class="c-xnav__secciones" aria-label="Documentación del proyecto">
+    {
+      PESTANAS.map((p) => {
+        const g = grupoPorEtiqueta(p.grupo);
+        const enlaces = (g?.entries ?? []).flatMap(function hojas(e: Entrada): Extract<Entrada, { type: 'link' }>[] {
+          return e.type === 'link' ? [e] : e.entries.flatMap(hojas);
+        });
+        return (
+          <div class="c-xnav__seccion" data-panel={p.id}>
+            <p class="c-xnav__raiz">{p.etiqueta}</p>
+            <ul class="c-xnav__arbol">
+              {enlaces.map((e) => (
                 <li>
                   <a href={e.href} aria-current={normal(e.href) === actual ? 'page' : undefined}>
                     {e.label}
                   </a>
                 </li>
-              ) : (
-                <li class="c-xnav__subgrupo">
-                  <span class="c-xnav__carpeta">{e.label}</span>
-                  <ul class="c-xnav__arbol">
-                    {e.entries
-                      .flatMap((sub) =>
-                        sub.type === 'link'
-                          ? [sub]
-                          : sub.entries.filter((x): x is Extract<Entrada, { type: 'link' }> => x.type === 'link')
-                      )
-                      .map((x) => (
-                        <li>
-                          <a href={x.href} aria-current={normal(x.href) === actual ? 'page' : undefined}>
-                            {x.label}
-                          </a>
-                        </li>
-                      ))}
-                  </ul>
-                </li>
-              )
-            )}
-          </ul>
-        </div>
-      );
-    })
-  }
+              ))}
+            </ul>
+          </div>
+        );
+      })
+    }
+  </nav>
 
   <script type="application/json" data-xnav-datos set:html={JSON.stringify(datos)} />
 </div>
@@ -621,17 +572,6 @@ const datos = {
         .querySelectorAll<HTMLElement>('[data-capa]')
         .forEach((c) => (capas.includes(c.dataset.capa!) ? (c.dataset.activa = 'true') : delete c.dataset.activa));
 
-    const ponerPestana = (tab: string, enfocar = false) => {
-      raiz.dataset.pestana = tab;
-      raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]').forEach((b) => {
-        const si = b.dataset.tab === tab;
-        b.setAttribute('aria-selected', String(si));
-        b.tabIndex = si ? 0 : -1;
-        if (si && enfocar) b.focus();
-      });
-      raiz.querySelectorAll<HTMLElement>('[data-panel]').forEach((p) => (p.hidden = p.dataset.panel !== tab));
-    };
-
     /* --- Transiciones entre escenas ---------------------------------- */
     const zoom = (desde: string, desdeExpl: boolean, hacia: string, capa: string, sentido: 'baja' | 'sube') => {
       const elA = escenaEl(desde);
@@ -704,8 +644,6 @@ const datos = {
     };
 
     const aplicar = (previa: string[], prevExpl: boolean, next: Estado, animar: boolean) => {
-      ponerPestana(next.tab);
-
       const aqui = normal(location.pathname);
       raiz.querySelectorAll<HTMLAnchorElement>('.c-xnav__facetas a[href], .c-xnav__arbol a[href]').forEach((a) => {
         const h = a.getAttribute('href')!;
@@ -713,8 +651,7 @@ const datos = {
         else a.removeAttribute('aria-current');
       });
 
-      // Una página de árbol no mueve la escena: al volver a la pestaña
-      // Sistema se ve donde se quedó.
+      // Una página de la lista no mueve la escena: se queda donde estaba.
       if (!next.nodo) return;
 
       const ruta = resolverRuta(next.nodo, previa);
@@ -827,20 +764,6 @@ const datos = {
     );
 
     document.addEventListener('astro:after-swap', () => sincronizar(true));
-
-    raiz.querySelector('[role="tablist"]')!.addEventListener('click', (e) => {
-      const b = (e.target as HTMLElement).closest<HTMLButtonElement>('[role="tab"]');
-      if (b) ponerPestana(b.dataset.tab!);
-    });
-    raiz.querySelector('[role="tablist"]')!.addEventListener('keydown', (e) => {
-      const ev = e as KeyboardEvent;
-      if (ev.key !== 'ArrowRight' && ev.key !== 'ArrowLeft') return;
-      const tabs = [...raiz.querySelectorAll<HTMLButtonElement>('[role="tab"]')];
-      const i = tabs.findIndex((t) => t.dataset.tab === raiz.dataset.pestana);
-      const j = (i + (ev.key === 'ArrowRight' ? 1 : -1) + tabs.length) % tabs.length;
-      ponerPestana(tabs[j].dataset.tab!, true);
-      ev.preventDefault();
-    });
 
     sincronizar(false);
   }

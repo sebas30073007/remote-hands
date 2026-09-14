@@ -254,7 +254,7 @@ export const NODOS: NodoExplode[] = [
 ];
 
 /**
- * Pestañas que no son el sistema. Cada una es un grupo de primer nivel del
+ * Secciones que no son el sistema: se listan bajo el panel. Cada una es un grupo de primer nivel del
  * sidebar de `astro.config.mjs`, identificado por su etiqueta: el listado se
  * toma de ahí, así que el temario clásico y el nuevo no pueden
  * desincronizarse.
@@ -262,9 +262,6 @@ export const NODOS: NodoExplode[] = [
 export const PESTANAS = [
   { id: 'reporte', etiqueta: 'Reporte', grupo: 'Reporte' },
   { id: 'operar', etiqueta: 'Operar', grupo: 'Operar' },
-  { id: 'construir', etiqueta: 'Construir', grupo: 'Construir' },
-  { id: 'evidencia', etiqueta: 'Evidencia', grupo: 'Evidencia' },
-  { id: 'referencia', etiqueta: 'Referencia', grupo: 'Referencia' },
 ] as const;
 
 export const nodoPorId = new Map(NODOS.map((n) => [n.id, n]));

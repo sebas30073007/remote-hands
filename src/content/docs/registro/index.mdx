@@ -1,0 +1,170 @@
+---
+title: Registro de ingeniería
+description: "Las decisiones de arquitectura del proyecto, con su contexto y alternativas, y el estado real de cada pieza."
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+Por qué el sistema está hecho así y en qué estado está cada pieza: las decisiones de arquitectura registradas y el estado verificado del proyecto.
+
+## Decisiones
+
+Cada decisión de arquitectura relevante se registra aquí como un ADR
+—*Architecture Decision Record*—: un documento corto y fechado que explica
+el contexto, las alternativas consideradas, lo que se decidió y qué costos
+se aceptaron a cambio.
+
+El registro existe para responder «¿por qué está hecho así?» sin depender de
+la memoria de quien lo construyó. Una alternativa descartada, con su motivo,
+vale tanto como la opción elegida: evita que alguien la reabra sin saber que
+ya se evaluó.
+
+### Decisiones registradas
+
+| ID | Decisión | Estado |
+| --- | --- | --- |
+| [ADR-0001](/registro/#adr-0001-la-nuc-como-coordinador-único) | La NUC como coordinador único | Aceptada |
+
+### Por qué solo hay una
+
+El resto de las decisiones del proyecto se tomaron sin registrarse en su
+momento. Reconstruirlas ahora corre el riesgo de inventar un razonamiento
+que nadie tuvo, que es peor que no documentarlas.
+
+Hay tres candidatas identificadas: la elección de ZeroMQ frente a otros
+middleware, el reparto del control entre tres controladores embebidos, y el
+uso de lámina doblada como método estructural. Cada una se documentará solo
+si el autor confirma cuál fue el razonamiento real.
+
+## ADR-0001: la NUC como coordinador único
+
+**Estado:** aceptada · 2026 (Proyecto Terminal)
+
+La decisión de arquitectura más determinante del proyecto: poner una NUC a bordo como único coordinador, en lugar de exponer el control de motores al operador remoto o de resolver la percepción en los microcontroladores. Este registro deja el contexto, las opciones consideradas y las consecuencias que se aceptaron.
+
+### Contexto
+
+El robot tiene que combinar tres exigencias que operan en escalas de tiempo
+muy distintas:
+
+| Exigencia | Escala de tiempo | Naturaleza |
+| --- | --- | --- |
+| Control de motores | Microsegundos a milisegundos | Determinista, sin margen para jitter |
+| Percepción (LiDAR, cámara RGB-D) | Decenas de Hz | Intensiva en cómputo |
+| Comunicación con el operador remoto | Latencia variable sobre WiFi | No fiable: admite pérdida de paquetes |
+
+Ninguna arquitectura de un solo nivel de control resuelve bien las tres a la
+vez: exponer el control de motores directamente al operador remoto
+heredaría la incertidumbre de la red; resolver percepción y comunicación
+dentro de los propios microcontroladores de motor los sobrecargaría con
+responsabilidades ajenas a su función.
+
+### Alternativas consideradas
+
+**Control directo desde la Meta Quest a cada controlador embebido**, sin
+computadora intermedia. Descartada por dos motivos. Expondría el control de
+motores en tiempo real a la latencia y a la pérdida de paquetes de WiFi.
+Además multiplicaría la lógica de protocolo que la interfaz XR tendría que
+conocer: un protocolo por controlador, en lugar de un solo contrato ZMQ.
+
+**ROS como middleware de coordinación.** Descartado por simplicidad y
+portabilidad. El equipo prefirió un stack propio en Python 3.12 con ZeroMQ,
+sin la sobrecarga de un framework de robótica completo para un sistema de
+este tamaño.
+
+**Un microcontrolador único como coordinador**, en lugar de una NUC.
+Descartada por capacidad de cómputo: la percepción con RealSense y RPLiDAR,
+más el streaming de video a la Meta Quest, exceden lo que un ESP32-C3 puede
+sostener.
+
+### Decisión
+
+La **NUC actúa como coordinador único** entre el operador y la electrónica
+embebida.
+
+Recibe de la Meta Quest comandos simples por ZMQ —una velocidad deseada, un
+ángulo objetivo— y coordina los sensores del robot. Después traduce esos
+comandos a instrucciones para tres controladores ESP32-C3 independientes.
+
+Cada controlador resuelve el control de bajo nivel de su propio subsistema
+—tracción, manipulador o gripper— sin que la NUC intervenga en tiempo real.
+
+### Consecuencias
+
+**Favorables:**
+
+- La interfaz XR se mantiene simple: habla un solo protocolo con un solo
+  destino.
+- El control de motores en tiempo real queda aislado de la variabilidad de
+  WiFi. Vive enteramente sobre USB e I²C, que son deterministas.
+- Los tres controladores embebidos se pueden reemplazar o extender por
+  separado, sin tocar el resto del sistema.
+
+**Costos aceptados:**
+
+- La NUC es un punto único de coordinación. Si falla, el robot pierde todo
+  el control remoto, porque el diseño actual no tiene coordinador
+  redundante.
+- Se renunció a un ecosistema de robótica maduro a cambio de un stack más
+  simple y hecho a medida. Cualquier funcionalidad de ROS que haga falta en
+  el futuro habrá que construirla.
+
+### Estado
+
+Aceptada y en producción. Es la arquitectura descrita en [Arquitectura del
+sistema](/sistema/arquitectura/resumen/), y está verificada
+sobre el robot construido.
+
+## Estado actual
+
+**Versión:** sin versionar formalmente · 2026 (Proyecto Terminal)
+
+El proyecto original no llevaba un esquema de versionado formal, ni para
+hardware ni para software. Esta sección describe por tanto el **estado real
+verificado** de cada pieza, no una release numerada: asignar un número de
+versión que nadie definió sería inventar información.
+
+Adoptar un esquema de versionado hacia adelante es una decisión pendiente.
+
+### Estado por pieza
+
+La columna «Fuente» indica el documento del repositorio original de donde
+procede cada estado.
+
+| Pieza | Estado verificado | Fuente |
+| --- | --- | --- |
+| Plataforma móvil (mecánica) | Construida y probada | `03-robot-agv/plataforma-movil.md` |
+| Manipulador 3 GDL (mecánica) | Construido y probado | `03-robot-agv/manipulador.md` |
+| PCB Puente H (×2) | Diseñadas, ensambladas y probadas | `03-robot-agv/electronica.md` |
+| PCB CL57T | Diseñada, ensamblada y probada | `03-robot-agv/controlador-cl57t.md` |
+| Firmware Puente H (`main_movil_final.py`) | Funcional, 1 175 líneas | `03-robot-agv/sistemas-embebidos.md` |
+| Firmware CL57T (`main_manipulador_final.py`) | Funcional, 933 líneas | `03-robot-agv/sistemas-embebidos.md` |
+| Firmware gripper (`main_gripper_final.py`) | Funcional, 703 líneas | `03-robot-agv/sistemas-embebidos.md` |
+| Stack NUC (Python 3.12 + ZMQ) | Funcional — ver detalle abajo | `03-robot-agv/software.md` |
+| Integración XR → NUC → electrónica | En proceso | varias fuentes |
+
+### Funcionalidad extremo a extremo
+
+Estado en la última verificación registrada:
+
+| Funcionalidad | Estado |
+| --- | --- |
+| Control de motores individual por USB-C | Verificado |
+| Control por WiFi y BLE | Verificado |
+| Integración de control de base desde interfaz XR | Funcional |
+| Control completo del manipulador 3 GDL | Funcional |
+| Control del gripper desde interfaz XR | Funcional |
+
+### Próximo hito
+
+Todavía sin definir. El propio proyecto original dejó cuatro candidatos
+anotados en `11-pendientes.md`:
+
+- PCB dedicada para el gripper, que reemplace el montaje actual en
+  protoboard.
+- Modelo cinemático del robot móvil, para odometría y trayectorias
+  programadas.
+- Cinemática inversa del manipulador.
+- Captura de los encoders de tracción, para cerrar el lazo de control de
+  velocidad.

@@ -1,0 +1,300 @@
+---
+title: Proyecto
+description: "Qué es Remote Hands, qué se propone, qué cubre, qué lo limitó, qué debe cumplir y el vocabulario del sitio."
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { Requirement } from '@project';
+
+Todo lo que define el proyecto como proyecto, antes de entrar al robot: su propósito, sus objetivos, su alcance, las restricciones con las que se construyó, los requisitos que debe cumplir y el vocabulario que usa este sitio.
+
+## Resumen
+
+Remote Hands es un sistema robótico de operación remota para tareas
+logísticas de última milla en centros de distribución local. Su propósito es
+habilitar el teletrabajo de personas con discapacidad motriz: el operador
+controla el robot desde una interfaz XR, sin necesidad de estar físicamente
+en el almacén.
+
+<figure>
+  <img
+    src="/images/build/ensamble-manipulador-sobre-movil.webp"
+    alt="Manipulador montado sobre la plataforma móvil, formando el robot completo"
+  />
+  <figcaption>Remote Hands: un manipulador de 3 GDL sobre una plataforma móvil diferencial, teleoperado desde un visor de realidad mixta.</figcaption>
+</figure>
+
+El proyecto nace del cruce de dos tendencias. La primera es la demanda
+logística creciente del comercio electrónico. La segunda es la baja
+participación laboral formal de personas con discapacidad motriz, causada
+por la falta de herramientas de trabajo adaptadas y no por falta de
+capacidad. El desarrollo de ambas está en
+[Contexto](/academico/#contexto) y
+[Problemática](/academico/#problemática).
+
+### Qué demuestra el prototipo
+
+El prototipo es un robot móvil con manipulador de 3 GDL, operado desde una
+Meta Quest y coordinado por una NUC embarcada. La arquitectura completa está
+en [Sistema · Arquitectura](/sistema/arquitectura/resumen/).
+
+Los tres subsistemas —robot móvil, servidor/percepción e interfaz XR— están
+construidos y verificados por separado. La integración de control extremo a
+extremo sigue en proceso; el estado real de cada uno está en la
+[portada](/).
+
+### Extensión académica
+
+Este proyecto es además un *Proyecto Terminal* universitario, con marco de
+investigación propio: pregunta de investigación, metodología de diseño de
+ingeniería en cuatro fases y marco teórico sobre logística, discapacidad,
+robótica de teleoperación y usabilidad. El detalle completo está en
+[Documentación académica](/academico/#contexto).
+
+Esa sección es una extensión de `@sebs/project-docs`, no parte del framework
+genérico. Un proyecto de ingeniería sin componente académico —una PCB
+personal, por ejemplo— no necesita pregunta de investigación ni marco
+teórico, y no arrastra esas páginas.
+
+## Objetivos
+
+Los objetivos de abajo están transcritos del documento de Proyecto Terminal
+tal como quedaron registrados. No se reescribieron para este sitio: cambiar
+la redacción de un objetivo formal cambiaría lo que el proyecto se
+comprometió a hacer.
+
+### Objetivo general
+
+Desarrollar un sistema robótico de operación remota orientado a tareas
+logísticas de última milla en centros de distribución local, que permita el
+teletrabajo de personas con discapacidad motriz.
+
+### Objetivos específicos
+
+**OE1 — Análisis de tareas.** Identificar y clasificar tareas logísticas
+que puedan ejecutarse de forma remota, considerando su complejidad
+operativa, requerimientos cognitivos y restricciones físicas.
+
+**OE2 — Requerimientos de sistema.** Establecer los requerimientos
+funcionales, operativos y de accesibilidad que debe cumplir un sistema de
+operación remota para ser utilizable por personas con discapacidad motriz.
+
+**OE3 — Integración técnica.** Desarrollar un sistema robótico teleoperado
+que integre interacción humano-robot, alineado a los requerimientos de
+accesibilidad y de tareas logísticas.
+
+**OE4 — Validación experimental.** Evaluar el sistema diseñado mediante
+métricas de usabilidad, comparándolo con procesos logísticos convencionales.
+
+### Estado de avance
+
+El desarrollo metodológico de los cuatro objetivos está en
+[Metodología](/academico/#metodología).
+
+**OE3** es el que más avance registra. Su estado real está en la
+[portada](/) y en
+[Sistema](/sistema/arquitectura/resumen/).
+
+**OE4** corresponde a la Fase 4 de la metodología: validación experimental
+con operadores y cuestionario SUS. La documentación migrada hasta ahora no
+confirma que esas sesiones se hayan ejecutado, así que este sitio no afirma
+que el objetivo esté cumplido. El único dataset experimental disponible es
+el [experimento de
+latencia](/latencia-wifi/#resultados),
+que mide desempeño de red y no usabilidad.
+
+## Alcance
+
+El sistema cubre la integración completa de tres subsistemas: el diseño
+mecánico y electrónico del robot, la interfaz de usuario XR, y el middleware
+de coordinación.
+
+### Qué incluye
+
+- **Ejecución remota de tareas logísticas elementales.** El sistema
+  mecatrónico integra mecanismos de manipulación y sistemas de
+  visualización. Con ellos, el operador obtiene la conciencia situacional
+  que la tarea requiere.
+- **Estación de mando e interfaz centrada en el usuario.** Incluye
+  adaptaciones para operarios con movilidad reducida en miembros inferiores.
+  La usabilidad es el criterio de diseño prioritario.
+- **Validación en laboratorio controlado**, orientada a demostrar la
+  viabilidad de la interacción humano-máquina a distancia.
+
+### Qué no incluye
+
+La validación no se ejecuta en un almacén real en operación. El límite es
+deliberado: el objetivo es demostrar la viabilidad de la interacción a
+distancia, no medir el desempeño del sistema en una operación productiva.
+
+### Relacionado
+
+Las limitaciones técnicas concretas que condicionaron el diseño —materiales,
+herramientas y componentes disponibles— están en
+[Restricciones](/proyecto/#restricciones). El marco de
+investigación completo está en [Documentación
+académica](/academico/#contexto).
+
+## Restricciones
+
+Las restricciones de abajo están documentadas explícitamente en el proyecto
+original; ninguna es una inferencia hecha para este sitio. Todas
+condicionaron decisiones de diseño reales, y cada una enlaza a la página
+donde se ve su efecto.
+
+<figure>
+  <img
+    src="/images/build/material-drivers.webp"
+    alt="Drivers de motor y material electrónico disponible en el laboratorio"
+  />
+  <figcaption>Las restricciones del proyecto son en buena medida las del material disponible: lo que había en el laboratorio acotó el punto de partida.</figcaption>
+</figure>
+
+### Mecánica
+
+- **Materiales.** Solo había lámina de acero calibre 18 (1,2 mm) y calibre
+  24 (0,6 mm).
+- **Herramientas.** El laboratorio disponía de cortadora láser y dobladora
+  manual, sin acceso a doblado CNC. La dobladora manual impuso el límite
+  real: cuando una pieza requería ángulos de doblez muy ajustados, se
+  dividió en secciones unidas por tornillería en vez de fabricarse entera
+  (ver
+  [Manipulador](/sistema/subsistemas/robot-movil/manipulador/)).
+- **Actuadores.** Los motores disponibles eran NEMA17 de stock. Su par
+  nominal obligó a una reducción compuesta de 25:1 para alcanzar el torque
+  que el manipulador necesita.
+
+### Electrónica
+
+- **Componentes de catálogo.** El driver de tracción debía ser compacto y
+  replicable, sin depender de piezas de fuente única.
+- **Corriente de tracción.** El objetivo era 4–5 A continuos con picos de
+  hasta 8 A. Ese rango determinó la selección de MOSFETs del Puente H (ver
+  [Electrónica](/sistema/subsistemas/robot-movil/electronica/)).
+
+### Software
+
+- **Sin ROS.** El proyecto descartó ROS por una decisión explícita de
+  simplicidad y portabilidad, registrada en
+  [ADR-0001](/registro/#adr-0001-la-nuc-como-coordinador-único).
+- **Sin IP fija.** La red del laboratorio no asigna IP fija a la NUC. Esa
+  limitación es la que obliga a buscar la IP en cada arranque, y define el
+  paso 3 de la [puesta en
+  marcha](/operacion/#puesta-en-marcha).
+
+### Validación
+
+- **Entorno de laboratorio.** La validación se ejecuta en laboratorio
+  controlado, no en un almacén real en operación (ver
+  [Alcance](/proyecto/#alcance)).
+- **Latencia de referencia.** El umbral de 100 ms extremo a extremo procede
+  de la literatura de teleoperación citada en el [marco
+  teórico](/academico/#marco-teórico). El [experimento de
+  latencia](/latencia-wifi/#resultados)
+  mide solo un subconjunto de ese lazo —el protocolo MR-edge—, no el
+  sistema físico completo.
+
+## Requisitos de sistema
+
+Los requisitos verificables del sistema, agrupados por seguridad, función, comunicación y desempeño. Cada uno nombra el subsistema responsable y su criterio de verificación, de modo que se pueda trazar contra la evidencia real del proyecto.
+
+### Sobre el origen de estos requisitos
+
+El proyecto original no mantenía requisitos formalizados como objetos
+independientes. Vivían implícitos en el comportamiento documentado y
+verificado de cada subsistema.
+
+Los requisitos de abajo se derivaron de ese comportamiento real durante la
+migración de la documentación. Son una **primera propuesta de
+formalización**, no requisitos que el proyecto haya registrado en su
+momento. Falta que el autor los revise y confirme, o corrija su prioridad y
+su redacción.
+
+### Seguridad
+
+<Requirement id="REQ-SAF-001" subsystem="Robot móvil — Puente H" priority="must"
+  verification="VER-PH-002" status="pass">
+  El controlador de tracción debe arrancar en estado `DISARMED`, con la
+  salida al motor deshabilitada, y requerir un comando `ARM` explícito antes
+  de aceptar movimiento.
+</Requirement>
+
+<Requirement id="REQ-SAF-002" subsystem="Robot móvil — Puente H" priority="must"
+  status="pass">
+  Todo paquete de comando I²C con checksum inválido debe descartarse sin
+  ejecutar movimiento; el motor conserva su último estado válido.
+</Requirement>
+
+<Requirement id="REQ-SAF-003" subsystem="Robot móvil — Gripper" priority="must"
+  verification="VER-GRIP-002" status="pass">
+  El controlador del gripper debe detener el motor en un máximo de 500&nbsp;ms
+  si el encoder no registra cambio de posición mientras el motor está
+  activo (detección de stall).
+</Requirement>
+
+### Movimiento
+
+<Requirement id="REQ-MAN-001" subsystem="Robot móvil — Manipulador" priority="must"
+  verification="VER-MAN-001" status="pass">
+  El manipulador debe alcanzar el rango de movimiento de diseño en cada una
+  de sus tres articulaciones: base −80° a +80°, codo 0° a 136,5°, muñeca
+  −220° a 0°.
+</Requirement>
+
+<Requirement id="REQ-MAN-002" subsystem="Robot móvil — CL57T" priority="should"
+  verification="VER-CL-002" status="pass">
+  El sistema debe ejecutar una rutina de calibración (homing) por
+  articulación al encender, sin intervención de la NUC.
+</Requirement>
+
+### Comunicación
+
+<Requirement id="REQ-COM-001" subsystem="Servidor / percepción" priority="must" status="pass">
+  El sistema debe separar video, sensores/estado y comandos en canales ZMQ
+  independientes, de modo que desactivar el video no interrumpa el control
+  ni la telemetría.
+</Requirement>
+
+<Requirement id="REQ-COM-002" subsystem="Servidor / percepción" priority="should"
+  verification="EXP-LAT-001" status="pending">
+  La latencia de protocolo (RTT) entre la interfaz XR y la NUC debe mantener
+  un P95 por debajo de 100&nbsp;ms bajo la carga combinada de video y LiDAR
+  en modo detallado.
+</Requirement>
+
+**REQ-COM-002 necesita confirmación.** Su umbral de 100 ms procede de la
+literatura de teleoperación citada en el [marco
+teórico](/academico/#marco-teórico), no de un valor que el
+proyecto haya fijado. Se marca como `pending` por esa razón, no porque los
+datos lo incumplan: el [experimento de
+latencia](/latencia-wifi/#resultados)
+midió un P95 máximo de 71,87 ms, por debajo del umbral en las siete
+condiciones probadas.
+
+### Trazabilidad
+
+La matriz que cruza requisitos, subsistemas y verificaciones está pendiente.
+Construirla exige cerrar antes la revisión de esta sección, porque no tiene
+sentido trazar requisitos que todavía son una propuesta.
+
+## Terminología
+
+Cada término se define por lo que significa **en este proyecto**, que no
+siempre coincide con su uso general en la industria.
+
+| Término | Significado en este proyecto |
+| --- | --- |
+| **RTT** | Round-trip time: tiempo entre que Unity envía un `latency_probe` y recibe su `latency_ack`. No incluye latencia física del robot. |
+| **ARMED / DISARMED** | Estados del firmware de tracción y CL57T. `DISARMED` deshabilita la salida al motor; `ARMED` la habilita. Arranca siempre en `DISARMED`. |
+| **Homing** | Rutina de búsqueda de cero de una articulación usando su final de carrera — necesaria en cada encendido para el codo y la muñeca del manipulador. |
+| **Stall** | Condición detectada cuando el encoder de un motor no cambia mientras el motor está activo — indica un obstáculo o límite mecánico. |
+| **Deadtime** | Tiempo muerto forzado (300 µs en el Puente H) entre apagar una diagonal del puente H y activar la otra, para evitar cortocircuito. |
+| **Daisy chain I²C** | Arquitectura maestro-esclavo del bus I²C: el Puente H maestro concentra la comunicación y reenvía a los nodos esclavos. |
+| **NUC** | Computadora Intel i7 embarcada en el robot; coordinador único entre el operador y la electrónica de bajo nivel (ver [ADR-0001](/registro/#adr-0001-la-nuc-como-coordinador-único)). |
+| **Warm-up** | Las primeras 10 muestras de cada corrida de latencia, descartadas del análisis estadístico por no representar condición estable de red. |
+| **P95 / P99** | Percentil 95 / 99 de una distribución de latencia: el valor bajo el cual cae el 95 % / 99 % de las muestras. |
+| **Jitter** | Desviación estándar de la latencia — variabilidad, no promedio. |
+| **AGV** | Automated Guided Vehicle: la categoría industrial a la que pertenece esta plataforma. En estas páginas el término se reserva para hablar de esa categoría; al robot del proyecto se le llama siempre «robot móvil». |
+| **GDL / DOF** | Grados de libertad (*degrees of freedom*). El manipulador tiene 3. En este sitio se escribe siempre **GDL**, no DOF. |

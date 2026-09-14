@@ -2,7 +2,7 @@
  * Antepone `base` a las rutas internas del contenido.
  *
  * El contenido se escribe con rutas absolutas desde la raíz del sitio
- * —`[ADR-0001](/registro/decisiones/0001-nuc-como-coordinador/)`,
+ * —`[ADR-0001](/registro/#adr-0001-la-nuc-como-coordinador-único)`,
  * `<img src="/images/robot-agv.png" />`— y este plugin las ajusta al
  * `base` real al compilar. Así el sitio puede vivir en la raíz de un
  * dominio (`remote-hands.sebs.mx`, base `/`) o en una subruta

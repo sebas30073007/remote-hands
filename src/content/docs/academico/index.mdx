@@ -1,0 +1,551 @@
+---
+title: Documentación académica
+description: "El marco de investigación del Proyecto Terminal: contexto, problemática, pregunta, justificación, metodología y marco teórico."
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+Remote Hands es además un *Proyecto Terminal* universitario. Esta página reúne su marco de investigación completo, en el orden en que se lee: del contexto a la pregunta, y de la pregunta al método y la teoría que lo sostienen.
+
+## Contexto
+
+Esta sección sitúa el problema antes de entrar en él: por qué el comercio electrónico convirtió el interior del almacén en un cuello de botella, y por qué ese cuello de botella se resuelve hoy con mano de obra presencial. Es el contexto del que salen la problemática y la pregunta de investigación.
+
+<figure>
+  <img
+    src="/images/ciclo-de-vida-ecommerce.png"
+    alt="Diagrama del ciclo de vida de un pedido de comercio electrónico"
+  />
+  <figcaption>El ciclo de vida de un pedido. Las operaciones de almacén —surtido, traslado interno y abastecimiento— son las que concentran el costo laboral.</figcaption>
+</figure>
+
+### El auge del comercio electrónico y su impacto logístico
+
+El comercio electrónico ha dejado de ser un canal alternativo: hoy es eje
+central de las cadenas de suministro modernas. Entre 2019 y 2024, las ventas
+globales en línea crecieron de forma sostenida y superaron las proyecciones
+previas a la pandemia. El resultado es un mercado que demanda capacidad
+logística a una escala sin precedente.
+
+México muestra la misma tendencia. El Hot Sale 2025 registró ventas por
+42 725 millones de pesos (MXN), un 23,7 % más que el año anterior. Esa
+cifra mide la velocidad con la que el consumo digital se convierte en
+presión sobre las operaciones de almacén y distribución.
+
+Esa aceleración no es neutral para la logística. Tres operaciones concentran
+la mayor proporción de costos laborales y de error en los centros de
+distribución, y las tres son sensibles al volumen:
+
+| Operación | Qué implica |
+| --- | --- |
+| *Picking* | Selección de los productos del pedido |
+| *Packing* | Empaque |
+| *Sortation* | Clasificación para despacho |
+
+Cuando los volúmenes de pedido escalan y los tiempos prometidos de entrega
+se acortan, la variabilidad de demanda se vuelve el principal factor de
+riesgo operativo. El sistema logístico debe absorber picos de hasta tres o
+cuatro veces el volumen promedio sin degradar la calidad del servicio.
+
+### El ciclo logístico del e-commerce y sus puntos críticos
+
+El ciclo de vida de un pedido en línea comprende etapas bien delimitadas:
+captación de demanda, procesamiento, surtido en almacén, empaquetado,
+despacho, tránsito y, en su caso, devolución. Cada transición introduce
+latencia y potencial de error.
+
+El surtido es la etapa más crítica operativamente. Concentra cinco acciones
+distintas:
+
+- desplazamiento dentro del almacén;
+- identificación precisa del producto;
+- toma física del ítem;
+- verificación;
+- registro.
+
+Las cinco ocurren bajo presión de tiempo, y un fallo en cualquiera de ellas
+llega directamente al cliente.
+
+En entornos de alta variabilidad, la capacidad operativa humana alcanza su
+límite con rapidez. La solución convencional ha sido contratar personal
+temporal durante los picos estacionales, con tres costos asociados:
+capacitación, mayor tasa de error por inexperiencia y alta rotación.
+
+El problema de fondo no es de escala puntual, sino de diseño sistémico. Los
+almacenes tradicionales no están equipados para absorber fluctuaciones de
+demanda sin sacrificar calidad ni incurrir en costos extraordinarios.
+
+### La automatización como respuesta de la industria
+
+La industria logística global respondió automatizando progresivamente sus
+centros de distribución. El mercado mundial de automatización de almacenes
+se estimó en 15 000 millones de dólares (USD) en 2019, y proyecta alcanzar
+30 000 millones para 2026. Ese mercado agrupa cuatro familias de solución:
+
+- vehículos guiados autónomos (AGV/AMR);
+- sistemas de almacenamiento y recuperación automatizados (AS/RS);
+- brazos robóticos;
+- plataformas de *sortation*.
+
+El crecimiento sostenido refleja dos cosas a la vez: la madurez tecnológica
+de las soluciones disponibles, y la presión económica sobre las operaciones
+logísticas para reducir su dependencia de mano de obra en tareas repetitivas
+y físicamente demandantes.
+
+La automatización total es la solución más eficiente en productividad, pero
+exige inversiones de capital que solo los grandes operadores pueden
+sostener. Queda fuera del alcance de las operaciones medianas y pequeñas, y
+de los mercados emergentes donde el costo de mano de obra todavía no la
+justifica.
+
+Entre ambos extremos existe un espacio intermedio: la **robotización
+colaborativa**, donde el robot amplía las capacidades del operador humano en
+lugar de reemplazarlo. Este proyecto se sitúa en ese espacio, y añade una
+condición propia: el operador tampoco necesita estar físicamente presente en
+el almacén.
+
+## Problemática
+
+Dos problemas que normalmente se estudian por separado —la presión sobre la operación logística y la exclusión laboral de las personas con discapacidad— tienen aquí la misma causa inmediata: el trabajo de almacén exige estar físicamente en el almacén. Esta sección documenta ambas curvas y el punto en el que se cruzan.
+
+<figure>
+  <img
+    src="/images/costos-logisticos.png"
+    alt="Gráfica de la distribución de costos logísticos, con la última milla como componente dominante"
+  />
+  <figcaption>Distribución del costo logístico. La última milla domina, pero el costo de piso de almacén es el que depende de la presencia física del operador.</figcaption>
+</figure>
+
+### La logística bajo presión y la brecha de inclusión
+
+La transformación digital del comercio generó una paradoja operativa: los
+volúmenes de pedido crecen de forma acelerada, pero la estructura laboral de
+los almacenes no evolucionó al mismo ritmo. Las tareas de surtido, traslado
+interno y abastecimiento siguen siendo intensivas en mano de obra,
+físicamente demandantes y ejecutables solo en el piso del almacén. Esa
+dependencia de la presencia física del operador es la principal restricción
+operativa que la logística actual no ha resuelto.
+
+En paralelo, 9,5 millones de personas viven en México con alguna forma de
+discapacidad. Esa población enfrenta barreras sistémicas para acceder al
+empleo formal, y su tasa de informalidad laboral supera el 60 %. La cifra no
+refleja ausencia de capacidades cognitivas o de atención: refleja la
+ausencia estructural de herramientas de trabajo adaptadas a sus condiciones.
+
+### Dos curvas que convergen
+
+Las dos tendencias anteriores se cruzan, y ese cruce define la oportunidad
+que este proyecto busca aprovechar.
+
+**Curva 1 — Demanda logística insatisfecha.** Los centros de distribución
+necesitan capacidad operativa flexible, confiable y con bajo margen de error
+en tareas repetitivas. La contratación temporal resuelve el volumen pero no
+la calidad. La automatización total resuelve la calidad, pero no está al
+alcance de todas las operaciones. Además elimina puestos de trabajo sin
+generar alternativas para los perfiles de operador desplazados.
+
+**Curva 2 — Talento con discapacidad sin canal de acceso productivo.** Las
+personas con discapacidad motriz tienen capacidades cognitivas, de atención
+y de precisión valiosas en tareas de supervisión, control remoto y operación
+de sistemas. Lo que falta son las herramientas: interfaces accesibles,
+sistemas de asistencia y entornos de trabajo remoto. Sin ellas, ese talento
+no llega a incorporarse a cadenas de valor formales.
+
+El espacio donde ambas curvas se cruzan es la **teleoperación robótica con
+orientación inclusiva**. Un operador remoto controla un sistema físico en el
+almacén desde una interfaz diseñada para sus capacidades, y ejecuta tareas
+logísticas concretas con precisión. No necesita estar presente en el
+ambiente de trabajo, ni depender de la infraestructura de movilidad que
+muchas personas con discapacidad no tienen.
+
+### Por qué las soluciones existentes no cierran la brecha
+
+Las soluciones de automatización disponibles hoy —robots industriales, AGV,
+sistemas AS/RS— están diseñadas para *reemplazar* al operador humano en
+tareas repetitivas, no para *habilitarlo* desde una ubicación remota. Desde
+la perspectiva de inclusión laboral, esa orientación agrava el problema:
+reduce el número total de empleos del sector sin generar alternativas
+accesibles para personas con discapacidad.
+
+Las plataformas de teletrabajo convencionales tienen el problema opuesto. La
+videoconferencia, las interfaces de escritorio y las herramientas de
+colaboración digital no permiten interacción física con el entorno del
+almacén, así que quedan limitadas a tareas administrativas o de supervisión
+pasiva. Entre la capacidad operativa que una persona con discapacidad motriz
+tiene frente a una computadora y la ejecución de una tarea física en un
+almacén no existe hoy ningún puente tecnológico.
+
+La brecha que este proyecto atiende es, en consecuencia, específica y
+técnicamente abordable: diseñar un sistema que conecte la intención del
+operador remoto con la acción física del robot en el almacén. Ese sistema
+tiene que cumplir dos condiciones a la vez. Su interfaz debe ser lo bastante
+accesible para que la opere una persona con movilidad reducida, y su
+desempeño técnico debe ser lo bastante robusto para servir en condiciones
+logísticas reales.
+
+## Pregunta de investigación
+
+> **¿Cómo diseñar un sistema de operación remota que permita a personas con
+> discapacidad motriz ejecutar tareas logísticas en nodos de distribución
+> local asociados a la última milla?**
+
+### Por qué esta pregunta es respondible mediante ingeniería
+
+La pregunta no busca establecer una verdad universal ni comparar el sistema
+contra todos los enfoques alternativos posibles. Su alcance es preciso:
+validar una solución específica en condiciones controladas, con métricas
+observables y un protocolo de evaluación reproducible.
+
+El enfoque metodológico es experimental y procede en cuatro pasos:
+
+1. Construir un prototipo funcional.
+2. Definir métricas cuantitativas: tiempo por tarea, tasa de error y
+   puntuación de usabilidad.
+3. Ejecutar pruebas comparativas.
+4. Analizar los resultados contra hipótesis operativas predefinidas.
+
+Ese enfoque ubica el proyecto dentro del paradigma del *engineering design
+research*: investigación orientada a artefactos, donde el conocimiento se
+genera diseñando, construyendo y evaluando sistemas reales en contextos
+controlados.
+
+La pregunta no es "¿funciona la teleoperación XR en general?" sino
+"¿funciona *este* sistema, con *esta* arquitectura, para *estas* tareas, con
+*estos* usuarios?".
+
+## Justificación
+
+La creciente complejidad del sector logístico exige soluciones que mejoren
+la eficiencia operativa sin incrementar costos estructurales. Al mismo
+tiempo, la baja participación laboral de personas con discapacidad responde
+en gran medida a barreras físicas y organizacionales, no a limitaciones
+funcionales.
+
+<figure>
+  <img
+    src="/images/discapacidad.png"
+    alt="Gráfica de población con discapacidad en México y su situación laboral"
+  />
+  <figcaption>Población con discapacidad en México. La brecha no es de capacidad cognitiva: es de herramientas de trabajo adaptadas.</figcaption>
+</figure>
+
+La operación remota puede atender ambos retos a la vez, siempre que se
+diseñe de forma sistemática y evaluable. De ahí la necesidad que este
+proyecto atiende: construir un sistema de operación remota accesible y
+viable, que permita integrar a personas con discapacidad en tareas
+logísticas.
+
+## Metodología
+
+El proyecto sigue una metodología de diseño de ingeniería en cuatro fases
+secuenciales. Dentro de cada fase hay iteraciones, conforme emerge
+información nueva.
+
+<figure>
+  <img
+    src="/images/cronograma.png"
+    alt="Cronograma completo del proyecto por fases"
+  />
+  <figcaption>Cronograma del proyecto. Cada fase de la metodología tiene su ventana y sus entregables.</figcaption>
+</figure>
+
+El enfoque está orientado a artefactos: el conocimiento se genera diseñando,
+construyendo y evaluando un sistema real, no modelos teóricos desconectados
+de su implementación física.
+
+### Fase 1 — Análisis de contexto y caracterización de tareas
+
+**Objetivo:** establecer qué problema se resuelve, para quién y bajo qué
+condiciones operativas.
+
+**Proceso:**
+
+1. Revisar la literatura sobre logística de e-commerce, automatización de
+   almacenes, discapacidad motriz y sistemas de teleoperación existentes.
+2. Identificar las tareas logísticas candidatas a teleoperación.
+3. Evaluar cada tarea según tres criterios: complejidad de ejecución, riesgo
+   operativo y potencial de beneficio de la automatización.
+4. Priorizar los casos de uso que entran al prototipo.
+
+**Entregables:** tabla de análisis de tareas con sus criterios de
+priorización, y la definición del caso de uso principal — traslado interno y
+operación de pick-and-place en almacén simulado.
+
+### Fase 2 — Definición de requerimientos y diseño de arquitectura
+
+**Objetivo:** traducir el problema caracterizado en una especificación de
+sistema diseñable y evaluable.
+
+**Proceso:**
+
+1. Levantar los requerimientos funcionales —qué debe hacer el sistema— y los
+   no funcionales: precisión, accesibilidad y costo.
+2. Evaluar y seleccionar las tecnologías de cada capa.
+3. Diseñar la arquitectura modular en tres capas y el plan de integración
+   incremental.
+
+Las tecnologías seleccionadas en el paso 2:
+
+| Capa | Tecnología |
+| --- | --- |
+| Middleware de coordinación | Python + ZeroMQ |
+| Control embebido | ESP32-C3 con MicroPython |
+| Actuación del manipulador | Motores paso a paso NEMA con drivers CL57T de lazo cerrado |
+| Interfaz XR | Unity sobre Meta Quest |
+
+La decisión de arquitectura que resultó de esta fase está registrada en
+[ADR-0001](/registro/#adr-0001-la-nuc-como-coordinador-único).
+
+**Entregables:** especificación de requerimientos del sistema, diagrama de
+arquitectura, diagrama de comunicación entre subsistemas, y plan de
+implementación con su secuencia de integración.
+
+La formalización de esos requerimientos está en [Requisitos de
+sistema](/proyecto/#requisitos-de-sistema), todavía
+parcial. La arquitectura resultante está en
+[Arquitectura](/sistema/arquitectura/resumen/).
+
+### Fase 3 — Implementación e integración
+
+**Objetivo:** construir el prototipo funcional que cumple la especificación
+de requerimientos.
+
+**Proceso:** los tres subsistemas se desarrollan en paralelo, con puntos de
+integración definidos. El orden de integración es incremental:
+
+1. Validar la plataforma robótica de forma independiente: movilidad, control
+   del brazo y retroalimentación de sensores.
+2. Integrar el servidor Python/ZMQ y verificar la comunicación
+   robot-servidor en red local.
+3. Añadir la capa XR y validar el flujo completo de teleoperación: comando
+   del operador → ZMQ → robot → retroalimentación visual al operador.
+
+**Entregables:** prototipo integrado funcional, protocolo de operación
+documentado, y registro de los problemas encontrados durante la integración
+con sus mitigaciones.
+
+El estado real del prototipo está en la [portada](/) y en la
+página de verificación de cada subsistema. El protocolo de operación está en
+[Operación](/operacion/#puesta-en-marcha).
+
+### Fase 4 — Validación experimental
+
+**Objetivo:** generar evidencia cuantitativa sobre el desempeño técnico y la
+usabilidad del sistema.
+
+**Proceso:**
+
+1. Ejecutar sesiones de prueba con operadores en escenarios de almacén
+   simulado.
+2. Recolectar datos por tarea y por sesión: tiempo de ejecución
+   cronometrado, eventos de error y cuestionario SUS al cerrar cada sesión.
+3. Analizar los resultados con estadística descriptiva y compararlos contra
+   los umbrales de referencia definidos en los objetivos.
+
+**Entregables:** dataset de resultados, análisis de desempeño por subsistema
+y por tarea, y conclusiones sobre viabilidad técnica con recomendaciones
+para iterar o escalar el sistema.
+
+**Estado de esta fase.** El único dataset migrado hasta ahora es el
+[experimento de latencia
+WiFi](/latencia-wifi/#resultados), que
+mide desempeño de red. Las sesiones de usabilidad con operadores —tiempo por
+tarea y SUS— no aparecen en la documentación migrada. Si se ejecutaron y
+produjeron resultados, todavía no llegaron a este sitio.
+
+## Marco teórico
+
+El marco teórico del proyecto, en cinco frentes: la logística de e-commerce y su automatización, la inclusión laboral de personas con discapacidad, la robótica de teleoperación, las interfaces de realidad extendida y la usabilidad. Cada apartado acota qué se sabe ya y dónde queda el hueco que Remote Hands intenta ocupar.
+
+<figure>
+  <img
+    src="/images/comercio-minorista.png"
+    alt="Gráfica de la evolución del comercio minorista en línea"
+  />
+  <figcaption>El crecimiento del canal en línea es el fenómeno que sostiene la literatura de automatización de almacén revisada aquí.</figcaption>
+</figure>
+
+### 1. Logística de e-commerce y automatización de almacenes
+
+La logística del comercio electrónico se distingue de la tradicional por la
+granularidad de sus operaciones. En lugar de mover pallets completos entre
+puntos fijos, gestiona miles de pedidos individuales con ventanas de tiempo
+reducidas y alta variedad de SKU. Esa granularidad traslada la complejidad
+operativa hacia el interior del almacén: al surtido (*picking*), la
+clasificación (*sortation*) y el empaque (*packing*).
+
+La industria respondió automatizando progresivamente esas operaciones, con
+cuatro familias de sistema:
+
+- AGV (*Automated Guided Vehicles*);
+- robots de picking;
+- transportadores automáticos;
+- AS/RS (*Automated Storage and Retrieval Systems*).
+
+Todos ellos están optimizados para volúmenes altos con baja variabilidad de
+producto, y pierden flexibilidad ante cambios de demanda o de catálogo. Como
+alternativa complementaria surge la **robotización colaborativa**, donde el
+robot amplía las capacidades del operador humano en lugar de reemplazarlo.
+Su terreno son las operaciones medianas y las de alta variabilidad de SKU.
+
+La *teleoperación logística* extiende el modelo colaborativo un paso más: al
+eliminar la restricción de proximidad física, el operador puede supervisar y
+controlar el robot desde cualquier ubicación con conectividad adecuada. Esa
+independencia de la ubicación permite redistribuir la carga de trabajo
+operativo hacia perfiles de usuario que no pueden estar físicamente en el
+almacén, incluidas las personas con discapacidad motriz.
+
+### 2. Discapacidad motriz, teletrabajo e inclusión laboral
+
+La Organización Internacional del Trabajo (OIT) enmarca la discapacidad
+laboral desde un modelo social: la discapacidad no es un atributo de la
+persona, sino el resultado de la interacción entre sus condiciones
+individuales y las barreras del entorno. De ahí se sigue una consecuencia
+directa: para eliminar las barreras de acceso al empleo hay que modificar el
+entorno, no solo a la persona.
+
+En México, los datos del INEGI (Censos Económicos 2024) muestran que la
+participación laboral formal de personas con discapacidad es
+estructuralmente baja. Las barreras que la explican son de tres tipos:
+
+| Tipo | Ejemplos |
+| --- | --- |
+| Físicas | Acceso al lugar de trabajo, ergonomía del puesto |
+| Tecnológicas | Interfaces no adaptadas, software sin accesibilidad |
+| Sociales | Prejuicios en la contratación, falta de capacitación específica |
+
+El teletrabajo convencional reduce las barreras físicas de los roles de
+oficina, pero no alcanza a las tareas operativas que exigen interacción con
+el entorno físico. La teleoperación robótica sí llega a ese dominio: el
+operador remoto interactúa con el entorno a través de un sistema que actúa
+como proxy corporal. Así puede ejecutar tareas físicas sin estar en el
+sitio.
+
+Para que el modelo sea genuinamente inclusivo, la interfaz de control debe
+diseñarse con criterios de accesibilidad desde el inicio, no adaptarse
+después.
+
+### 3. Robótica móvil, manipulación y teleoperación
+
+#### Plataformas móviles en interiores
+
+Los robots móviles de interiores usan típicamente una de tres bases:
+tracción diferencial, omnidireccional o de tipo Ackermann. La tracción
+diferencial —dos ruedas motorizadas independientes más una rueda de apoyo
+pasiva— es la más frecuente en almacén, por tres razones: simplicidad
+mecánica, capacidad de giro sobre su propio eje y facilidad de control
+cinemático.
+
+Su control se reduce a modular de forma independiente la velocidad de cada
+rueda motriz. Esa simplicidad la hace directamente compatible con los
+joysticks analógicos de un controlador XR. La base de Remote Hands sigue
+exactamente este esquema (ver [Plataforma
+móvil](/sistema/subsistemas/robot-movil/plataforma-movil/)).
+
+#### Manipulación robótica para pick-and-place
+
+Las operaciones de pick-and-place en logística exigen al menos dos grados de
+libertad activos para operar en el plano vertical, es decir alcance y
+elevación. A eso se suma un efector final capaz de asir y soltar objetos de
+forma controlada.
+
+El rango de tareas objetivo es acotado: tomar cajas o recipientes ligeros
+desde estantes o transportadores. Para ese rango, un brazo de dos
+articulaciones —hombro y codo— con garra de dos dedos cubre el espacio de
+trabajo relevante con la menor complejidad mecánica posible. El manipulador
+construido añade una tercera articulación, la muñeca, sobre esa base (ver
+[Manipulador 3 GDL](/sistema/subsistemas/robot-movil/manipulador/)).
+
+Los motores paso a paso con drivers de lazo cerrado, como el CL57T, combinan
+la simplicidad de control de los *steppers* con retroalimentación de
+posición por encoder. Esa retroalimentación elimina la pérdida de pasos bajo
+carga variable. Para una aplicación donde la precisión repetible pesa más
+que la velocidad, la relación costo-desempeño resulta favorable frente a
+servomotores de grado industrial.
+
+#### Latencia y retroalimentación en teleoperación
+
+La teleoperación efectiva exige que el operador mantenga *situational
+awareness*: conciencia del estado del robot y de su entorno, construida con
+la retroalimentación sensorial que el sistema le entrega. El canal principal
+es visual, con una cámara en primera persona. Lo complementan la
+retroalimentación de profundidad, el audio del entorno y —en sistemas más
+avanzados— la retroalimentación háptica.
+
+El parámetro de desempeño más crítico es la latencia de lazo cerrado: el
+tiempo entre que el operador emite un comando y percibe su efecto en el
+video de retorno. Los estudios de teleoperación documentan que, por encima
+de 150–200 ms, la capacidad del operador para hacer ajustes finos se degrada
+de forma significativa. Suben tanto el tiempo de ejecución como la tasa de
+error.
+
+Operar en red local permite apuntar a latencias menores a 100 ms extremo a
+extremo. Ese umbral es la referencia que informa a
+[REQ-COM-002](/proyecto/#requisitos-de-sistema), sin
+ser idéntico a él, y el contexto en el que se lee el [experimento de
+latencia WiFi](/latencia-wifi/#resultados).
+
+### 4. Realidad extendida (XR) para interfaces de teleoperación
+
+La realidad extendida engloba la realidad virtual (VR), la aumentada (AR) y
+la mixta (MR). Para teleoperación, la VR inmersiva aventaja a las interfaces
+2D convencionales en tres puntos: percepción espacial más natural del
+entorno del robot, control intuitivo mediante movimiento de cabeza y
+controladores de mano, y menor distancia cognitiva entre la intención del
+operador y la acción del robot.
+
+Los headsets de consumo actuales —la familia Meta Quest en particular—
+ofrecen resolución, frecuencia de refresco y *tracking* suficientes para
+teleoperación industrial ligera, a un costo muy inferior al del equipo de
+grado industrial. El SDK de Meta XR para Unity integra renderizado
+estereoscópico, *tracking* de controladores y proyección de video externo
+dentro de la escena virtual. Con esas tres piezas, la imagen de la cámara
+del robot y los elementos de UI conviven en la misma vista (ver [Interfaz
+XR](/sistema/subsistemas/interfaz-xr/)).
+
+Para operadores con discapacidad motriz, la interfaz XR debe incorporar
+criterios de accesibilidad desde el diseño:
+
+- el mínimo número de acciones por tarea;
+- opciones de control alternativo;
+- retroalimentación redundante, visual y auditiva;
+- tolerancia a la imprecisión de movimiento.
+
+Esa adaptabilidad a distintos perfiles de usuario es la ventaja clave del
+enfoque XR frente a las interfaces físicas especializadas.
+
+### 5. Usabilidad y métricas de evaluación en teleoperación
+
+La norma ISO 9241-11 define la usabilidad de un sistema interactivo en tres
+dimensiones:
+
+| Dimensión | Pregunta que responde |
+| --- | --- |
+| Efectividad | ¿El usuario logra el objetivo? |
+| Eficiencia | ¿A qué costo en tiempo y esfuerzo? |
+| Satisfacción | ¿La experiencia resulta aceptable? |
+
+Las tres son relevantes para un sistema de teleoperación, aunque con pesos
+distintos según el contexto de uso.
+
+El *System Usability Scale* (SUS) es el instrumento más adoptado para
+evaluar usabilidad con rapidez: un cuestionario de 10 ítems en escala Likert
+que produce una puntuación de 0 a 100. Los puntajes superiores a 68
+corresponden a sistemas aceptables para uso general; los superiores a 80 se
+consideran buenos. El SUS está validado en sistemas de control remoto y
+robots, y su brevedad lo hace compatible con sesiones de prueba donde la
+carga cognitiva del usuario ya es alta.
+
+Esa carga cognitiva —los recursos mentales que el sistema le demanda al
+operador— determina a la vez la usabilidad y la accesibilidad. Cuatro
+factores la incrementan:
+
+- latencia elevada;
+- campo visual limitado en el video de retorno;
+- número de controles activos simultáneos;
+- ausencia de autonomía asistida en el robot.
+
+En este proyecto, reducir la carga cognitiva es sinónimo de diseñar para
+inclusión: un sistema más sencillo de operar es, al mismo tiempo, un sistema
+más accesible para personas con discapacidad.

@@ -1,0 +1,147 @@
+---
+title: Operación
+description: "Cómo encender y operar el robot con seguridad, y qué revisar cuando algo falla."
+tableOfContents:
+  minHeadingLevel: 2
+  maxHeadingLevel: 2
+---
+
+import { ParameterTable } from '@project';
+
+Lo que necesita quien opera el robot: cómo llevarlo de apagado a operativo, qué riesgos tiene y qué revisar primero cuando algo falla.
+
+## Puesta en marcha
+
+**Duración:** ~5 min
+
+Llevar el robot de apagado a operativo toma unos **5 minutos**. Casi todo
+ese tiempo es el arranque de la NUC; los pasos manuales son pocos.
+
+### Alimentación
+
+El sistema usa tres baterías LiPo independientes, una por subsistema de
+potencia:
+
+<ParameterTable
+  caption="Baterías"
+  rows={[
+    { parameter: 'LiPo 6S', value: '6', unit: 'celdas', notes: 'Puentes H — alimenta los MOSFETs de tracción' },
+    { parameter: 'LiPo 3S — NUC', value: '3', unit: 'celdas', notes: 'NUC y motor del gripper (12 V, en paralelo)' },
+    { parameter: 'LiPo 3S — manipulador', value: '3', unit: 'celdas', notes: 'Drivers CL57T' },
+  ]}
+/>
+
+Conecta las tres antes de encender la NUC. Así todos los módulos embebidos y
+los drivers quedan energizados desde el inicio.
+
+### Secuencia de arranque
+
+1. **Conecta las tres baterías**, en cualquier orden. Los módulos ESP32-C3
+   arrancan solos, en estado `DISARMED`, y se quedan esperando comandos.
+
+2. **Enciende la NUC.** Ejecuta sola el script principal de Python 3.12, sin
+   que haga falta intervenir. Ese script levanta el middleware ZMQ,
+   inicializa el streaming de video y de LiDAR, y abre las conexiones
+   seriales con los módulos embebidos por COM4 y COM5.
+
+3. **Averigua la IP de la NUC.** La red del laboratorio no asigna IPs fijas,
+   así que cambia en cada arranque. Desde una PC en la misma red:
+
+   ```bash
+   arp -a
+   ```
+
+   Si conoces el hostname de la NUC, también sirve:
+
+   ```bash
+   ping <hostname-de-la-NUC>
+   ```
+
+   La vía más directa es conectar un monitor externo a la NUC y leer la IP
+   en su terminal.
+
+4. **Escribe esa IP en la aplicación de la Meta Quest.** El campo de IP del
+   servidor debe apuntar a la dirección del paso anterior. Este es el único
+   punto de fricción del arranque: con una IP fija, el paso desaparecería.
+
+5. **Comprueba que el sistema responde.** Deberías tener video en vivo,
+   telemetría y control de movimiento disponibles desde la interfaz XR.
+
+**Antes de armar cualquier controlador**, verifica que el área de trabajo
+del robot esté despejada. Los módulos arrancan en `DISARMED` por diseño,
+pero el paso a `ARMED` surte efecto de inmediato en cuanto se envía el
+comando.
+
+## Seguridad
+
+Remote Hands mueve masa real bajo control remoto, y el operador trabaja con
+el campo visual cubierto. Esta sección reúne los riesgos identificados y las
+precauciones que el proyecto aplica hoy.
+
+<figure>
+  <img
+    src="/images/build/finales-de-carrera.webp"
+    alt="Finales de carrera instalados en la articulación superior y en la base del manipulador"
+  />
+  <figcaption>Los finales de carrera son la primera capa de seguridad del manipulador: acotan el recorrido antes de que lo haga el firmware.</figcaption>
+</figure>
+
+### Riesgos identificados
+
+| Riesgo | Origen |
+| --- | --- |
+| Eléctrico | Alimentación de 12–24 V DC y electrónica de potencia |
+| Mecánico | Movimiento de la base móvil y del manipulador |
+| De operación remota | El operador no confirma físicamente el estado del entorno |
+| De campo visual | El headset Meta Quest limita la visión periférica |
+
+### Precauciones mínimas
+
+- Opera en un área despejada y delimitada.
+- Mantén supervisión presencial durante todas las pruebas.
+- Verifica el método de detención inmediata antes de cada sesión. La parada
+  de emergencia vive en el panel izquierdo de la interfaz (ver [Interfaz y
+  controles](/sistema/subsistemas/interfaz-xr/interfaz/)).
+- Prueba los movimientos a baja velocidad antes de pasar a una prueba de
+  integración completa.
+
+### Protocolo formal — pendiente
+
+El proyecto original dejó esta tarea abierta, y sigue sin resolverse. Falta
+acordar con el equipo cuatro cosas:
+
+- El procedimiento de paro seguro.
+- El checklist previo a cada prueba.
+- Las zonas de operación.
+- Las distancias mínimas de supervisión.
+
+Ese protocolo no se redactó aquí. Inventar un procedimiento de seguridad
+que nadie ha validado sería peor que declararlo pendiente.
+
+## Solución de problemas
+
+Esta tabla recoge las fallas que el proyecto ha visto con más frecuencia,
+con su síntoma visible y el primer sitio donde conviene mirar. Está pensada
+para consulta rápida durante una sesión, no como guía de diagnóstico
+completa.
+
+### Fallas comunes
+
+| Caso | Síntoma | Causas probables | Qué revisar |
+| --- | --- | --- | --- |
+| No hay comunicación ZMQ | No llegan datos a XR | Red no válida, servicio no iniciado, puertos no disponibles | Estado del backend, red local, [puertos documentados](/sistema/arquitectura/comunicaciones/) |
+| XR no recibe datos | Paneles vacíos o sin actualización | Suscripción inactiva, endpoint incorrecto | Configuración de endpoint, estado de tópicos |
+| Robot no se mueve | Comando recibido sin acción física | Puente de control incompleto, firmware no ejecutando | Estado del ESP32-C3, alimentación, enlace de control |
+| Un motor no responde | Movimiento parcial | Módulo embebido o conexión física | Cableado, módulo, señales de salida |
+| ESP32-C3 no ejecuta firmware | Sin respuesta del módulo | Firmware ausente o despliegue incorrecto | Método de carga y arranque |
+| Computadora no detecta dispositivo | Sensor/control no visible | Conexión física o driver | Puerto físico, enlace USB, estado del módulo |
+| Movimiento físico no coincide con el virtual | Acción inconsistente | Mapeo parcial o falta de calibración | Configuración de control y referencias espaciales |
+| Respuesta irregular o retraso | Control inestable | Carga de sistema, red o sincronización | Estado de red y consumo de recursos |
+
+### Diagnóstico detallado — pendiente
+
+Faltan dos piezas que el proyecto original ya identificaba: los
+procedimientos de diagnóstico con comandos concretos por subsistema, y un
+registro histórico de las fallas ya resueltas. Ninguna de las dos se redactó
+para este sitio, porque exigen experiencia de operación que no está
+documentada en ningún lado.

@@ -7,6 +7,7 @@ import remarkMath from 'remark-math';
 import rehypeKatex from 'rehype-katex';
 import rehypeMermaid from 'rehype-mermaid';
 import rehypeBase from './src/lib/rehype-base.mjs';
+import redirecciones from './src/lib/redirecciones.json' with { type: 'json' };
 
 /** Dominio y ruta base de despliegue. Ver el comentario de `defineConfig`. */
 const SITE = 'https://remote-hands.sebs.mx';
@@ -34,6 +35,9 @@ export default defineConfig({
   site: SITE,
   base: BASE,
   trailingSlash: 'always',
+
+  // Páginas que se fusionaron: cada URL vieja lleva a su sección nueva.
+  redirects: redirecciones,
 
   // KaTeX y Mermaid resueltos en build, igual que en course-docs — cero
   // JavaScript propio de ninguno de los dos en la página servida.
@@ -151,7 +155,7 @@ export default defineConfig({
       //     no digan «Robot móvil > Robot móvil».
       //  2. No colapsar todo. Catorce grupos cerrados con sustantivos
       //     abstractos obligan a abrirlos uno por uno. «El sistema» queda
-      //     abierto; las cubetas meta (Reporte, Referencia) no —nadie llega
+      //     abierto; las cubetas meta (Reporte, Operar) no —nadie llega
       //     buscándolas.
       //  3. Una página canónica por contrato; las demás enlazan, no
       //     repiten.
@@ -271,33 +275,10 @@ export default defineConfig({
               label: 'Reporte',
               collapsed: true,
               items: [
-                { slug: 'proyecto/resumen' },
-                { slug: 'proyecto/objetivos' },
-                { slug: 'proyecto/alcance' },
-                { slug: 'proyecto/restricciones' },
-                {
-                  // Extensión opcional: Remote Hands es Proyecto Terminal
-                  // universitario y sí la necesita.
-                  label: 'Documentación académica',
-                  collapsed: true,
-                  items: [
-                    { slug: 'academico/contexto' },
-                    { slug: 'academico/problematica' },
-                    { slug: 'academico/pregunta-investigacion' },
-                    { slug: 'academico/justificacion' },
-                    { slug: 'academico/metodologia' },
-                    { slug: 'academico/marco-teorico' },
-                  ],
-                },
-                {
-                  label: 'Registro de ingeniería',
-                  collapsed: true,
-                  items: [
-                    { slug: 'registro/decisiones' },
-                    { slug: 'registro/decisiones/0001-nuc-como-coordinador' },
-                    { slug: 'registro/releases' },
-                  ],
-                },
+                { slug: 'proyecto' },
+                { slug: 'academico' },
+                { slug: 'latencia-wifi' },
+                { slug: 'registro' },
               ],
             },
 
@@ -305,50 +286,7 @@ export default defineConfig({
             {
               label: 'Operar',
               collapsed: true,
-              items: [
-                { slug: 'operacion/puesta-en-marcha' },
-                { slug: 'operacion/seguridad' },
-                { slug: 'operacion/solucion-de-problemas' },
-              ],
-            },
-
-            // ── Construir ───────────────────────────────────────────────
-            {
-              label: 'Construir',
-              collapsed: true,
-              items: [
-                { slug: 'construccion/manufactura-electronica' },
-              ],
-            },
-
-            // ── Confiar ─────────────────────────────────────────────────
-            // Solo evidencia de nivel sistema. La verificación de cada
-            // subsistema vive con el subsistema, no aquí.
-            {
-              label: 'Evidencia',
-              collapsed: true,
-              items: [
-                { slug: 'sistema/requisitos/requisitos-de-sistema' },
-                {
-                  label: 'Experimentos',
-                  collapsed: true,
-                  items: [
-                    { slug: 'verificacion/experimentos/latencia-wifi/protocolo' },
-                    { slug: 'verificacion/experimentos/latencia-wifi/metodo' },
-                    { slug: 'verificacion/experimentos/latencia-wifi/resultados' },
-                  ],
-                },
-              ],
-            },
-
-            // ── Consultar ───────────────────────────────────────────────
-            {
-              label: 'Referencia',
-              collapsed: true,
-              items: [
-                { slug: 'referencia/terminologia' },
-                { slug: 'referencia/comunicacion' },
-              ],
+              items: [{ slug: 'operacion' }],
             },
           ],
         },
