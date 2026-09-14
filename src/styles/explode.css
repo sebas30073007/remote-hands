@@ -511,12 +511,24 @@
 }
 
 /* --- Conmutador UI/UX (cabecera, superficie dark) ------------------- */
-.c-uimode {
+.c-uimode-grupo {
   display: inline-flex;
   align-items: center;
   gap: var(--space-sm);
-  height: 2rem;
   margin-inline-start: var(--space-md);
+  white-space: nowrap;
+}
+
+.c-uimode-grupo__rotulo {
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+}
+
+.c-uimode {
+  display: inline-flex;
+  align-items: center;
+  height: 2rem;
   padding: 0 var(--space-md);
   border: 1px solid var(--divider);
   border-radius: var(--radius-md);
@@ -525,7 +537,7 @@
   font-family: var(--font-sans);
   font-size: 0.75rem;
   font-weight: 600;
-  letter-spacing: 0.04em;
+  letter-spacing: 0.02em;
   white-space: nowrap;
   cursor: pointer;
   transition:
@@ -538,16 +550,6 @@
   border-color: var(--alloy);
 }
 
-.c-uimode__estado {
-  padding-inline-start: var(--space-sm);
-  border-inline-start: 1px solid var(--divider);
-  font-family: var(--font-mono);
-  font-size: 0.6875rem;
-  font-weight: 500;
-  letter-spacing: 0;
-  color: var(--text-secondary);
-}
-
 /* Activo: la pastilla se invierte a blanco sobre la cabecera grafito. Es
    contraste de superficie, no color: el rojo de la vista ya lo gasta el
    panel. */
@@ -557,23 +559,17 @@
   color: var(--graphite);
 }
 
-.c-uimode[aria-pressed='true'] .c-uimode__estado {
-  border-color: var(--mist);
-  color: var(--alloy);
-}
-
 .c-uimode:focus-visible {
   outline: 2px solid var(--sebs-signal); /* sebs-allow: borde de foco */
   outline-offset: 2px;
 }
 
 @media (max-width: 50rem) {
-  .c-uimode {
+  .c-uimode-grupo {
     margin-inline-start: var(--space-sm);
-    padding: 0 var(--space-sm);
   }
 
-  .c-uimode__estado {
-    display: none;
+  .c-uimode {
+    padding: 0 var(--space-sm);
   }
 }

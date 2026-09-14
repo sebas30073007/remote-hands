@@ -596,10 +596,11 @@ site-search button[data-open-modal] kbd {
   }
 
   /* Con el temario contraído la primera columna mide 68 px y la marca no
-     cabe. Ahí manda la legibilidad: la marca toma su ancho natural y el
-     buscador ocupa el resto. */
+     cabe. Ahí manda la legibilidad: la marca toma su ancho natural, el
+     conmutador de modo el suyo, y el buscador ocupa el resto. Son tres
+     hijos: con dos columnas, el conmutador caía a una segunda fila. */
   [data-nav-collapsed] header.header > .header {
-    grid-template-columns: auto 1fr;
+    grid-template-columns: auto 1fr auto;
   }
 
   /* El buscador cae exactamente sobre la columna de texto: mismo ancho

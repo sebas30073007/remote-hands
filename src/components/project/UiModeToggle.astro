@@ -1,6 +1,8 @@
 ---
 /**
- * Conmutador UI/UX: temario clásico ↔ navegación por vista explosionada.
+ * Conmutador de modo: temario clásico (Lista) ↔ navegación por vista
+ * explosionada (Explosión). El rótulo «Modo:» va fuera del botón; el botón
+ * dice solo el modo activo.
  *
  * Existe para comparar las dos formas de navegar el mismo contenido sin
  * tener que elegir una todavía. El modo vive en `data-ui` sobre `<html>`:
@@ -22,16 +24,19 @@
  */
 ---
 
-<button
-  type="button"
-  class="c-uimode"
-  data-uimode
-  aria-pressed="false"
-  title="Alternar entre el temario de lista y la vista explosionada"
->
-  <span class="c-uimode__label">UI/UX</span>
-  <span class="c-uimode__estado" data-uimode-estado>Lista</span>
-</button>
+<div class="c-uimode-grupo">
+  <span class="c-uimode-grupo__rotulo" aria-hidden="true">Modo:</span>
+  <button
+    type="button"
+    class="c-uimode"
+    data-uimode
+    aria-pressed="false"
+    aria-label="Modo de navegación"
+    title="Alternar entre el temario de lista y la vista explosionada"
+  >
+    <span class="c-uimode__estado" data-uimode-estado>Lista</span>
+  </button>
+</div>
 
 <script>
   const CLAVE = 'remote-hands-ui';
