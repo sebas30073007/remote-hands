@@ -70,15 +70,29 @@ Del operador al motor. Cada tramo lleva el medio por el que viaja la orden.
     { nombre: 'Meta Quest 3', detalle: 'interfaz XR', imagen: '/images/3d/meta-quest-3.webp' },
     { nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' },
     { nombre: 'Puente H maestro', detalle: 'ESP32-C3', imagen: '/images/3d/puente-h.webp' },
-    { nombre: 'Controlador CL57T', detalle: 'ESP32-C3', imagen: '/images/3d/controlador-cl57t.webp' },
+    {
+      nombre: 'Controlador CL57T',
+      detalle: 'ESP32-C3',
+      imagen: '/images/3d/controlador-cl57t.webp',
+      ramas: [
+        {
+          nombre: 'Finales de carrera × 2',
+          detalle: 'codo y muñeca',
+          imagen: '/images/3d/final-de-carrera.webp',
+          enlace: { medio: 'SW2 GPIO3 · SW3 GPIO4', vuelta: 'contacto en el tope' },
+        },
+      ],
+    },
     { nombre: 'Driver CL57T × 3', detalle: 'lazo cerrado', imagen: '/images/3d/driver-cl57t.webp' },
     { nombre: 'NEMA17 + reductor planetario × 3', detalle: 'base, codo y muñeca', imagen: '/images/3d/nema17-reductor.webp' },
   ]}
   enlaces={['ZMQ · cmd (manip_cmd)', 'Serial · COM4', 'I²C 0x0B · texto ASCII', 'PUL / DIR', '']}
 />
 
-A la placa llegan también los **tres finales de carrera** del brazo, uno por
-eje. Sus entradas están en [Asignación de pines](#asignación-de-pines).
+Del controlador cuelgan los **dos finales de carrera** que lee el firmware,
+los del codo y la muñeca. La base tiene el suyo en la entrada `SW1`, pero el
+firmware no lo lee. Sus entradas están en [Asignación de
+pines](#asignación-de-pines).
 
 ## Drivers y motores
 

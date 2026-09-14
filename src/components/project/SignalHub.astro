@@ -4,90 +4,135 @@
  * pieza que se conecta con varias a la vez: la NUC con sus sensores y sus
  * placas, por ejemplo.
  *
- * Mismo lenguaje visual que la cadena: tarjetas con el render y el dato
- * técnico, y tramos con el medio por el que viaja la información. La pieza
- * central ocupa la columna izquierda en toda su altura; cada rama es una
- * fila con su tramo y su tarjeta.
+ * Se lee de izquierda a derecha, como el flujo de la información: a la
+ * izquierda lo que ENTRA a la pieza central (sensores, el operador) y a la
+ * derecha hacia donde SALE (placas, actuadores). Cada rama es una fila con
+ * una sola línea, y sus puntas señalan en pantalla hacia donde viaja cada
+ * dato; lo que viaja se escribe debajo con la misma flecha (→ o ←).
  *
  * Uso:
  * <SignalHub
  *   centro={{ nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' }}
  *   ramas={[
- *     { nombre: 'RPLiDAR C1', imagen: '/images/3d/rplidar-c1.webp', enlace: { medio: 'COM3', vuelta: 'barridos 2D' } },
- *     …
+ *     { nombre: 'RPLiDAR C1', imagen: '…', lado: 'entrada', enlace: { medio: 'COM3', vuelta: 'barridos 2D' } },
+ *     { nombre: 'Puente H', imagen: '…', enlace: { medio: 'COM4', ida: 'POSE', vuelta: 'estado' } },
  *   ]}
  * />
  *
- * `enlace` es como en `SignalChain`: un texto (flecha del centro hacia la
- * rama) o `{ medio, ida, vuelta }`, donde `ida` va del centro a la rama y
- * `vuelta` regresa. En pantalla estrecha no hay columnas: cada rama se
- * apila con su tramo escrito debajo, con el sentido en palabras.
+ * `enlace`: un texto (solo el medio, con punta hacia la rama) o
+ * `{ medio, ida, vuelta }`, donde `ida` va del centro a la rama y `vuelta`
+ * de la rama al centro. `lado`: 'entrada' (izquierda) o 'salida' (derecha,
+ * por defecto). En pantalla estrecha todo se apila, y el sentido se
+ * escribe en palabras.
  */
 type Enlace = string | { medio?: string; ida?: string; vuelta?: string };
 
-interface Paso {
+interface Componente {
   nombre: string;
   detalle?: string;
   imagen: string;
+  href?: string;
 }
 
 interface Props {
-  centro: Paso;
-  ramas: (Paso & { enlace: Enlace })[];
+  centro: Componente;
+  ramas: (Componente & { enlace: Enlace; lado?: 'entrada' | 'salida' })[];
   caption?: string;
 }
 
 const { centro, ramas, caption } = Astro.props;
 
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const src = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
-const normalizar = (e: Enlace) => (typeof e === 'string' ? { ida: e } : e);
+const conBase = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
+const normalizar = (e: Enlace) => (typeof e === 'string' ? { medio: e, ida: undefined, vuelta: undefined, soloMedio: true } : e);
+const sentidoDe = (e: { ida?: string; vuelta?: string; soloMedio?: boolean }) =>
+  e.soloMedio || (e.ida && !e.vuelta) ? 'ida' : e.vuelta && !e.ida ? 'vuelta' : 'doble';
+
+const izquierda = ramas.filter((r) => r.lado === 'entrada');
+const derecha = ramas.filter((r) => r.lado !== 'entrada');
+const hayIzquierda = izquierda.length > 0;
+const filas = Math.max(izquierda.length, derecha.length);
+const plantilla = hayIzquierda
+  ? 'minmax(0, 1fr) auto minmax(0, 0.8fr) auto minmax(0, 1fr)'
+  : 'minmax(0, 0.8fr) auto minmax(0, 1.2fr)';
+const colCentro = hayIzquierda ? 3 : 1;
+
+// Orden para pantalla estrecha: el centro, y luego cada rama con su tramo.
+const filasDe = (lista: typeof ramas, lado: 'entrada' | 'salida', desde: number) =>
+  lista.map((r, i) => ({
+    r,
+    lado,
+    fila: i + 1 + Math.floor((filas - lista.length) / 2),
+    orden: (desde + i) * 2 + 1,
+  }));
+const todas = [...filasDe(izquierda, 'entrada', 0), ...filasDe(derecha, 'salida', izquierda.length)];
+const Tarjeta = (h?: string) => (h ? 'a' : 'div');
+const CentroTag = Tarjeta(centro.href);
 ---
 
-<figure class="c-chain c-hub not-content" style={`--hub-filas:${ramas.length}`}>
+<figure class:list={['c-chain c-hub not-content', { 'c-hub--dos-lados': hayIzquierda }]} style={`--hub-cols:${plantilla};--hub-filas:${filas}`}>
   <ol class="c-hub__lista">
-    <li class="c-chain__paso c-hub__centro">
-      <img class="c-chain__img" src={src(centro.imagen)} alt="" loading="lazy" decoding="async" />
-      <span class="c-chain__nombre">{centro.nombre}</span>
-      {centro.detalle && <span class="c-chain__detalle">{centro.detalle}</span>}
+    <li class="c-chain__celda c-hub__centro" style={`--col:${colCentro};--orden:0`}>
+      <CentroTag class="c-chain__paso" href={centro.href ? conBase(centro.href) : undefined}>
+        <img class="c-chain__img" src={conBase(centro.imagen)} alt="" loading="lazy" decoding="async" />
+        <span class="c-chain__nombre">{centro.nombre}</span>
+        {centro.detalle && <span class="c-chain__detalle">{centro.detalle}</span>}
+      </CentroTag>
     </li>
     {
-      ramas.map((rama, i) => {
-        const enlace = normalizar(rama.enlace);
-        return (
-          <>
-            <li class="c-chain__tramo c-hub__tramo" style={`--hub-fila:${i + 1}`}>
-              {enlace.vuelta && (
-                <span class="c-chain__flecha c-chain__flecha--vuelta">
-                  <span class="c-chain__senal">
-                    <span class="c-hub__sentido">
-                      {rama.nombre} → {centro.nombre}:{' '}
-                    </span>
-                    {enlace.vuelta}
-                  </span>
-                  <span class="c-chain__linea" aria-hidden="true" />
-                </span>
-              )}
-              {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
-              <span class="c-chain__flecha c-chain__flecha--ida">
-                {enlace.ida && (
-                  <span class="c-chain__senal">
-                    <span class="c-hub__sentido">
-                      {centro.nombre} → {rama.nombre}:{' '}
-                    </span>
-                    {enlace.ida}
+      todas.map(({ r, lado, fila, orden }) => {
+        const e = normalizar(r.enlace);
+        const espejo = lado === 'entrada';
+        const colRama = espejo ? 1 : colCentro + 2;
+        const colTramo = espejo ? 2 : colCentro + 1;
+        const Tag = Tarjeta(r.href);
+        const ramaEl = (
+          <li class:list={['c-chain__celda c-hub__rama', { 'c-hub__rama--entrada': espejo }]} style={`--col:${colRama};--fila:${fila};--orden:${orden}`}>
+            <Tag class="c-chain__paso c-chain__paso--mini" href={r.href ? conBase(r.href) : undefined}>
+              <img class="c-chain__img" src={conBase(r.imagen)} alt="" loading="lazy" decoding="async" />
+              <span class="c-chain__texto">
+                <span class="c-chain__nombre">{r.nombre}</span>
+                {r.detalle && <span class="c-chain__detalle">{r.detalle}</span>}
+              </span>
+            </Tag>
+          </li>
+        );
+        const tramoEl = (
+          <li
+            class:list={['c-chain__tramo c-hub__tramo', { 'c-chain__tramo--espejo': espejo }]}
+            data-sentido={sentidoDe(e)}
+            style={`--col:${colTramo};--fila:${fila};--orden:${orden + 1}`}
+          >
+            {e.medio && <span class="c-chain__medio">{e.medio}</span>}
+            <span class="c-chain__linea" aria-hidden="true" />
+            {(e.ida || e.vuelta) && (
+              <span class="c-chain__carga">
+                {e.vuelta && espejo && (
+                  <span class="c-chain__senal c-chain__senal--vuelta">
+                    <span class="c-chain__sentido">{r.nombre} → {centro.nombre}: </span>
+                    {e.vuelta}
                   </span>
                 )}
-                <span class="c-chain__linea" aria-hidden="true" />
+                {e.ida && (
+                  <span class="c-chain__senal c-chain__senal--ida">
+                    <span class="c-chain__sentido">{centro.nombre} → {r.nombre}: </span>
+                    {e.ida}
+                  </span>
+                )}
+                {e.vuelta && !espejo && (
+                  <span class="c-chain__senal c-chain__senal--vuelta">
+                    <span class="c-chain__sentido">{r.nombre} → {centro.nombre}: </span>
+                    {e.vuelta}
+                  </span>
+                )}
               </span>
-            </li>
-            <li class="c-chain__paso c-hub__rama" style={`--hub-fila:${i + 1}`}>
-              <img class="c-chain__img" src={src(rama.imagen)} alt="" loading="lazy" decoding="async" />
-              <span class="c-hub__texto">
-                <span class="c-chain__nombre">{rama.nombre}</span>
-                {rama.detalle && <span class="c-chain__detalle">{rama.detalle}</span>}
-              </span>
-            </li>
+            )}
+          </li>
+        );
+        return (
+          <>
+            {ramaEl}
+            {tramoEl}
           </>
         );
       })

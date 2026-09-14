@@ -15,7 +15,7 @@ projectType:
   - Proyecto Terminal
 ---
 
-import { StatusBadge, SystemMap } from '@project';
+import { StatusBadge, SignalChain } from '@project';
 
 Remote Hands es un robot móvil con un brazo manipulador de tres grados de
 libertad, construido desde cero. Un operador lo controla a distancia desde
@@ -29,47 +29,33 @@ propio subsistema.
 
 ## El sistema
 
-Tres subsistemas y los dos enlaces que los unen. Cada bloque lleva a su
+Tres partes y los dos enlaces que las unen. Cada tarjeta lleva a su
 documentación.
 
-<SystemMap
-  label="Mapa del sistema: operador, servidor y robot"
-  nodes={[
+<SignalChain
+  pasos={[
     {
-      role: 'Operador',
-      name: 'Visor Meta Quest',
-      summary:
-        'Interfaz de teleoperación en realidad mixta, hecha en Unity.',
+      nombre: 'Meta Quest 3',
+      detalle: 'operador · Unity',
+      imagen: '/images/3d/meta-quest-3.webp',
       href: '/sistema/subsistemas/interfaz-xr/',
     },
     {
-      role: 'Coordinador',
-      name: 'Servidor / NUC',
-      summary:
-        'A bordo. Resuelve percepción, comunicación y reparto de órdenes.',
+      nombre: 'NUC',
+      detalle: 'coordinador a bordo',
+      imagen: '/images/3d/nuc.webp',
       href: '/sistema/subsistemas/servidor-percepcion/',
     },
     {
-      role: 'Actuación',
-      name: 'Robot',
-      summary:
-        'Plataforma móvil diferencial y brazo de 3 GDL, con tres controladores ESP32-C3.',
+      nombre: 'Robot',
+      detalle: 'plataforma y brazo de 3 GDL',
+      imagen: '/images/3d/robot.webp',
       href: '/sistema/subsistemas/robot-movil/',
     },
   ]}
-  links={[
-    {
-      protocol: 'ZMQ · WiFi',
-      forward: 'comandos',
-      back: 'video, LiDAR y estado',
-      href: '/sistema/arquitectura/comunicaciones/',
-    },
-    {
-      protocol: 'USB · I²C',
-      forward: 'consignas',
-      back: 'telemetría',
-      href: '/sistema/arquitectura/comunicaciones/',
-    },
+  enlaces={[
+    { medio: 'ZMQ por WiFi', ida: 'comandos', vuelta: 'video · LiDAR · estado' },
+    { medio: 'USB · I²C', ida: 'consignas', vuelta: 'telemetría' },
   ]}
 />
 

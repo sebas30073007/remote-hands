@@ -224,8 +224,7 @@ export const NODOS: NodoExplode[] = [
     padre: 'servidor',
     escena: 'conjunto-i2c',
     piezas: {
-      maestro: { nodo: 'puenteh', nombre: 'Puente H maestro', descripcion: 'USB a la NUC' },
-      esclavo: { nodo: 'puenteh', nombre: 'Puente H esclavo', descripcion: 'I²C 0x08' },
+      puentes: { nodo: 'puenteh', nombre: 'Puente H ×2', descripcion: 'maestro y esclavo' },
       cl57t: { nodo: 'cl57t', descripcion: 'I²C 0x0B' },
     },
   },

@@ -1,45 +1,53 @@
 ---
 /**
- * Diagrama de conexiones — el estándar del sitio para mostrar qué se conecta
- * con qué y por dónde.
+ * Diagrama de conexiones en cadena — el estándar del sitio para mostrar qué
+ * se conecta con qué y por dónde.
  *
  * Cada componente es una tarjeta con su render 3D grande y, debajo, su
- * nombre y un dato técnico. Entre tarjetas va el tramo: una flecha con el
- * medio por el que viaja la información (puerto, bus, dirección, señales).
- * Las imágenes son las mismas miniaturas de `scripts/render-explode.mjs`, así
- * el lector reconoce la pieza que acaba de señalar en el panel.
+ * nombre y un dato técnico. Entre tarjetas va el tramo, que se lee siempre
+ * igual:
  *
- * Sirve para cadenas (del operador al motor, en el Controlador CL57T) y
- * para enlaces entre dos partes (visor ⇄ robot, en Sistema). Pensado para
- * reutilizarse en cualquier página que explique conexiones: la NUC con sus
- * sensores y placas, un Puente H con su motor…
+ *   medio          ← por dónde viaja (puerto, bus, dirección)
+ *   ─────────▶     ← UNA línea, con punta hacia donde viaja la información
+ *   → lo que va    ← la carga, con la flecha apuntando en pantalla hacia
+ *   ← lo que vuelve   su destino
  *
  * Uso:
  * <SignalChain
- *   pasos={[{ nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp' }, …]}
- *   enlaces={['Serial · COM4', …]}
+ *   pasos={[{ nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp', href: '/…/' }, …]}
+ *   enlaces={['Serial · COM4', { medio: 'ZMQ por WiFi', ida: 'comandos', vuelta: 'video' }, …]}
  * />
  *
- * `enlaces` va ENTRE pasos consecutivos: siempre uno menos que pasos. Cada
- * enlace es:
- *  - un texto: flecha hacia el paso siguiente con ese rótulo (vacío: sin
- *    rótulo);
- *  - o `{ medio, ida, vuelta }` para un enlace en los dos sentidos: `medio`
- *    es el canal, `ida` lo que viaja hacia el paso siguiente y `vuelta` lo
- *    que regresa.
+ * `enlaces` va ENTRE pasos consecutivos: siempre uno menos que pasos. Un
+ * texto es solo el medio, con la punta hacia el paso siguiente; un objeto
+ * `{ medio, ida, vuelta }` describe lo que viaja en cada sentido (`ida`,
+ * hacia el paso siguiente; `vuelta`, de regreso).
+ *
+ * Opcionales por paso:
+ *  - `href`: la tarjeta lleva a esa página.
+ *  - `ramas`: componentes que cuelgan de ese paso fuera de la cadena —los
+ *    finales de carrera de una placa—, dibujados debajo de su tarjeta. Su
+ *    `enlace` usa `ida` para lo que baja del paso a la rama y `vuelta` para
+ *    lo que sube de la rama al paso.
  *
  * `porFila` (3 por defecto) fija cuántas tarjetas caben por fila; cuando la
- * cadena sigue en la fila de abajo, el tramo de cambio de fila es un codo:
- * baja de la última tarjeta, cruza y entra a la primera de la fila siguiente. En pantalla estrecha todo se apila en una columna.
+ * cadena sigue abajo, el tramo es un codo que baja de la última tarjeta y
+ * entra a la primera de la fila siguiente. En pantalla estrecha todo se
+ * apila en una columna.
  */
 type Enlace = string | { medio?: string; ida?: string; vuelta?: string };
 
-interface Paso {
+interface Componente {
   nombre: string;
   /** Qué corre o qué es, en mono: dato técnico. */
   detalle?: string;
   /** Ruta desde la raíz del sitio. */
   imagen: string;
+}
+
+interface Paso extends Componente {
+  href?: string;
+  ramas?: (Componente & { enlace: Enlace })[];
 }
 
 interface Props {
@@ -55,12 +63,22 @@ if (enlaces.length !== pasos.length - 1) {
   throw new Error(`SignalChain: ${pasos.length} pasos necesitan ${pasos.length - 1} enlaces, se recibieron ${enlaces.length}.`);
 }
 
+type Normal = { medio?: string; ida?: string; vuelta?: string; soloMedio?: boolean };
 const base = import.meta.env.BASE_URL.replace(/\/$/, '');
-const src = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
-const normalizar = (e: Enlace) => (typeof e === 'string' ? { ida: e } : e);
+const conBase = (ruta: string) => (ruta.startsWith('/') && !ruta.startsWith('//') ? `${base}${ruta}` : ruta);
+const normalizar = (e: Enlace): Normal => (typeof e === 'string' ? { medio: e, soloMedio: true } : e);
+const sentidoDe = (e: Normal) =>
+  e.soloMedio || (e.ida && !e.vuelta) ? 'ida' : e.vuelta && !e.ida ? 'vuelta' : e.ida && e.vuelta ? 'doble' : 'ida';
+
 const columnas = Math.min(porFila, pasos.length);
-// Una fila: tarjeta, tramo, tarjeta, tramo, tarjeta… (2n − 1 columnas).
+// Una fila: tarjeta, tramo, tarjeta, tramo… (2n − 1 columnas).
 const plantilla = Array.from({ length: columnas }, () => 'minmax(0, 1fr)').join(' auto ');
+
+// Ramas agrupadas por fila: se dibujan en una fila propia, bajo su tarjeta.
+const filas = Math.ceil(pasos.length / columnas);
+const ramasDeFila = Array.from({ length: filas }, (_, f) =>
+  pasos.map((p, i) => ({ p, i })).filter(({ p, i }) => p.ramas?.length && Math.floor(i / columnas) === f)
+);
 ---
 
 <figure class="c-chain not-content" style={`--chain-cols:${plantilla}`}>
@@ -68,17 +86,72 @@ const plantilla = Array.from({ length: columnas }, () => 'minmax(0, 1fr)').join(
     {
       pasos.map((paso, i) => {
         const enlace = i < enlaces.length ? normalizar(enlaces[i]) : null;
+        const fila = Math.floor(i / columnas);
+        const finDeFila = (i + 1) % columnas === 0 || i === pasos.length - 1;
         // El tramo que sigue a la última tarjeta de una fila cambia de fila.
         const cambiaFila = enlace && columnas > 1 && (i + 1) % columnas === 0;
+        const Tarjeta = paso.href ? 'a' : 'div';
         return (
           <>
-            <li class="c-chain__paso">
-              <img class="c-chain__img" src={src(paso.imagen)} alt="" loading="lazy" decoding="async" />
-              <span class="c-chain__nombre">{paso.nombre}</span>
-              {paso.detalle && <span class="c-chain__detalle">{paso.detalle}</span>}
+            <li class="c-chain__celda" style={`--orden:${i * 10}`}>
+              <Tarjeta class="c-chain__paso" href={paso.href ? conBase(paso.href) : undefined}>
+                <img class="c-chain__img" src={conBase(paso.imagen)} alt="" loading="lazy" decoding="async" />
+                <span class="c-chain__nombre">{paso.nombre}</span>
+                {paso.detalle && <span class="c-chain__detalle">{paso.detalle}</span>}
+              </Tarjeta>
             </li>
+
+            {finDeFila && ramasDeFila[fila].length > 0 && (
+              <li class="c-chain__ramas">
+                {ramasDeFila[fila].map(({ p, i: j }) => (
+                  <div class="c-chain__ramas-col" style={`--col:${(j % columnas) * 2 + 1};--orden:${j * 10 + 2}`}>
+                    {p.ramas!.map((r) => {
+                      const e = normalizar(r.enlace);
+                      return (
+                        <div class="c-chain__rama">
+                          <div class="c-chain__tramo c-chain__tramo--vertical" data-sentido={sentidoDe(e)}>
+                            <span class="c-chain__linea" aria-hidden="true" />
+                            <span class="c-chain__textos">
+                              {e.medio && <span class="c-chain__medio">{e.medio}</span>}
+                              {e.ida && (
+                                <span class="c-chain__senal c-chain__senal--ida">
+                                  <span class="c-chain__sentido">
+                                    {p.nombre} → {r.nombre}:{' '}
+                                  </span>
+                                  {e.ida}
+                                </span>
+                              )}
+                              {e.vuelta && (
+                                <span class="c-chain__senal c-chain__senal--vuelta">
+                                  <span class="c-chain__sentido">
+                                    {r.nombre} → {p.nombre}:{' '}
+                                  </span>
+                                  {e.vuelta}
+                                </span>
+                              )}
+                            </span>
+                          </div>
+                          <div class="c-chain__paso c-chain__paso--mini">
+                            <img class="c-chain__img" src={conBase(r.imagen)} alt="" loading="lazy" decoding="async" />
+                            <span class="c-chain__texto">
+                              <span class="c-chain__nombre">{r.nombre}</span>
+                              {r.detalle && <span class="c-chain__detalle">{r.detalle}</span>}
+                            </span>
+                          </div>
+                        </div>
+                      );
+                    })}
+                  </div>
+                ))}
+              </li>
+            )}
+
             {enlace && (
-              <li class:list={['c-chain__tramo', { 'c-chain__tramo--fila': cambiaFila, 'c-chain__tramo--doble': enlace.vuelta }]}>
+              <li
+                class:list={['c-chain__tramo', { 'c-chain__tramo--fila': cambiaFila }]}
+                data-sentido={sentidoDe(enlace)}
+                style={`--orden:${i * 10 + 5}`}
+              >
                 {cambiaFila && (
                   <>
                     <span class="c-chain__codo c-chain__codo--sale" aria-hidden="true" />
@@ -89,17 +162,28 @@ const plantilla = Array.from({ length: columnas }, () => 'minmax(0, 1fr)').join(
                   </>
                 )}
                 <span class="c-chain__textos">
-                  {enlace.vuelta && (
-                    <span class="c-chain__flecha c-chain__flecha--vuelta">
-                      <span class="c-chain__senal">{enlace.vuelta}</span>
-                      <span class="c-chain__linea" aria-hidden="true" />
+                  {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
+                  <span class="c-chain__linea" aria-hidden="true" />
+                  {(enlace.ida || enlace.vuelta) && (
+                    <span class="c-chain__carga">
+                      {enlace.ida && (
+                        <span class="c-chain__senal c-chain__senal--ida">
+                          <span class="c-chain__sentido">
+                            {paso.nombre} → {pasos[i + 1].nombre}:{' '}
+                          </span>
+                          {enlace.ida}
+                        </span>
+                      )}
+                      {enlace.vuelta && (
+                        <span class="c-chain__senal c-chain__senal--vuelta">
+                          <span class="c-chain__sentido">
+                            {pasos[i + 1].nombre} → {paso.nombre}:{' '}
+                          </span>
+                          {enlace.vuelta}
+                        </span>
+                      )}
                     </span>
                   )}
-                  {enlace.medio && <span class="c-chain__medio">{enlace.medio}</span>}
-                  <span class="c-chain__flecha c-chain__flecha--ida">
-                    {enlace.ida && <span class="c-chain__senal">{enlace.ida}</span>}
-                    <span class="c-chain__linea" aria-hidden="true" />
-                  </span>
                 </span>
               </li>
             )}

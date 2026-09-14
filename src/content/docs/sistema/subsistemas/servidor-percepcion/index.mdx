@@ -49,38 +49,48 @@ tiempo real —pasos, rampas, PWM— se queda en las placas.
 
 ### Conexiones
 
-Todo lo que entra y sale de la NUC. El operador llega por WiFi; los
-sensores y las placas, por USB.
+Todo lo que entra y sale de la NUC. A la izquierda, lo que le llega: las
+órdenes del operador y lo que miden los sensores. A la derecha, las placas a
+las que manda. Las puntas de cada línea señalan hacia dónde viaja la
+información, y lo que viaja se lee debajo con la misma flecha.
 
 <SignalHub
   centro={{ nombre: 'NUC', detalle: 'Intel i7 · Python 3.12', imagen: '/images/3d/nuc.webp' }}
   ramas={[
     {
       nombre: 'Meta Quest 3',
+      href: '/sistema/subsistemas/interfaz-xr/',
       detalle: 'interfaz de usuario',
       imagen: '/images/3d/meta-quest-3.webp',
-      enlace: { medio: 'ZMQ por WiFi', ida: '5555 video · 5001 estado · 5007 paredes', vuelta: '5002 comandos' },
+      lado: 'entrada',
+      enlace: { medio: 'ZMQ por WiFi', vuelta: '5002 comandos', ida: '5555 video · 5001 estado · 5007 paredes' },
     },
     {
       nombre: 'RealSense D435i',
+      href: '/sistema/subsistemas/robot-movil/sensores/realsense-d435i/',
       detalle: 'cámara RGB-D',
       imagen: '/images/3d/realsense-d435.webp',
+      lado: 'entrada',
       enlace: { medio: 'USB 3', vuelta: 'RGB 640 × 480 · profundidad' },
     },
     {
       nombre: 'RPLiDAR C1',
+      href: '/sistema/subsistemas/robot-movil/sensores/rplidar-c1/',
       detalle: 'LiDAR 2D',
       imagen: '/images/3d/rplidar-c1.webp',
+      lado: 'entrada',
       enlace: { medio: 'COM3 · 460 800 baud', vuelta: 'barridos 2D' },
     },
     {
       nombre: 'Conjunto I²C',
-      detalle: 'Puente H maestro',
+      href: '/sistema/subsistemas/robot-movil/conjunto-i2c/',
+      detalle: 'Puente H ×2 y CL57T',
       imagen: '/images/3d/puente-h.webp',
       enlace: { medio: 'USB-CDC · COM4', ida: 'tracción · POSE', vuelta: 'estado' },
     },
     {
       nombre: 'Controlador del gripper',
+      href: '/sistema/subsistemas/robot-movil/controladores/gripper/',
       detalle: 'ESP32-C3',
       imagen: '/images/3d/controlador-gripper.webp',
       enlace: { medio: 'USB-CDC · COM5', ida: 'm <mm>', vuelta: 'GRIPPER_STATE' },

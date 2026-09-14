@@ -1,98 +1,93 @@
 ---
 title: Conjunto I²C
-description: Las tres placas que la NUC controla por un solo USB — Puente H maestro, Puente H esclavo y controlador CL57T.
+description: Las placas que la NUC controla por un solo USB — el par de Puente H y el controlador CL57T — y cómo se reparten las órdenes por el bus.
 tableOfContents:
   minHeadingLevel: 2
   maxHeadingLevel: 2
 ---
 
-import { InterfaceTable, SignalHub } from '@project';
+import { InterfaceTable, SignalChain } from '@project';
 
 <figure>
-  <img src="/images/3d/portada-conjunto-i2c.webp" alt="Los dos módulos Puente H encimados y el controlador CL57T con un final de carrera" />
+  <img src="/images/3d/portada-conjunto-i2c.webp" alt="El par de módulos Puente H encimados y el controlador CL57T con un final de carrera" />
 </figure>
 
 La NUC mueve la tracción y el manipulador con un solo cable USB. Lo conecta
-al Puente H maestro, y el maestro reparte las órdenes por un bus I²C a las
-otras dos placas.
+al par de Puente H, y de ahí las órdenes se reparten por un bus I²C.
 
 ## Sinopsis
 
 ### Qué es
 
-Tres placas de diseño propio, cada una con un ESP32-C3, encadenadas por I²C.
-Solo el maestro tiene conexión directa a la NUC; las otras dos cuelgan de él
-en serie.
+Dos tipos de placa de diseño propio, cada una con un ESP32-C3, encadenadas
+por I²C:
 
 <InterfaceTable
   caption="Placas del conjunto"
-  columns={['Placa', 'Conexión', 'Protocolo', 'Mueve']}
+  columns={['Placa', 'Cantidad', 'Protocolo en el bus', 'Mueve']}
   rows={[
-    ['Puente H maestro', 'USB-CDC COM4 a la NUC', '—', 'Motor DC derecho'],
-    ['Puente H esclavo', 'I²C 0x08, desde el maestro', 'Binario, tramas de 7 bytes', 'Motor DC izquierdo'],
-    ['Controlador CL57T', 'I²C 0x0B, desde el maestro', 'Texto ASCII', 'Los 3 ejes del manipulador'],
+    ['Puente H', '2, idénticas', 'Binario, tramas de 7 bytes', 'Un motor DC de tracción cada una'],
+    ['Controlador CL57T', '1', 'Texto ASCII', 'Los 3 ejes del manipulador'],
   ]}
 />
 
+Los dos Puente H son **la misma placa con el mismo firmware**. Lo único que
+los distingue es la posición de su DIP switch, que se lee al encender: en
+`100` la placa es maestro, recibe el USB de la NUC y dirige el bus; en `101`
+es esclavo y escucha en la dirección `0x08`. Por eso se documentan juntos,
+en una sola página: [Puente H](/sistema/subsistemas/robot-movil/electronica/).
+
 ### Cómo funciona
 
-El Puente H maestro se configura como tal con su DIP switch en `100`. A
-partir de ahí, la NUC le habla por USB y él decide a quién va cada orden: la
-de tracción la reparte entre su propio motor y el del esclavo; la del brazo
-la reenvía al controlador CL57T.
-
-Los dos esclavos hablan protocolos distintos: el Puente H esclavo recibe
-tramas binarias de 7 bytes, y el controlador CL57T, líneas de texto ASCII.
+La NUC le habla por USB al Puente H configurado como maestro, y él decide a
+quién va cada orden: la de tracción la aplica a su propio motor y le pasa la
+suya al otro Puente H; la del brazo la reenvía al [Controlador
+CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/).
 
 El controlador del gripper no forma parte del conjunto: va a la NUC por su
 propio USB (COM5).
 
-Cada placa está documentada en su página: [Puente
-H](/sistema/subsistemas/robot-movil/electronica/) y [Controlador
-CL57T](/sistema/subsistemas/robot-movil/controladores/cl57t/).
-
 ### Conexiones
 
-El Puente H maestro es el centro del conjunto: recibe de la NUC y reparte
-por el bus.
-
-<SignalHub
-  centro={{ nombre: 'Puente H maestro', detalle: 'ESP32-C3 · DIP 100', imagen: '/images/3d/puente-h.webp' }}
-  ramas={[
+<SignalChain
+  pasos={[
+    { nombre: 'NUC', detalle: 'Python 3.12', imagen: '/images/3d/nuc.webp', href: '/sistema/subsistemas/servidor-percepcion/' },
     {
-      nombre: 'NUC',
-      detalle: 'Python 3.12',
-      imagen: '/images/3d/nuc.webp',
-      enlace: { medio: 'USB-CDC · COM4', vuelta: 'tracción · POSE', ida: 'estado' },
-    },
-    {
-      nombre: 'Puente H esclavo',
-      detalle: 'motor izquierdo',
+      nombre: 'Puente H ×2',
+      detalle: 'maestro DIP 100 · esclavo DIP 101',
       imagen: '/images/3d/puente-h.webp',
-      enlace: { medio: 'I²C 0x08', ida: 'tramas binarias de 7 bytes' },
+      href: '/sistema/subsistemas/robot-movil/electronica/',
     },
     {
       nombre: 'Controlador CL57T',
       detalle: 'tres ejes del brazo',
       imagen: '/images/3d/controlador-cl57t.webp',
-      enlace: { medio: 'I²C 0x0B', ida: 'POSE · HOME_ALL', vuelta: 'OK …' },
+      href: '/sistema/subsistemas/robot-movil/controladores/cl57t/',
     },
+  ]}
+  enlaces={[
+    { medio: 'USB-CDC · COM4, al maestro', ida: 'tracción · POSE', vuelta: 'estado' },
+    { medio: 'I²C 0x0B', ida: 'POSE · HOME_ALL', vuelta: 'OK …' },
   ]}
 />
 
-Estas son las direcciones del bus que fija el firmware del maestro, y las que
-hay que respetar al añadir un nodo.
+Entre los dos Puente H, el maestro refresca al esclavo por el mismo bus, en
+la dirección `0x08`, cada 80 ms.
+
+Estas son las direcciones del bus que fija el firmware, y las que hay que
+respetar al añadir un nodo:
 
 <InterfaceTable
   caption="Direcciones I²C del bus, según el firmware de tracción"
   columns={['Dirección', 'Nodo', 'Protocolo']}
   rows={[
-    ['0x08', 'Puente H esclavo 1: motor izquierdo', 'Binario, tramas de 7 bytes'],
-    ['0x09', 'Puente H esclavo 2: reservado', 'Binario, tramas de 7 bytes'],
-    ['0x0A', 'Puente H esclavo 3: reservado', 'Binario, tramas de 7 bytes'],
+    ['0x08', 'Puente H en DIP 101 (esclavo 1)', 'Binario, tramas de 7 bytes'],
+    ['0x09', 'Puente H en DIP 110 (esclavo 2): sin usar', 'Binario, tramas de 7 bytes'],
+    ['0x0A', 'Puente H en DIP 111 (esclavo 3): sin usar', 'Binario, tramas de 7 bytes'],
     ['0x0B', 'Controlador CL57T', 'Texto ASCII'],
   ]}
 />
 
 Las direcciones `0x09` y `0x0A` las reserva el DIP switch del Puente H, pero
-no se usan en esta configuración.
+no se usan en esta configuración: el bus admite hasta cuatro Puente H, un
+maestro y tres esclavos.

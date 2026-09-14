@@ -48,16 +48,11 @@ siempre disponible.
   centro={{ nombre: 'NUC', detalle: 'coordinador', imagen: '/images/3d/nuc.webp' }}
   ramas={[
     {
-      nombre: 'Puente H maestro',
-      detalle: 'motor derecho',
+      nombre: 'Puente H ×2',
+      detalle: 'maestro y esclavo, un motor cada uno',
       imagen: '/images/3d/puente-h.webp',
-      enlace: { medio: 'USB-CDC · COM4', ida: 'tracción · POSE', vuelta: 'estado' },
-    },
-    {
-      nombre: 'Puente H esclavo',
-      detalle: 'motor izquierdo',
-      imagen: '/images/3d/puente-h.webp',
-      enlace: { medio: 'COM4 → I²C 0x08', ida: 'tramas binarias' },
+      href: '/sistema/subsistemas/robot-movil/electronica/',
+      enlace: { medio: 'USB-CDC · COM4, al maestro', ida: 'tracción · POSE', vuelta: 'estado' },
     },
     {
       nombre: 'Controlador CL57T',

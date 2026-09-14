@@ -334,8 +334,8 @@ export const ESCENAS = {
      en 0x0B, con su final de carrera. */
   'conjunto-i2c': {
     capas: [
-      { id: 'maestro', componentes: puenteH([0, 0, 0]), explota: [-0.28, -0.12] },
-      { id: 'esclavo', componentes: puenteHEsclavo([0, 0, 0]), explota: [-0.06, 0.26] },
+      // Los dos Puente H son la misma placa: se desmontan como un conjunto.
+      { id: 'puentes', componentes: puentesH([0, 0, 0]), explota: [-0.2, 0.06] },
       { id: 'cl57t', componentes: cl57tConFinales([0, 0, 0]), explota: [0.3, -0.06] },
     ],
   },
